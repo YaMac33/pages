@@ -349,5 +349,7 @@ function initializeSheetsIfNeeded_() {
   });
   if (missing) {
     initializeSheets();
+  } else {
+    seedMasterSheetsIfEmpty_();
   }
 }

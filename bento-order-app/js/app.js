@@ -193,7 +193,8 @@
       window.BentoRender.renderApp();
       scrollToMessages();
     } catch (error) {
-      state.errors = ["送信に失敗しました。時間をおいて再度お試しください。"];
+      const message = error && error.message ? String(error.message) : "Unknown API error.";
+      state.errors = [`API error: ${message}`];
       state.message = null;
       state.modal = { isOpen: false, mode: "", title: "", payload: null };
       window.BentoRender.renderApp();
@@ -354,7 +355,8 @@
       state.departments = initialData.departments;
       window.BentoRender.renderApp();
     } catch (error) {
-      state.errors = ["初期データの読み込みに失敗しました。"];
+      const message = error && error.message ? String(error.message) : "Unknown API error.";
+      state.errors = [`API error: ${message}`];
       window.BentoRender.renderApp();
       console.error(error);
     }

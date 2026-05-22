@@ -36,6 +36,13 @@ function initializeSheets() {
     ensureHeaderRow_(sheet, definition[1]);
   });
 
+  seedMasterSheetsIfEmpty_();
+
+  rebuildOrdersPublic();
+  rebuildSummaries();
+}
+
+function seedMasterSheetsIfEmpty_() {
   seedSheetIfEmpty_(BENTO_SHEET_NAMES.menuMaster, BENTO_HEADERS.menuMaster, BENTO_SAMPLE_MENUS);
   seedSheetIfEmpty_(
     BENTO_SHEET_NAMES.deliveryDates,
@@ -43,9 +50,6 @@ function initializeSheets() {
     BENTO_SAMPLE_DELIVERY_DATES
   );
   seedSheetIfEmpty_(BENTO_SHEET_NAMES.settings, BENTO_HEADERS.settings, BENTO_SAMPLE_SETTINGS);
-
-  rebuildOrdersPublic();
-  rebuildSummaries();
 }
 
 function seedSheetIfEmpty_(sheetName, headers, rows) {
