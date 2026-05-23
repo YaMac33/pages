@@ -102,7 +102,8 @@
 
     .form-shell,
     .summary-panel,
-    .confirmation-panel {
+    .confirmation-panel,
+    .order-status-panel {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius);
@@ -496,6 +497,97 @@
       overflow-wrap: anywhere;
     }
 
+    .order-status-panel {
+      margin-top: 22px;
+      padding: 24px;
+    }
+
+    .order-status-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .order-status-meta {
+      margin: 6px 0 0;
+      color: var(--color-muted);
+      font-size: 0.95rem;
+    }
+
+    .order-filter-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 280px);
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .order-summary-list {
+      margin-top: 18px;
+    }
+
+    .order-empty {
+      margin: 18px 0 0;
+      padding: 14px 16px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: #fbfdff;
+      color: var(--color-muted);
+      font-weight: 700;
+    }
+
+    .order-empty[hidden] {
+      display: none;
+    }
+
+    .order-table-block {
+      margin-top: 24px;
+    }
+
+    .order-table-title {
+      margin: 0 0 10px;
+      font-weight: 800;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: #ffffff;
+    }
+
+    .order-table {
+      width: 100%;
+      min-width: 640px;
+      border-collapse: collapse;
+    }
+
+    .order-table th,
+    .order-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--color-border);
+      text-align: left;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+
+    .order-table th {
+      background: #f7f9fc;
+      color: var(--color-muted);
+      font-size: 0.92rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .order-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .order-table .number-cell {
+      text-align: right;
+      white-space: nowrap;
+    }
+
     @media (max-width: 860px) {
       .size-variant-row {
         grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
@@ -521,7 +613,8 @@
 
       .form-shell,
       .summary-panel,
-      .confirmation-panel {
+      .confirmation-panel,
+      .order-status-panel {
         padding: 18px;
       }
 
@@ -567,6 +660,14 @@
 
       .confirmation-grid dt {
         border-bottom: 0;
+      }
+
+      .order-status-header {
+        flex-direction: column;
+      }
+
+      .order-filter-row {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -662,10 +763,92 @@
         <button type="button" id="editButton" class="button button-secondary">修正する</button>
       </div>
     </section>
+
+    <section id="orderStatusPanel" class="order-status-panel" aria-labelledby="orderStatusTitle">
+      <div class="order-status-header">
+        <div>
+          <h2 id="orderStatusTitle">現在の注文状況</h2>
+          <p id="ordersUpdatedAt" class="order-status-meta"></p>
+        </div>
+        <button type="button" id="refreshOrdersButton" class="button button-secondary">最新の状態に更新</button>
+      </div>
+
+      <p id="ordersStatusMessage" class="message message-info" role="status" aria-live="polite">注文状況を読み込み中です。</p>
+
+      <div class="order-filter-row">
+        <label for="departmentFilter">部署フィルター</label>
+        <select id="departmentFilter">
+          <option value="all">すべて</option>
+        </select>
+      </div>
+
+      <div class="summary-list order-summary-list" aria-live="polite">
+        <p class="summary-line">合計数量：<strong id="currentOrderQuantityText">0個</strong></p>
+        <p class="summary-line">参考合計金額：<strong id="currentOrderAmountText">0円</strong></p>
+        <p class="summary-line">注文行数：<strong id="currentOrderLineCountText">0行</strong></p>
+      </div>
+
+      <p id="ordersEmptyMessage" class="order-empty" hidden>現在表示できる注文はありません。</p>
+
+      <div class="order-table-block">
+        <p class="order-table-title">メニュー別集計</p>
+        <div class="table-scroll">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th scope="col">メニュー</th>
+                <th scope="col">サイズ</th>
+                <th scope="col">数量</th>
+                <th scope="col">金額</th>
+              </tr>
+            </thead>
+            <tbody id="menuAggregateBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="order-table-block">
+        <p class="order-table-title">部署別集計</p>
+        <div class="table-scroll">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th scope="col">部署</th>
+                <th scope="col">メニュー</th>
+                <th scope="col">サイズ</th>
+                <th scope="col">数量</th>
+                <th scope="col">金額</th>
+              </tr>
+            </thead>
+            <tbody id="departmentAggregateBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="order-table-block">
+        <p class="order-table-title">注文一覧</p>
+        <div class="table-scroll">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th scope="col">タイムスタンプ</th>
+                <th scope="col">部署</th>
+                <th scope="col">メニュー</th>
+                <th scope="col">サイズ</th>
+                <th scope="col">単価</th>
+                <th scope="col">数量</th>
+                <th scope="col">小計</th>
+              </tr>
+            </thead>
+            <tbody id="currentOrdersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzxLRYdzq4Bf8pkhxLmEzmRvGmvgMpHi_FCcBwXc8rhsbSSdHD6J23El0MAtx4r8c8m/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxLU5fTH1oN5BKtBXpcs4io844_sQZ1O-8-X7F7VIMylD0r2dpqe-2A8mScZZyIs1Xm/exec";
     const MASTER_DATA_URL = "./data/masters.json";
 
     const DEFAULT_MENU_ITEMS = [
@@ -700,9 +883,21 @@
     const showConfirmButton = document.getElementById("showConfirmButton");
     const sendButton = document.getElementById("sendButton");
     const editButton = document.getElementById("editButton");
+    const refreshOrdersButton = document.getElementById("refreshOrdersButton");
+    const departmentFilter = document.getElementById("departmentFilter");
+    const ordersStatusMessage = document.getElementById("ordersStatusMessage");
+    const ordersUpdatedAt = document.getElementById("ordersUpdatedAt");
+    const currentOrderQuantityText = document.getElementById("currentOrderQuantityText");
+    const currentOrderAmountText = document.getElementById("currentOrderAmountText");
+    const currentOrderLineCountText = document.getElementById("currentOrderLineCountText");
+    const ordersEmptyMessage = document.getElementById("ordersEmptyMessage");
+    const menuAggregateBody = document.getElementById("menuAggregateBody");
+    const departmentAggregateBody = document.getElementById("departmentAggregateBody");
+    const currentOrdersBody = document.getElementById("currentOrdersBody");
 
     let pendingData = null;
     let isSending = false;
+    let currentOrders = [];
     const expandedMenus = new Set();
     const quantities = {};
 
@@ -780,6 +975,237 @@
     function toNumber(value, defaultValue) {
       const number = Number(value);
       return Number.isFinite(number) ? number : defaultValue;
+    }
+
+    function formatQuantity(quantity) {
+      return new Intl.NumberFormat("ja-JP").format(toNumber(quantity, 0)) + "個";
+    }
+
+    function setOrdersStatus(message, type) {
+      ordersStatusMessage.textContent = message;
+      ordersStatusMessage.className = "message message-" + type;
+      ordersStatusMessage.hidden = false;
+    }
+
+    function normalizePublishedOrder(row) {
+      const unitPrice = toNumber(row.unitPrice, 0);
+      const quantity = toNumber(row.quantity, 0);
+
+      return {
+        timestamp: String(row.timestamp || "").trim(),
+        department: String(row.department || "").trim() || "未設定",
+        menu: String(row.menu || "").trim() || "未設定",
+        size: String(row.size || "").trim(),
+        basePrice: toNumber(row.basePrice, 0),
+        sizeAdjustment: toNumber(row.sizeAdjustment, 0),
+        unitPrice,
+        quantity,
+        subtotal: unitPrice * quantity
+      };
+    }
+
+    function updateDepartmentFilterOptions() {
+      const previousValue = departmentFilter.value || "all";
+      const departments = Array.from(new Set(currentOrders.map((order) => order.department)))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "ja"));
+
+      departmentFilter.replaceChildren();
+
+      const allOption = document.createElement("option");
+      allOption.value = "all";
+      allOption.textContent = "すべて";
+      departmentFilter.appendChild(allOption);
+
+      departments.forEach((department) => {
+        const option = document.createElement("option");
+        option.value = department;
+        option.textContent = department;
+        departmentFilter.appendChild(option);
+      });
+
+      departmentFilter.value = departments.includes(previousValue) ? previousValue : "all";
+    }
+
+    function getFilteredCurrentOrders() {
+      const selectedDepartment = departmentFilter.value || "all";
+
+      if (selectedDepartment === "all") {
+        return currentOrders;
+      }
+
+      return currentOrders.filter((order) => order.department === selectedDepartment);
+    }
+
+    function calculatePublishedOrderTotals(orders) {
+      return orders.reduce((totals, order) => {
+        totals.quantity += toNumber(order.quantity, 0);
+        totals.amount += toNumber(order.subtotal, 0);
+        return totals;
+      }, {
+        quantity: 0,
+        amount: 0,
+        lines: orders.length
+      });
+    }
+
+    function aggregateMenuOrders(orders) {
+      const map = new Map();
+
+      orders.forEach((order) => {
+        const key = order.menu + "\u0000" + order.size;
+        const current = map.get(key) || {
+          menu: order.menu,
+          size: order.size,
+          quantity: 0,
+          amount: 0
+        };
+
+        current.quantity += toNumber(order.quantity, 0);
+        current.amount += toNumber(order.subtotal, 0);
+        map.set(key, current);
+      });
+
+      return Array.from(map.values()).sort((a, b) => {
+        const menuCompare = a.menu.localeCompare(b.menu, "ja");
+        return menuCompare !== 0 ? menuCompare : a.size.localeCompare(b.size, "ja");
+      });
+    }
+
+    function aggregateDepartmentOrders(orders) {
+      const map = new Map();
+
+      orders.forEach((order) => {
+        const key = order.department + "\u0000" + order.menu + "\u0000" + order.size;
+        const current = map.get(key) || {
+          department: order.department,
+          menu: order.menu,
+          size: order.size,
+          quantity: 0,
+          amount: 0
+        };
+
+        current.quantity += toNumber(order.quantity, 0);
+        current.amount += toNumber(order.subtotal, 0);
+        map.set(key, current);
+      });
+
+      return Array.from(map.values()).sort((a, b) => {
+        const departmentCompare = a.department.localeCompare(b.department, "ja");
+        if (departmentCompare !== 0) return departmentCompare;
+
+        const menuCompare = a.menu.localeCompare(b.menu, "ja");
+        return menuCompare !== 0 ? menuCompare : a.size.localeCompare(b.size, "ja");
+      });
+    }
+
+    function createTableCell(text, isNumber) {
+      const cell = document.createElement("td");
+      cell.textContent = text;
+
+      if (isNumber) {
+        cell.className = "number-cell";
+      }
+
+      return cell;
+    }
+
+    function renderTableRows(tbody, rows, getCells) {
+      tbody.replaceChildren();
+
+      rows.forEach((row) => {
+        const tableRow = document.createElement("tr");
+        getCells(row).forEach((cell) => {
+          tableRow.appendChild(createTableCell(cell.text, cell.isNumber));
+        });
+        tbody.appendChild(tableRow);
+      });
+    }
+
+    function getSizeDisplay(size) {
+      return size || "なし";
+    }
+
+    function renderCurrentOrders() {
+      const filteredOrders = getFilteredCurrentOrders();
+      const totals = calculatePublishedOrderTotals(filteredOrders);
+      const menuRowsData = aggregateMenuOrders(filteredOrders);
+      const departmentRowsData = aggregateDepartmentOrders(currentOrders);
+
+      currentOrderQuantityText.textContent = formatQuantity(totals.quantity);
+      currentOrderAmountText.textContent = formatYen(totals.amount);
+      currentOrderLineCountText.textContent = totals.lines + "行";
+      ordersEmptyMessage.hidden = filteredOrders.length > 0;
+
+      renderTableRows(menuAggregateBody, menuRowsData, (row) => [
+        { text: row.menu },
+        { text: getSizeDisplay(row.size) },
+        { text: formatQuantity(row.quantity), isNumber: true },
+        { text: formatYen(row.amount), isNumber: true }
+      ]);
+
+      renderTableRows(departmentAggregateBody, departmentRowsData, (row) => [
+        { text: row.department },
+        { text: row.menu },
+        { text: getSizeDisplay(row.size) },
+        { text: formatQuantity(row.quantity), isNumber: true },
+        { text: formatYen(row.amount), isNumber: true }
+      ]);
+
+      renderTableRows(currentOrdersBody, filteredOrders, (row) => [
+        { text: row.timestamp },
+        { text: row.department },
+        { text: row.menu },
+        { text: getSizeDisplay(row.size) },
+        { text: formatYen(row.unitPrice), isNumber: true },
+        { text: formatQuantity(row.quantity), isNumber: true },
+        { text: formatYen(row.subtotal), isNumber: true }
+      ]);
+    }
+
+    async function loadCurrentOrders() {
+      setOrdersStatus("注文状況を読み込み中です。", "info");
+      refreshOrdersButton.disabled = true;
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: "GET",
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error("HTTP status: " + response.status);
+        }
+
+        const result = await response.json();
+
+        if (!result.ok) {
+          throw new Error(result.message || "GAS側で注文状況の取得に失敗しました。");
+        }
+
+        const data = result.data || {};
+        const orders = Array.isArray(data.orders) ? data.orders : [];
+
+        currentOrders = orders.map(normalizePublishedOrder);
+        updateDepartmentFilterOptions();
+        renderCurrentOrders();
+        ordersUpdatedAt.textContent = data.updatedAt ? "更新日時：" + data.updatedAt : "";
+        setOrdersStatus("注文状況を更新しました。", "success");
+      } catch (error) {
+        currentOrders = [];
+        updateDepartmentFilterOptions();
+        renderCurrentOrders();
+        ordersUpdatedAt.textContent = "";
+
+        const errorMessage = error && error.message
+          ? "注文状況を取得できませんでした：" + error.message
+          : "注文状況を取得できませんでした。時間をおいて再度お試しください。";
+
+        setOrdersStatus(errorMessage, "error");
+        console.error(error);
+      } finally {
+        refreshOrdersButton.disabled = false;
+      }
     }
 
     function normalizeMenuItem(row) {
@@ -1540,6 +1966,14 @@
       showConfirmButton.focus();
     });
 
+    refreshOrdersButton.addEventListener("click", () => {
+      loadCurrentOrders();
+    });
+
+    departmentFilter.addEventListener("change", () => {
+      renderCurrentOrders();
+    });
+
     sendButton.addEventListener("click", async () => {
       if (!pendingData) {
         return;
@@ -1569,6 +2003,7 @@
 
         resetFormState();
         setStatus("送信しました", "success");
+        await loadCurrentOrders();
       } catch (error) {
         const errorMessage = error && error.message
           ? "送信に失敗しました：" + error.message
@@ -1584,10 +2019,12 @@
     async function initialize() {
       showConfirmButton.disabled = true;
       showMenuLoading();
+      const ordersPromise = loadCurrentOrders();
       await loadMasterData();
       buildMenuRows();
       updateSummary();
       showConfirmButton.disabled = false;
+      await ordersPromise;
     }
 
     initialize();
