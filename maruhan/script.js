@@ -1,4 +1,4 @@
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxLU5fTH1oN5BKtBXpcs4io844_sQZ1O-8-X7F7VIMylD0r2dpqe-2A8mScZZyIs1Xm/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz7VZHMxSyB-3Pjg876Yli-ht3KJzYxi0Jmu7bD3PWtT1FZHgWKHOlANLVvU4TsF8bx/exec";
 const MASTER_DATA_URL = "./data/masters.json";
 
 const DEFAULT_MENU_ITEMS = [
