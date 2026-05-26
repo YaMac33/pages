@@ -134,61 +134,61 @@ function validateOrderInput_(orderInput) {
 }
 
 function buildValidOrderItems_(ss, items) {
-  const menuMap = getMenuMap_(ss);
-  const sizeMap = getSizeOptionMap_(ss);
+  const optionMap = getMenuOptionMap_();
   const validItems = [];
 
   items.forEach(function(item) {
-    const menuName = String(item.menu || '').trim();
+    const menuName = String(item.menuName || item.menu || '').trim();
     const requestedSize = String(item.size || '').trim();
     const quantity = Number(item.quantity);
 
     if (!menuName) return;
+    if (!requestedSize) return;
     if (!Number.isInteger(quantity) || quantity <= 0) return;
 
-    const menu = menuMap[menuName];
+    const optionKey = buildMenuOptionKey_(menuName, requestedSize);
+    const option = optionMap[optionKey];
 
-    if (!menu) {
-      throw new Error('menus シートに存在しないメニューです: ' + menuName);
+    if (!option) {
+      throw new Error('menus シートに存在しないメニューまたは盛り方です: ' + menuName + ' / ' + requestedSize);
     }
 
-    if (!menu.visible) {
-      throw new Error('非表示のメニューが送信されました: ' + menuName);
-    }
-
-    let sizeName = '';
-    let sizeAdjustment = 0;
-
-    if (menu.sizeEnabled) {
-      sizeName = requestedSize || '普通';
-
-      const sizeOption = sizeMap[sizeName];
-
-      if (!sizeOption) {
-        throw new Error('size_options シートに存在しないサイズです: ' + sizeName);
-      }
-
-      if (!sizeOption.visible) {
-        throw new Error('非表示のサイズが送信されました: ' + sizeName);
-      }
-
-      sizeAdjustment = sizeOption.adjustment;
-    }
-
-    const basePrice = menu.basePrice;
-    const unitPrice = basePrice + sizeAdjustment;
+    const unitPrice = option.price;
+    const subtotal = unitPrice * quantity;
 
     validItems.push({
+      menuName: menuName,
       menu: menuName,
-      size: sizeName,
-      basePrice: basePrice,
-      sizeAdjustment: sizeAdjustment,
+      size: requestedSize,
+      price: unitPrice,
       unitPrice: unitPrice,
-      quantity: quantity
+      quantity: quantity,
+      subtotal: subtotal
     });
   });
 
   return validItems;
+}
+
+function getMenuOptionMap_() {
+  const groups = getMenuGroups_();
+  const map = {};
+
+  groups.forEach(function(group) {
+    group.options.forEach(function(option) {
+      map[buildMenuOptionKey_(group.menuName, option.size)] = {
+        menuName: group.menuName,
+        size: option.size,
+        price: Number(option.price || 0)
+      };
+    });
+  });
+
+  return map;
+}
+
+function buildMenuOptionKey_(menuName, sizeName) {
+  return String(menuName || '').trim() + '\u0000' + String(sizeName || '').trim();
 }
 
 function buildOrderRows_(order) {
@@ -200,8 +200,8 @@ function buildOrderRows_(order) {
       order.contact,
       item.menu,
       item.size,
-      item.basePrice,
-      item.sizeAdjustment,
+      item.price,
+      '',
       item.unitPrice,
       item.quantity,
       '有効',

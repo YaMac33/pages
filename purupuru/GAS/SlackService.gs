@@ -13,9 +13,7 @@ function sendOrderSlackNotification_(order) {
 
     return [
       '【' + (index + 1) + '】' + item.menu,
-      'サイズ：' + (item.size || 'なし'),
-      '基本単価：' + formatYen_(item.basePrice),
-      'サイズ加算額：' + formatYen_(item.sizeAdjustment),
+      '盛り方：' + (item.size || 'なし'),
       '単価：' + formatYen_(item.unitPrice),
       '数量：' + item.quantity,
       '小計：' + formatYen_(subtotal)
@@ -84,17 +82,17 @@ function testSlackNotification() {
       {
         menu: '鮭弁当',
         size: '普通',
-        basePrice: 500,
-        sizeAdjustment: 0,
+        price: 500,
         unitPrice: 500,
+        subtotal: 1000,
         quantity: 2
       },
       {
         menu: 'お茶',
         size: '',
-        basePrice: 120,
-        sizeAdjustment: 0,
+        price: 120,
         unitPrice: 120,
+        subtotal: 120,
         quantity: 1
       }
     ]

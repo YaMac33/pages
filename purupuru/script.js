@@ -1,25 +1,7 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxWwMt6cXdXu1KG3NFmzT10n9FX8VNI6dpmFS_WtDayCjG1eJe7Q1g1sXRg9AM7UsWs/exec";
 const MASTER_DATA_URL = "./data/masters.json";
 
-const DEFAULT_MENU_ITEMS = [
-  { name: "鮭弁当", basePrice: 500, sizeEnabled: true },
-  { name: "まんぷくまるはん弁当", basePrice: 450, sizeEnabled: true },
-  { name: "唐揚げ弁当", basePrice: 550, sizeEnabled: true },
-  { name: "幕の内弁当", basePrice: 600, sizeEnabled: true },
-  { name: "お茶", basePrice: 120, sizeEnabled: false },
-  { name: "味噌汁", basePrice: 100, sizeEnabled: false },
-  { name: "ハラミ", basePrice: 500, sizeEnabled: true }
-];
-
-const DEFAULT_SIZE_OPTIONS = [
-  { name: "小盛", adjustment: -50 },
-  { name: "普通", adjustment: 0 },
-  { name: "大盛", adjustment: 100 },
-  { name: "特盛", adjustment: 200 }
-];
-
-let MENU_ITEMS = DEFAULT_MENU_ITEMS.map((item) => ({ ...item }));
-let SIZE_OPTIONS = DEFAULT_SIZE_OPTIONS.map((item) => ({ ...item }));
+let MENU_ITEMS = [];
 
 const form = document.getElementById("orderForm");
 const menuRows = document.getElementById("menuRows");
@@ -70,11 +52,16 @@ function formatYen(amount) {
 }
 
 function findMenuItem(menuName) {
-  return MENU_ITEMS.find((item) => item.name === menuName);
+  return MENU_ITEMS.find((item) => item.menuName === menuName);
 }
 
-function findSizeOption(sizeName) {
-  return SIZE_OPTIONS.find((option) => option.name === sizeName);
+function findMenuOption(menuName, sizeName) {
+  const menuItem = findMenuItem(menuName);
+  if (!menuItem) {
+    return null;
+  }
+
+  return menuItem.options.find((option) => option.size === sizeName) || null;
 }
 
 function getItemKey(menuName, sizeName) {
@@ -106,34 +93,12 @@ function clearQuantities() {
 }
 
 function getMenuVariants(menuItem) {
-  if (menuItem.sizeEnabled) {
-    return SIZE_OPTIONS.map((option) => ({
-      size: option.name,
-      sizeLabel: option.name,
-      adjustment: option.adjustment
-    }));
-  }
-
-  return [
-    {
-      size: "",
-      sizeLabel: "サイズ対象外",
-      adjustment: 0
-    }
-  ];
-}
-
-function toBoolean(value, defaultValue) {
-  if (value === undefined || value === null || value === "") {
-    return defaultValue;
-  }
-
-  if (value === true || value === false) {
-    return value;
-  }
-
-  const text = String(value).trim().toUpperCase();
-  return text === "TRUE" || text === "1" || text === "YES" || text === "有効" || text === "表示";
+  return menuItem.options.map((option) => ({
+    size: option.size,
+    sizeLabel: option.size,
+    price: option.price,
+    sort: option.sort
+  }));
 }
 
 function toNumber(value, defaultValue) {
@@ -158,19 +123,18 @@ function setOrderStatusExpanded(expanded) {
 }
 
 function normalizePublishedOrder(row) {
-  const unitPrice = toNumber(row.unitPrice, 0);
+  const unitPrice = toNumber(row.price ?? row.unitPrice, 0);
   const quantity = toNumber(row.quantity, 0);
+  const subtotal = toNumber(row.subtotal, unitPrice * quantity);
 
   return {
     timestamp: String(row.timestamp || "").trim(),
     department: String(row.department || "").trim() || "未設定",
-    menu: String(row.menu || "").trim() || "未設定",
+    menu: String(row.menuName || row.menu || "").trim() || "未設定",
     size: String(row.size || "").trim(),
-    basePrice: toNumber(row.basePrice, 0),
-    sizeAdjustment: toNumber(row.sizeAdjustment, 0),
     unitPrice,
     quantity,
-    subtotal: unitPrice * quantity
+    subtotal
   };
 }
 
@@ -344,7 +308,7 @@ async function loadCurrentOrders() {
   refreshOrdersButton.disabled = true;
 
   try {
-    const response = await fetch(GAS_URL, {
+    const response = await fetch(buildUrl(GAS_URL, { action: "orders" }), {
       method: "GET",
       cache: "no-store"
     });
@@ -362,7 +326,9 @@ async function loadCurrentOrders() {
     const data = result.data || {};
     const orders = Array.isArray(data.orders) ? data.orders : [];
 
-    currentOrders = orders.map(normalizePublishedOrder);
+    currentOrders = orders
+      .map(normalizePublishedOrder)
+      .filter((order) => Number.isFinite(order.quantity) && order.quantity > 0);
     updateDepartmentFilterOptions();
     updateMenuFilterOptions();
     renderCurrentOrders();
@@ -386,42 +352,6 @@ async function loadCurrentOrders() {
   }
 }
 
-function normalizeMenuItem(row) {
-  if (Array.isArray(row)) {
-    return {
-      name: String(row[0] || "").trim(),
-      basePrice: toNumber(row[1], 0),
-      sizeEnabled: toBoolean(row[2], false),
-      visible: toBoolean(row[3], false)
-    };
-  }
-
-  return {
-    name: String(row.name || row.menu || row["メニュー"] || "").trim(),
-    basePrice: toNumber(row.basePrice ?? row["基本単価"], 0),
-    sizeEnabled: toBoolean(row.sizeEnabled ?? row["サイズ変更対象"], false),
-    visible: toBoolean(row.visible ?? row["表示"], true)
-  };
-}
-
-function normalizeSizeOption(row) {
-  if (Array.isArray(row)) {
-    return {
-      name: String(row[0] || "").trim(),
-      adjustment: toNumber(row[1], 0),
-      visible: toBoolean(row[2], false),
-      order: toNumber(row[3], 0)
-    };
-  }
-
-  return {
-    name: String(row.name || row.size || row["サイズ"] || "").trim(),
-    adjustment: toNumber(row.adjustment ?? row["加算額"], 0),
-    visible: toBoolean(row.visible ?? row["表示"], true),
-    order: toNumber(row.order ?? row["並び順"], 0)
-  };
-}
-
 function showMenuLoading() {
   menuRows.replaceChildren();
 
@@ -431,7 +361,17 @@ function showMenuLoading() {
   menuRows.appendChild(loading);
 }
 
-function getMasterDataUrls() {
+function buildUrl(url, params) {
+  const builtUrl = new URL(url, window.location.href);
+
+  Object.entries(params).forEach(([key, value]) => {
+    builtUrl.searchParams.set(key, value);
+  });
+
+  return builtUrl.toString();
+}
+
+function getLocalMasterDataUrls() {
   const urls = [MASTER_DATA_URL];
   const path = window.location.pathname;
 
@@ -446,87 +386,205 @@ function getMasterDataUrls() {
   return Array.from(new Set(urls));
 }
 
+function assertApiPayload(payload) {
+  if (payload && payload.ok === false) {
+    const apiError = new Error(payload.message || "メニュー情報の取得に失敗しました。");
+    apiError.stopFallback = true;
+    throw apiError;
+  }
+
+  return payload;
+}
+
+function normalizeMenuOption(row) {
+  if (Array.isArray(row)) {
+    return {
+      size: String(row[0] || "").trim(),
+      price: toNumber(row[1], 0),
+      sort: toNumber(row[2], 0)
+    };
+  }
+
+  return {
+    size: String(row.size || row.sizeName || row["盛り方"] || "").trim(),
+    price: toNumber(row.price ?? row["単価"], 0),
+    sort: toNumber(row.sort ?? row.order ?? row["並び順"], 0)
+  };
+}
+
+function normalizeMenuGroup(row) {
+  if (Array.isArray(row)) {
+    return {
+      menuName: String(row[0] || "").trim(),
+      groupSort: toNumber(row[1], 0),
+      options: []
+    };
+  }
+
+  const menuName = String(row.menuName || row.name || row.menu || row["メニュー"] || "").trim();
+  const options = Array.isArray(row.options)
+    ? row.options
+      .map(normalizeMenuOption)
+      .filter((option) => option.size && Number.isFinite(option.price))
+      .sort((a, b) => a.sort - b.sort)
+    : [];
+
+  return {
+    menuName,
+    name: menuName,
+    groupSort: toNumber(row.groupSort ?? row.groupSortOrder ?? row["グループ並び順"], 0),
+    options
+  };
+}
+
 async function fetchMasterDataPayload() {
   let lastError = null;
 
-  for (const url of getMasterDataUrls()) {
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        cache: "no-store"
-      });
+  try {
+    return await fetchGasMenuPayload();
+  } catch (error) {
+    if (error.stopFallback) {
+      throw error;
+    }
 
-      if (!response.ok) {
-        throw new Error(url + " HTTP status: " + response.status);
+    lastError = error;
+    console.error("GASからのメニュー情報取得に失敗しました:", error);
+  }
+
+  for (const url of getLocalMasterDataUrls()) {
+    try {
+      return await fetchJsonPayload(url);
+    } catch (error) {
+      if (error.stopFallback) {
+        throw error;
       }
 
-      return await response.json();
-    } catch (error) {
       lastError = error;
-      console.error("masters.json の取得に失敗しました:", url, error);
+      console.error("メニュー情報の取得に失敗しました:", url, error);
     }
   }
 
-  throw lastError || new Error("masters.json を取得できませんでした。");
+  throw lastError || new Error("メニュー情報を取得できませんでした。");
+}
+
+async function fetchGasMenuPayload() {
+  const url = buildUrl(GAS_URL, { action: "menus" });
+
+  try {
+    return await fetchJsonPayload(url);
+  } catch (error) {
+    if (error.stopFallback) {
+      throw error;
+    }
+
+    console.error("GASメニューのfetch取得に失敗しました。JSONPで再試行します:", error);
+    return fetchJsonpPayload(url);
+  }
+}
+
+async function fetchJsonPayload(url) {
+  const response = await fetch(url, {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error(url + " HTTP status: " + response.status);
+  }
+
+  return assertApiPayload(await response.json());
+}
+
+function fetchJsonpPayload(url) {
+  return new Promise((resolve, reject) => {
+    const callbackName = "__purupuruMenus_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    const script = document.createElement("script");
+
+    function cleanup() {
+      window.clearTimeout(timeoutId);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("GASメニュー情報の取得がタイムアウトしました。"));
+    }, 10000);
+
+    window[callbackName] = (payload) => {
+      try {
+        cleanup();
+        resolve(assertApiPayload(payload));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error("GASメニュー情報のJSONP取得に失敗しました。"));
+    };
+
+    script.src = buildUrl(url, { callback: callbackName });
+    document.head.appendChild(script);
+  });
 }
 
 async function loadMasterData() {
   try {
     const payload = await fetchMasterDataPayload();
     const root = payload.data || payload;
-    const menuSource = root.menus || root.menuItems || [];
-    const sizeSource = root.sizeOptions || root.sizes || [];
+    const menuSource = root.menus;
 
     if (!Array.isArray(menuSource)) {
-      throw new Error("masters.json の menus が配列ではありません。");
-    }
-
-    if (!Array.isArray(sizeSource)) {
-      throw new Error("masters.json の sizeOptions が配列ではありません。");
+      throw new Error("menus が配列ではありません。");
     }
 
     const menus = menuSource
-      .map(normalizeMenuItem)
-      .filter((item) => item.name && item.visible)
-      .map((item) => ({
-        name: item.name,
-        basePrice: item.basePrice,
-        sizeEnabled: item.sizeEnabled
-      }));
-
-    const sizeOptions = sizeSource
-      .map(normalizeSizeOption)
-      .filter((item) => item.name && item.visible)
-      .sort((a, b) => a.order - b.order)
-      .map((item) => ({
-        name: item.name,
-        adjustment: item.adjustment
-      }));
-
-    if (menus.length === 0) {
-      throw new Error("表示できるメニューがありません。");
-    }
+      .map(normalizeMenuGroup)
+      .filter((item) => item.menuName && item.options.length > 0)
+      .sort((a, b) => a.groupSort - b.groupSort);
 
     MENU_ITEMS = menus;
-
-    if (sizeOptions.length > 0) {
-      SIZE_OPTIONS = sizeOptions;
-    }
   } catch (error) {
     const fileMessage = window.location.protocol === "file:"
       ? " HTMLを直接開いている場合は、GitHub Pagesまたはローカルサーバー経由で開いてください。"
       : "";
 
-    setStatus("メニュー情報を取得できなかったため、初期メニューを表示しています。" + fileMessage, "info");
+    MENU_ITEMS = [];
+    setStatus("メニュー情報を取得できませんでした：" + (error.message || "原因不明のエラーです。") + fileMessage, "error");
     console.error(error);
   }
+}
+
+function formatPriceRange(menuItem) {
+  const prices = menuItem.options
+    .map((option) => option.price)
+    .filter((price) => Number.isFinite(price));
+
+  if (prices.length === 0) {
+    return "価格未設定";
+  }
+
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+
+  return min === max ? formatYen(min) : formatYen(min) + "〜" + formatYen(max);
 }
 
 function buildMenuRows() {
   menuRows.replaceChildren();
 
+  if (MENU_ITEMS.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "detail-empty";
+    empty.textContent = "表示できるメニューがありません。";
+    menuRows.appendChild(empty);
+    return;
+  }
+
   MENU_ITEMS.forEach((item, menuIndex) => {
-    const isExpanded = expandedMenus.has(item.name);
+    const isExpanded = expandedMenus.has(item.menuName);
     const row = document.createElement("div");
     row.className = "menu-row";
     if (isExpanded) {
@@ -540,22 +598,22 @@ function buildMenuRows() {
 
     const name = document.createElement("p");
     name.className = "menu-name";
-    name.textContent = item.name;
+    name.textContent = item.menuName;
 
     const price = document.createElement("p");
     price.className = "menu-price";
-    price.textContent = "参考基本単価：" + formatYen(item.basePrice);
+    price.textContent = "価格帯：" + formatPriceRange(item);
 
     const selectedSummary = document.createElement("p");
     selectedSummary.className = "menu-selected-summary";
-    selectedSummary.dataset.menuName = item.name;
+    selectedSummary.dataset.menuName = item.menuName;
 
     info.append(name, price, selectedSummary);
 
     const toggleButton = document.createElement("button");
     toggleButton.type = "button";
     toggleButton.className = "button button-secondary menu-toggle-button";
-    toggleButton.dataset.menuName = item.name;
+    toggleButton.dataset.menuName = item.menuName;
     toggleButton.disabled = isSending;
     toggleButton.textContent = isExpanded ? "閉じる" : hasSelectedQuantity(item) ? "開く" : "選択する";
 
@@ -579,14 +637,14 @@ function buildMenuRows() {
 
         const variantNote = document.createElement("p");
         variantNote.className = "size-variant-note";
-        variantNote.textContent = item.sizeEnabled ? "サイズ加算：" + getAdjustmentText(option.adjustment) : "サイズ：対象外";
+        variantNote.textContent = "単価：" + formatYen(option.price);
 
         variantInfo.append(variantName, variantNote);
 
         const amount = document.createElement("p");
         amount.id = "amount-" + menuIndex + "-" + sizeIndex;
         amount.className = "row-amount";
-        amount.textContent = "参考単価：" + formatYen(item.basePrice + option.adjustment) + " / 小計：0円";
+        amount.textContent = "小計：0円";
 
         const control = document.createElement("div");
         control.className = "quantity-control";
@@ -599,10 +657,10 @@ function buildMenuRows() {
         minusButton.type = "button";
         minusButton.className = "quantity-button";
         minusButton.textContent = "-";
-        minusButton.setAttribute("aria-label", item.name + " " + sizeLabel + "を1個減らす");
+        minusButton.setAttribute("aria-label", item.menuName + " " + sizeLabel + "を1個減らす");
         minusButton.dataset.action = "decrease";
         minusButton.dataset.target = inputId;
-        minusButton.dataset.menuName = item.name;
+        minusButton.dataset.menuName = item.menuName;
         minusButton.dataset.size = option.size;
 
         const input = document.createElement("input");
@@ -611,22 +669,21 @@ function buildMenuRows() {
         input.className = "quantity-input";
         input.min = "0";
         input.step = "1";
-        input.value = getQuantityValue(item.name, option.size);
+        input.value = getQuantityValue(item.menuName, option.size);
         input.inputMode = "numeric";
-        input.dataset.menuName = item.name;
+        input.dataset.menuName = item.menuName;
         input.dataset.size = option.size;
-        input.dataset.sizeEnabled = item.sizeEnabled ? "true" : "false";
         input.dataset.amountTarget = amount.id;
-        input.setAttribute("aria-label", item.name + " " + sizeLabel + "の数量");
+        input.setAttribute("aria-label", item.menuName + " " + sizeLabel + "の数量");
 
         const plusButton = document.createElement("button");
         plusButton.type = "button";
         plusButton.className = "quantity-button";
         plusButton.textContent = "+";
-        plusButton.setAttribute("aria-label", item.name + " " + sizeLabel + "を1個増やす");
+        plusButton.setAttribute("aria-label", item.menuName + " " + sizeLabel + "を1個増やす");
         plusButton.dataset.action = "increase";
         plusButton.dataset.target = inputId;
-        plusButton.dataset.menuName = item.name;
+        plusButton.dataset.menuName = item.menuName;
         plusButton.dataset.size = option.size;
 
         control.append(minusButton, input, plusButton);
@@ -649,16 +706,16 @@ function getQuantityInputs() {
 function getAllOrderEntries() {
   return MENU_ITEMS.flatMap((menuItem) => {
     return getMenuVariants(menuItem).map((variant) => {
-      const value = getQuantityValue(menuItem.name, variant.size);
+      const value = getQuantityValue(menuItem.menuName, variant.size);
       const quantity = Number(value);
-      const pricing = getPricing(menuItem.name, variant.size, quantity);
+      const pricing = getPricing(menuItem.menuName, variant.size, quantity);
 
       return {
-        menu: menuItem.name,
-        size: menuItem.sizeEnabled ? variant.size : "",
+        menuName: menuItem.menuName,
+        menu: menuItem.menuName,
+        size: variant.size,
         value,
         quantity,
-        sizeEnabled: menuItem.sizeEnabled,
         ...pricing
       };
     });
@@ -671,7 +728,7 @@ function getQuantityEntries() {
 
 function getMenuSelectedEntries(menuItem) {
   return getAllOrderEntries().filter((item) => {
-    return item.menu === menuItem.name && Number.isFinite(item.quantity) && Number.isInteger(item.quantity) && item.quantity > 0;
+    return item.menuName === menuItem.menuName && Number.isFinite(item.quantity) && Number.isInteger(item.quantity) && item.quantity > 0;
   });
 }
 
@@ -687,8 +744,7 @@ function renderMenuSummary(menuItem) {
   }
 
   const summaryText = selectedEntries.map((item) => {
-    const sizeText = item.sizeEnabled ? item.size : "";
-    return sizeText ? sizeText + " " + item.quantity + "個" : item.quantity + "個";
+    return item.size + " " + item.quantity + "個";
   }).join("、");
   const subtotal = selectedEntries.reduce((sum, item) => sum + item.subtotal, 0);
 
@@ -698,11 +754,11 @@ function renderMenuSummary(menuItem) {
 function updateMenuCardSummaries() {
   MENU_ITEMS.forEach((menuItem) => {
     const summary = Array.from(menuRows.querySelectorAll(".menu-selected-summary"))
-      .find((element) => element.dataset.menuName === menuItem.name);
+      .find((element) => element.dataset.menuName === menuItem.menuName);
     const toggleButton = Array.from(menuRows.querySelectorAll(".menu-toggle-button"))
-      .find((element) => element.dataset.menuName === menuItem.name);
+      .find((element) => element.dataset.menuName === menuItem.menuName);
     const text = renderMenuSummary(menuItem);
-    const expanded = expandedMenus.has(menuItem.name);
+    const expanded = expandedMenus.has(menuItem.menuName);
 
     if (summary) {
       summary.textContent = text;
@@ -716,37 +772,25 @@ function updateMenuCardSummaries() {
   });
 }
 
-function getAdjustmentText(adjustment) {
-  if (adjustment > 0) {
-    return "+" + formatYen(adjustment);
-  }
-
-  return formatYen(adjustment);
-}
-
 function getPricing(menuName, sizeName, quantity) {
-  const menuItem = findMenuItem(menuName);
-  if (!menuItem) {
+  const option = findMenuOption(menuName, sizeName);
+  if (!option) {
     return {
-      basePrice: 0,
-      adjustment: 0,
+      price: 0,
       unitPrice: 0,
       subtotal: 0,
-      sizeLabel: "サイズ対象外"
+      sizeLabel: sizeName || ""
     };
   }
 
-  const sizeOption = menuItem.sizeEnabled ? findSizeOption(sizeName) : null;
-  const adjustment = menuItem.sizeEnabled && sizeOption ? sizeOption.adjustment : 0;
-  const unitPrice = menuItem.basePrice + adjustment;
+  const unitPrice = option.price;
   const safeQuantity = Number.isFinite(quantity) && Number.isInteger(quantity) && quantity > 0 ? quantity : 0;
 
   return {
-    basePrice: menuItem.basePrice,
-    adjustment,
+    price: unitPrice,
     unitPrice,
     subtotal: unitPrice * safeQuantity,
-    sizeLabel: menuItem.sizeEnabled ? sizeName : "サイズ対象外"
+    sizeLabel: option.size
   };
 }
 
@@ -754,20 +798,18 @@ function getSelectedItems() {
   return getQuantityEntries()
     .filter((item) => Number.isFinite(item.quantity) && Number.isInteger(item.quantity) && item.quantity > 0)
     .map((item) => ({
-      menu: item.menu,
-      size: item.sizeEnabled ? item.size : "",
-      quantity: item.quantity
+      menuName: item.menuName,
+      menu: item.menuName,
+      size: item.size,
+      price: item.price,
+      unitPrice: item.price,
+      quantity: item.quantity,
+      subtotal: item.subtotal
     }));
 }
 
 function getSelectedDisplayItems() {
-  return getSelectedItems().map((item) => {
-    const pricing = getPricing(item.menu, item.size, item.quantity);
-    return {
-      ...item,
-      ...pricing
-    };
-  });
+  return getSelectedItems();
 }
 
 function calculateTotalQuantity(items) {
@@ -775,10 +817,7 @@ function calculateTotalQuantity(items) {
 }
 
 function calculateGrandTotal(items) {
-  return items.reduce((sum, item) => {
-    const pricing = getPricing(item.menu, item.size, item.quantity);
-    return sum + pricing.subtotal;
-  }, 0);
+  return items.reduce((sum, item) => sum + toNumber(item.subtotal, 0), 0);
 }
 
 function renderItemList(container, items, emptyText) {
@@ -796,18 +835,20 @@ function renderItemList(container, items, emptyText) {
   list.className = "detail-list";
 
   items.forEach((item) => {
-    const pricing = getPricing(item.menu, item.size, item.quantity);
+    const menuName = item.menuName || item.menu;
+    const price = toNumber(item.price ?? item.unitPrice, 0);
+    const subtotal = toNumber(item.subtotal, price * toNumber(item.quantity, 0));
 
     const listItem = document.createElement("li");
     listItem.className = "detail-item";
 
     const itemName = document.createElement("span");
     itemName.className = "detail-item-name";
-    itemName.textContent = item.menu + " / " + pricing.sizeLabel;
+    itemName.textContent = menuName + (item.size ? "（" + item.size + "）" : "");
 
     const itemMeta = document.createElement("span");
     itemMeta.className = "detail-item-meta";
-    itemMeta.textContent = item.quantity + "個 / 参考単価" + formatYen(pricing.unitPrice) + " / 小計" + formatYen(pricing.subtotal);
+    itemMeta.textContent = formatYen(price) + " × " + item.quantity + "個 = " + formatYen(subtotal);
 
     listItem.append(itemName, itemMeta);
     list.appendChild(listItem);
@@ -822,15 +863,13 @@ function updateRowAmounts() {
     const size = input.dataset.size || "";
     const quantity = Number(getQuantityValue(menuName, size));
     const pricing = getPricing(menuName, size, quantity);
-    const menuItem = findMenuItem(menuName);
     const amount = document.getElementById(input.dataset.amountTarget);
 
     if (!amount) {
       return;
     }
 
-    const sizeText = menuItem && menuItem.sizeEnabled ? " / サイズ加算：" + getAdjustmentText(pricing.adjustment) : " / サイズ対象外";
-    amount.textContent = "参考単価：" + formatYen(pricing.unitPrice) + sizeText + " / 小計：" + formatYen(pricing.subtotal);
+    amount.textContent = "単価：" + formatYen(pricing.price) + " / 小計：" + formatYen(pricing.subtotal);
   });
 }
 
@@ -919,11 +958,11 @@ function focusFirstInvalidField() {
   } else if (!name.value.trim()) {
     name.focus({ preventScroll: true });
   } else if (invalidQuantity) {
-    expandedMenus.add(invalidQuantity.menu);
+    expandedMenus.add(invalidQuantity.menuName);
     buildMenuRows();
 
     const input = getQuantityInputs().find((quantityInput) => {
-      return quantityInput.dataset.menuName === invalidQuantity.menu && (quantityInput.dataset.size || "") === invalidQuantity.size;
+      return quantityInput.dataset.menuName === invalidQuantity.menuName && (quantityInput.dataset.size || "") === invalidQuantity.size;
     });
 
     if (input) {
@@ -934,7 +973,7 @@ function focusFirstInvalidField() {
     if (firstQuantityInput) {
       firstQuantityInput.focus({ preventScroll: true });
     } else if (MENU_ITEMS[0]) {
-      expandedMenus.add(MENU_ITEMS[0].name);
+      expandedMenus.add(MENU_ITEMS[0].menuName);
       buildMenuRows();
       const input = getQuantityInputs()[0];
       if (input) {
@@ -963,22 +1002,20 @@ function validateForm() {
   }
 
   quantityEntries.forEach((item) => {
+    const label = item.menuName + "（" + item.size + "）";
+
     if (!item.value) {
-      errors.push(item.menu + "の数量を数値で入力してください。");
+      errors.push(label + "の数量を数値で入力してください。");
       hasQuantityError = true;
     } else if (!Number.isFinite(item.quantity)) {
-      errors.push(item.menu + "の数量を数値で入力してください。");
+      errors.push(label + "の数量を数値で入力してください。");
       hasQuantityError = true;
     } else if (item.quantity < 0) {
-      errors.push(item.menu + "の数量は0以上で入力してください。");
+      errors.push(label + "の数量は0以上で入力してください。");
       hasQuantityError = true;
     } else if (!Number.isInteger(item.quantity)) {
-      errors.push(item.menu + "の数量は整数で入力してください。");
+      errors.push(label + "の数量は整数で入力してください。");
       hasQuantityError = true;
-    }
-
-    if (item.sizeEnabled && !item.size) {
-      errors.push(item.menu + "のサイズを選択してください。");
     }
   });
 
@@ -1032,10 +1069,10 @@ function closeConfirmation() {
 
 function setSending(sending) {
   isSending = sending;
-  showConfirmButton.disabled = sending;
+  showConfirmButton.disabled = sending || MENU_ITEMS.length === 0;
   sendButton.disabled = sending;
   editButton.disabled = sending;
-  floatingConfirmButton.disabled = sending;
+  floatingConfirmButton.disabled = sending || MENU_ITEMS.length === 0;
   updateQuantityButtonStates();
   updateMenuCardSummaries();
 }
@@ -1075,6 +1112,7 @@ function toggleMenu(menuName) {
     if (expandedMenus.has(menuName)) {
       expandedMenus.delete(menuName);
     } else {
+      expandedMenus.clear();
       expandedMenus.add(menuName);
     }
 
@@ -1216,13 +1254,15 @@ sendButton.addEventListener("click", async () => {
 
 async function initialize() {
   showConfirmButton.disabled = true;
+  floatingConfirmButton.disabled = true;
   setOrderStatusExpanded(false);
   showMenuLoading();
   const ordersPromise = loadCurrentOrders();
   await loadMasterData();
   buildMenuRows();
   updateSummary();
-  showConfirmButton.disabled = false;
+  showConfirmButton.disabled = MENU_ITEMS.length === 0;
+  floatingConfirmButton.disabled = MENU_ITEMS.length === 0;
   await ordersPromise;
 }
 

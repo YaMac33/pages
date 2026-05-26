@@ -38,8 +38,7 @@ function handlePublicOrdersGet_(e) {
         department: String(row[indexes.department] || '').trim(),
         menu: String(row[indexes.menu] || '').trim(),
         size: String(row[indexes.size] || '').trim(),
-        basePrice: toFiniteNumber_(row[indexes.basePrice], 0),
-        sizeAdjustment: toFiniteNumber_(row[indexes.sizeAdjustment], 0),
+        price: unitPrice,
         unitPrice: unitPrice,
         quantity: quantity,
         subtotal: unitPrice * quantity
@@ -68,8 +67,6 @@ function getPublicOrderColumnIndexes_(headers) {
     '部署',
     'メニュー',
     'サイズ',
-    '基本単価',
-    'サイズ加算額',
     '単価',
     '数量'
   ];
@@ -87,8 +84,6 @@ function getPublicOrderColumnIndexes_(headers) {
     if (header === '部署') indexes.department = index;
     if (header === 'メニュー') indexes.menu = index;
     if (header === 'サイズ') indexes.size = index;
-    if (header === '基本単価') indexes.basePrice = index;
-    if (header === 'サイズ加算額') indexes.sizeAdjustment = index;
     if (header === '単価') indexes.unitPrice = index;
     if (header === '数量') indexes.quantity = index;
   });

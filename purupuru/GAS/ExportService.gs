@@ -3,11 +3,9 @@
 // ==============================
 
 function exportMastersJson() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
   const masters = {
-    menus: getMenusForJson_(ss),
-    sizeOptions: getSizeOptionsForJson_(ss)
+    ok: true,
+    menus: getMenuGroups_()
   };
 
   const jsonText = JSON.stringify(masters, null, 2);

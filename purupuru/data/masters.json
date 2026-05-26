@@ -1,54 +1,59 @@
 {
+  "ok": true,
   "menus": [
     {
-      "name": "カルビ弁当",
-      "basePrice": 990,
-      "sizeEnabled": true,
-      "visible": true
+      "menuName": "炙り焼豚弁当",
+      "groupSort": 1,
+      "options": [
+        { "size": "小盛", "price": 918, "sort": 1 },
+        { "size": "並盛", "price": 1080, "sort": 2 },
+        { "size": "大盛", "price": 1188, "sort": 3 },
+        { "size": "特盛", "price": 1404, "sort": 4 }
+      ]
     },
     {
-      "name": "タン塩弁当",
-      "basePrice": 1450,
-      "sizeEnabled": true,
-      "visible": true
+      "menuName": "きざみ焼豚のり弁当",
+      "groupSort": 2,
+      "options": [
+        { "size": "小盛", "price": 810, "sort": 1 },
+        { "size": "並盛", "price": 864, "sort": 2 },
+        { "size": "大盛", "price": 972, "sort": 3 },
+        { "size": "特盛", "price": 1188, "sort": 4 }
+      ]
     },
     {
-      "name": "ブタキムチ弁当",
-      "basePrice": 1350,
-      "sizeEnabled": true,
-      "visible": true
+      "menuName": "高菜明太焼豚弁当",
+      "groupSort": 3,
+      "options": [
+        { "size": "小盛", "price": 864, "sort": 1 },
+        { "size": "並盛", "price": 1026, "sort": 2 },
+        { "size": "大盛", "price": 1134, "sort": 3 },
+        { "size": "特盛", "price": 1350, "sort": 4 }
+      ]
     },
     {
-      "name": "上カルビ弁当",
-      "basePrice": 1500,
-      "sizeEnabled": true,
-      "visible": true
-    }
-  ],
-  "sizeOptions": [
-    {
-      "name": "小盛",
-      "adjustment": -50,
-      "visible": true,
-      "order": 1
+      "menuName": "焼豚カレー弁当",
+      "groupSort": 4,
+      "options": [
+        { "size": "普通", "price": 1404, "sort": 1 },
+        { "size": "大盛", "price": 1620, "sort": 2 }
+      ]
     },
     {
-      "name": "普通",
-      "adjustment": 0,
-      "visible": true,
-      "order": 2
+      "menuName": "おつまみ炙り焼豚",
+      "groupSort": 5,
+      "options": [
+        { "size": "並盛", "price": 1080, "sort": 1 },
+        { "size": "大盛", "price": 1836, "sort": 2 }
+      ]
     },
     {
-      "name": "大盛",
-      "adjustment": 100,
-      "visible": true,
-      "order": 3
-    },
-    {
-      "name": "特盛",
-      "adjustment": 200,
-      "visible": true,
-      "order": 4
+      "menuName": "焼豚ブロック",
+      "groupSort": 6,
+      "options": [
+        { "size": "200g", "price": 1512, "sort": 1 },
+        { "size": "300g", "price": 2160, "sort": 2 }
+      ]
     }
   ]
 }

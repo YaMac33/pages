@@ -4,7 +4,6 @@
 
 const SHEET_NAME_ORDERS = 'orders';
 const SHEET_NAME_MENUS = 'menus';
-const SHEET_NAME_SIZE_OPTIONS = 'size_options';
 const PUBLIC_SHEET_NAME = '公開用';
 
 // 公開用スプレッドシート
@@ -19,8 +18,6 @@ const PUBLIC_HEADERS = [
   '部署',
   'メニュー',
   'サイズ',
-  '基本単価',
-  'サイズ加算額',
   '単価',
   '数量'
 ];
