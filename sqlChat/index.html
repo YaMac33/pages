@@ -491,6 +491,14 @@
         scrollToBottom();
         updateLastUpdated();
 
+        await supabaseClient.functions.invoke('notify-slack', {
+  body: {
+    display_name: data.display_name,
+    message: data.message,
+    created_at: data.created_at
+  }
+});
+
         showNotice('投稿しました。', false);
 
       } catch (error) {
