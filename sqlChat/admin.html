@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>匿名チャット 管理画面</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f3f6fb;
+      color: #1f2937;
+    }
+
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      background: #fff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .note {
+      margin-top: 6px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    button, select, input {
+      font: inherit;
+    }
+
+    .button {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #2563eb;
+      color: #fff;
+    }
+
+    .button.secondary {
+      background: #fff;
+      color: #1f2937;
+      border: 1px solid #d1d5db;
+    }
+
+    .button.danger {
+      background: #dc2626;
+    }
+
+    .button.gray {
+      background: #6b7280;
+    }
+
+    .filter {
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: #fff;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+      border-left: 6px solid #2563eb;
+    }
+
+    .card.hidden {
+      border-left-color: #dc2626;
+      opacity: 0.75;
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      color: #6b7280;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .name {
+      font-weight: 800;
+      color: #111827;
+      font-size: 14px;
+    }
+
+    .message {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      margin: 10px 0;
+      word-break: break-word;
+    }
+
+    .status {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .status.hidden {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .admin-note {
+      flex: 1;
+      min-width: 240px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      padding: 9px 10px;
+    }
+
+    .empty {
+      text-align: center;
+      color: #6b7280;
+      padding: 40px;
+      background: #fff;
+      border-radius: 16px;
+    }
+
+    .notice {
+      color: #6b7280;
+      font-size: 13px;
+      margin: 8px 0 14px;
+    }
+
+    .error {
+      color: #dc2626;
+      font-weight: 700;
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        padding: 10px;
+      }
+
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .admin-note {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>匿名チャット 管理画面</h1>
+      <div class="note">投稿の表示・非表示、管理メモを編集できます。</div>
+    </header>
+
+    <div class="toolbar">
+      <button class="button" id="refreshButton">再読み込み</button>
+      <select class="filter" id="statusFilter">
+        <option value="all">すべて</option>
+        <option value="表示">表示のみ</option>
+        <option value="非表示">非表示のみ</option>
+      </select>
+    </div>
+
+    <div class="notice" id="notice">準備中です。</div>
+
+    <section class="list" id="list"></section>
+  </main>
+
+  <script>
+    const SUPABASE_URL = 'https://hndgiqptjuubipzjyynv.supabase.co';
+    const SUPABASE_ANON_KEY = 'ここにPublishable keyを貼り付け';
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const elements = {
+      list: document.getElementById('list'),
+      notice: document.getElementById('notice'),
+      refreshButton: document.getElementById('refreshButton'),
+      statusFilter: document.getElementById('statusFilter')
+    };
+
+    let messages = [];
+
+    initialize();
+
+    function initialize() {
+      elements.refreshButton.addEventListener('click', fetchMessages);
+      elements.statusFilter.addEventListener('change', renderMessages);
+      fetchMessages();
+    }
+
+    async function fetchMessages() {
+      setNotice('読み込み中です。');
+
+      const { data, error } = await supabaseClient
+        .from('messages')
+        .select('message_id, created_at, client_id, display_name, message, status, deleted_at, admin_note')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) {
+        console.error(error);
+        setNotice('取得に失敗しました。RLS設定を確認してください。', true);
+        return;
+      }
+
+      messages = data || [];
+      renderMessages();
+      setNotice(`${messages.length}件読み込みました。`);
+    }
+
+    function renderMessages() {
+      const filter = elements.statusFilter.value;
+
+      const filtered = messages.filter(item => {
+        if (filter === 'all') return true;
+        return item.status === filter;
+      });
+
+      if (filtered.length === 0) {
+        elements.list.innerHTML = '<div class="empty">該当する投稿はありません。</div>';
+        return;
+      }
+
+      elements.list.innerHTML = filtered.map(item => {
+        const isHidden = item.status === '非表示';
+
+        return `
+          <article class="card ${isHidden ? 'hidden' : ''}">
+            <div class="meta">
+              <div>
+                <span class="name">${escapeHtml(item.display_name || '匿名さん')}</span>
+                <span class="status ${isHidden ? 'hidden' : ''}">${escapeHtml(item.status || '')}</span>
+              </div>
+              <div>${escapeHtml(formatDisplayTime(item.created_at))}</div>
+            </div>
+
+            <div class="message">${escapeHtml(item.message || '')}</div>
+
+            <div class="meta">
+              <div>message_id: ${escapeHtml(item.message_id || '')}</div>
+              <div>client_id: ${escapeHtml(item.client_id || '')}</div>
+            </div>
+
+            <div class="actions">
+              ${
+                isHidden
+                  ? `<button class="button" onclick="updateStatus('${escapeJs(item.message_id)}', '表示')">表示に戻す</button>`
+                  : `<button class="button danger" onclick="updateStatus('${escapeJs(item.message_id)}', '非表示')">非表示にする</button>`
+              }
+
+              <input
+                class="admin-note"
+                id="note-${escapeHtml(item.message_id)}"
+                value="${escapeHtml(item.admin_note || '')}"
+                placeholder="管理メモ"
+              />
+
+              <button class="button secondary" onclick="updateAdminNote('${escapeJs(item.message_id)}')">メモ保存</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    async function updateStatus(messageId, status) {
+      const updates = {
+        status: status,
+        deleted_at: status === '非表示' ? new Date().toISOString() : null
+      };
+
+      const { error } = await supabaseClient
+        .from('messages')
+        .update(updates)
+        .eq('message_id', messageId);
+
+      if (error) {
+        console.error(error);
+        setNotice('更新に失敗しました。', true);
+        return;
+      }
+
+      setNotice('statusを更新しました。');
+      await fetchMessages();
+    }
+
+    async function updateAdminNote(messageId) {
+      const input = document.getElementById(`note-${messageId}`);
+      const adminNote = input ? input.value : '';
+
+      const { error } = await supabaseClient
+        .from('messages')
+        .update({ admin_note: adminNote })
+        .eq('message_id', messageId);
+
+      if (error) {
+        console.error(error);
+        setNotice('管理メモの保存に失敗しました。', true);
+        return;
+      }
+
+      setNotice('管理メモを保存しました。');
+      await fetchMessages();
+    }
+
+    function setNotice(text, isError) {
+      elements.notice.textContent = text;
+      elements.notice.classList.toggle('error', Boolean(isError));
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeJs(value) {
+      return String(value || '')
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'");
+    }
+
+    function formatDisplayTime(value) {
+      if (!value) return '';
+
+      const date = new Date(value);
+
+      if (isNaN(date.getTime())) {
+        return String(value);
+      }
+
+      return date.toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  </script>
+</body>
+</html>
