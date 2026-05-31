@@ -1,7 +1,1292 @@
-<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>自治体DX主要クラウドサービス・ツール分析</title>
-  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DX・BPRを進めるために必要な視点</title>
+  <style>
+    :root {
+      --bg: #edf1f5;
+      --slide: #ffffff;
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #d8dee8;
+      --primary: #1f5f8b;
+      --primary-dark: #16466a;
+      --primary-soft: #e7f1f8;
+      --accent: #b7791f;
+      --accent-soft: #fff3d8;
+      --green: #24785c;
+      --green-soft: #e7f5ef;
+      --red: #9f3a38;
+      --red-soft: #fae8e8;
+      --shadow: 0 18px 45px rgba(31, 41, 55, 0.14);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Yu Gothic", "YuGothic", "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif;
+      line-height: 1.65;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+
+    .slide {
+      display: none;
+      width: min(1280px, calc(100vw - 56px));
+      aspect-ratio: 16 / 9;
+      background: var(--slide);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 56px 68px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 10px;
+      background: linear-gradient(90deg, var(--primary), #7aa6c2, var(--accent));
+    }
+
+    .slide-header {
+      margin-bottom: 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--primary);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0 0 10px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      display: inline-block;
+      width: 34px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 999px;
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 52px;
+      line-height: 1.22;
+      letter-spacing: 0.01em;
+      margin-bottom: 20px;
+      color: var(--primary-dark);
+    }
+
+    h2 {
+      font-size: 38px;
+      line-height: 1.28;
+      margin-bottom: 8px;
+      color: var(--primary-dark);
+    }
+
+    h3 {
+      font-size: 24px;
+      line-height: 1.35;
+      margin-bottom: 12px;
+      color: var(--ink);
+    }
+
+    .lead {
+      font-size: 25px;
+      color: #344054;
+      max-width: 980px;
+      line-height: 1.7;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .highlight {
+      color: var(--primary-dark);
+      font-weight: 800;
+      background: linear-gradient(transparent 64%, #dcecf6 64%);
+      padding: 0 0.08em;
+    }
+
+    .accent {
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .title-layout {
+      justify-content: center;
+    }
+
+    .title-card {
+      max-width: 980px;
+    }
+
+    .subtitle {
+      font-size: 27px;
+      color: #344054;
+      margin-bottom: 28px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .tag {
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 8px 20px rgba(31, 41, 55, 0.06);
+    }
+
+    .card.blue {
+      background: var(--primary-soft);
+      border-color: #c9deec;
+    }
+
+    .card.green {
+      background: var(--green-soft);
+      border-color: #bfe5d4;
+    }
+
+    .card.yellow {
+      background: var(--accent-soft);
+      border-color: #efd6a4;
+    }
+
+    .card.red {
+      background: var(--red-soft);
+      border-color: #efc2c2;
+    }
+
+    .card p,
+    .card li {
+      font-size: 21px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.2em;
+    }
+
+    li {
+      margin-bottom: 10px;
+      font-size: 23px;
+    }
+
+    li:last-child {
+      margin-bottom: 0;
+    }
+
+    .large-list li {
+      font-size: 25px;
+      margin-bottom: 16px;
+    }
+
+    .number-list {
+      counter-reset: item;
+      display: grid;
+      gap: 16px;
+    }
+
+    .number-item {
+      counter-increment: item;
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }
+
+    .number-item::before {
+      content: counter(item);
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .number-item strong {
+      display: block;
+      font-size: 23px;
+      color: var(--primary-dark);
+      margin-bottom: 3px;
+    }
+
+    .number-item span {
+      display: block;
+      font-size: 19px;
+      color: #475467;
+      line-height: 1.55;
+    }
+
+    .step-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .step {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 24px;
+      z-index: 2;
+    }
+
+    .step-num {
+      display: inline-grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      background: var(--primary);
+      color: white;
+      border-radius: 999px;
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .step-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary-dark);
+      line-height: 1.4;
+    }
+
+    .compare {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      font-size: 20px;
+    }
+
+    .compare th {
+      background: var(--primary);
+      color: #fff;
+      font-size: 21px;
+      padding: 16px;
+      text-align: left;
+    }
+
+    .compare td {
+      padding: 16px;
+      border-top: 1px solid var(--line);
+      vertical-align: top;
+      background: #fff;
+    }
+
+    .compare tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .diagram {
+      min-height: 360px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(31, 95, 139, 0.18), transparent 34%),
+        radial-gradient(circle at 80% 70%, rgba(183, 121, 31, 0.20), transparent 32%),
+        #f8fafc;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    .circle-diagram {
+      width: 340px;
+      height: 340px;
+      position: relative;
+    }
+
+    .circle {
+      position: absolute;
+      width: 190px;
+      height: 190px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 20px;
+      font-size: 21px;
+      font-weight: 800;
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(31, 41, 55, 0.16);
+    }
+
+    .circle.c1 {
+      background: var(--primary);
+      top: 0;
+      left: 75px;
+    }
+
+    .circle.c2 {
+      background: var(--green);
+      bottom: 0;
+      left: 0;
+    }
+
+    .circle.c3 {
+      background: var(--accent);
+      bottom: 0;
+      right: 0;
+    }
+
+    .center-label {
+      position: absolute;
+      top: 132px;
+      left: 102px;
+      width: 136px;
+      height: 86px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--primary-dark);
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 8px 20px rgba(31, 41, 55, 0.14);
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .matrix .card {
+      min-height: 180px;
+    }
+
+    .big-message {
+      font-size: 34px;
+      line-height: 1.55;
+      color: var(--primary-dark);
+      font-weight: 800;
+      max-width: 1040px;
+    }
+
+    .action-box {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 22px;
+      align-items: center;
+      padding: 24px 28px;
+      background: var(--primary-soft);
+      border: 1px solid #c9deec;
+      border-radius: 22px;
+      margin-top: 24px;
+    }
+
+    .action-icon {
+      width: 86px;
+      height: 86px;
+      border-radius: 24px;
+      background: var(--primary);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 42px;
+      font-weight: 900;
+    }
+
+    .action-box p {
+      font-size: 24px;
+      margin: 0;
+      color: #344054;
+    }
+
+    .footer {
+      position: absolute;
+      left: 68px;
+      right: 68px;
+      bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #98a2b3;
+      font-size: 15px;
+      z-index: 3;
+    }
+
+    .progress {
+      height: 4px;
+      width: 190px;
+      background: #e4e7ec;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    .controls {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      box-shadow: 0 10px 28px rgba(31, 41, 55, 0.16);
+      z-index: 20;
+    }
+
+    .controls button {
+      appearance: none;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .controls button:disabled {
+      background: #b9c6d1;
+      cursor: not-allowed;
+    }
+
+    .counter {
+      min-width: 78px;
+      text-align: center;
+      font-weight: 800;
+      color: var(--primary-dark);
+      font-size: 16px;
+    }
+
+    .image-box {
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      overflow: hidden;
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .image-box img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .image-box img:not([src]),
+    .image-box img[src=""] {
+      display: none;
+    }
+
+    .caption {
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 15px;
+      background: #fff;
+      border-top: 1px solid var(--line);
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      .deck {
+        height: auto;
+        min-height: 100vh;
+        padding: 14px;
+      }
+
+      .slide {
+        width: 100%;
+        min-height: calc(100vh - 28px);
+        aspect-ratio: auto;
+        padding: 38px 28px 90px;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      h2 {
+        font-size: 30px;
+      }
+
+      .lead,
+      .subtitle,
+      li {
+        font-size: 20px;
+      }
+
+      .grid-2,
+      .grid-3,
+      .two-column,
+      .matrix {
+        grid-template-columns: 1fr;
+      }
+
+      .step-flow {
+        grid-template-columns: 1fr;
+      }
+
+      .step:not(:last-child)::after {
+        display: none;
+      }
+
+      .footer {
+        left: 28px;
+        right: 28px;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+
+      html, body {
+        background: #fff;
+        overflow: visible;
+      }
+
+      .deck {
+        display: block;
+        width: auto;
+        height: auto;
+        padding: 0;
+      }
+
+      .slide {
+        display: flex !important;
+        width: 297mm;
+        height: 210mm;
+        aspect-ratio: auto;
+        box-shadow: none;
+        border-radius: 0;
+        page-break-after: always;
+        break-after: page;
+        padding: 18mm 20mm;
+      }
+
+      .controls {
+        display: none;
+      }
+
+      .footer {
+        bottom: 10mm;
+        left: 20mm;
+        right: 20mm;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="deck">
+    <section class="slide active">
+      <div class="content title-layout">
+        <div class="title-card">
+          <p class="eyebrow">DX / BPR</p>
+          <h1>DX・BPRを進めるために<br>必要な視点</h1>
+          <p class="subtitle">
+            「何を導入するか」だけでなく、<span class="highlight">どのような体制で、どのように進めるか</span>を整理する。
+          </p>
+          <div class="tag-row">
+            <span class="tag">庁内横断</span>
+            <span class="tag">業務改善</span>
+            <span class="tag">プロジェクト推進</span>
+            <span class="tag">記録・共有</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>DX・BPR推進資料</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Purpose</p>
+        <h2>背景・目的</h2>
+      </div>
+      <div class="content">
+        <div class="big-message">
+          DXやBPRは、単なるデジタルツール導入ではなく、<br>
+          <span class="highlight">プロジェクトの進め方を設計すること</span>から始まる。
+        </div>
+        <div class="grid grid-3" style="margin-top: 34px;">
+          <div class="card blue">
+            <h3>進め方を理解</h3>
+            <p>業務改善をどの順序で進めるかを整理する。</p>
+          </div>
+          <div class="card green">
+            <h3>体制を整える</h3>
+            <p>複数課にまたがる業務は庁内横断で進める。</p>
+          </div>
+          <div class="card yellow">
+            <h3>先進事例を学ぶ</h3>
+            <p>自治体やデジタル庁の取組から調整方法を学ぶ。</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>背景・目的</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Issue</p>
+        <h2>現状の課題</h2>
+      </div>
+      <div class="content">
+        <div class="two-column">
+          <div>
+            <ul class="large-list">
+              <li>担当課単独では、複数課にまたがる業務改善を進めにくい。</li>
+              <li>会議体を作るだけでは、情報共有や記録が不十分になりやすい。</li>
+              <li>現場の実務を理解しないまま進めると、使われない仕組みになる可能性がある。</li>
+            </ul>
+          </div>
+          <div class="diagram">
+            <div class="circle-diagram" aria-label="DX・BPRに必要な3要素">
+              <div class="circle c1">進め方</div>
+              <div class="circle c2">庁内横断<br>体制</div>
+              <div class="circle c3">現場理解</div>
+              <div class="center-label">DX・BPR<br>推進</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>現状の課題</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Reference</p>
+        <h2>参考にしたい自治体事例</h2>
+      </div>
+      <div class="content">
+        <div class="number-list">
+          <div class="number-item">
+            <div>
+              <strong>世田谷区</strong>
+              <span>業務改善推進プロジェクト「DX-Lab」。庁内の業務改善を実践的に進める仕組みとして参考になる。</span>
+            </div>
+          </div>
+          <div class="number-item">
+            <div>
+              <strong>横浜市</strong>
+              <span>「デジタル×デザイン」を戦略的に推進。デジタル化と業務・サービス設計を組み合わせる体制づくりの参考になる。</span>
+            </div>
+          </div>
+          <div class="number-item">
+            <div>
+              <strong>神戸市</strong>
+              <span>部局横断メンバーによる「働き方改革推進チーム」。所属をまたいだ職員チームによる改革推進の参考になる。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>参考事例 1</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Reference</p>
+        <h2>参考にしたい自治体事例</h2>
+      </div>
+      <div class="content">
+        <div class="grid grid-2">
+          <div class="card blue">
+            <h3>山形県酒田市</h3>
+            <ul>
+              <li>外部人材のもとに、各担当課の兼務職員を配置。</li>
+              <li>「デジタル変革戦略室」を設置。</li>
+              <li>外部人材と庁内職員を組み合わせた推進体制の参考になる。</li>
+              <li>Kintone活用事例も確認できる可能性がある。</li>
+            </ul>
+          </div>
+          <div class="card green">
+            <h3>大分県</h3>
+            <ul>
+              <li>知事をCXOとして位置付け。</li>
+              <li>デザイン思考に基づくDXを全庁横断的に推進。</li>
+              <li>トップマネジメント主導で全庁的にDXを進める事例として参考になる。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>参考事例 2</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Quick Start</p>
+        <h2>プロジェクトチームを作らなくても導入できそうな取組</h2>
+      </div>
+      <div class="content">
+        <div class="grid grid-2">
+          <div class="card blue">
+            <h3>まず現在あるもので展開</h3>
+            <ul>
+              <li>Zoomを活用した会議の録画・録音</li>
+              <li>発言者の割り振りが可能な文字起こし</li>
+              <li>会議内容の要約</li>
+              <li>議事録作成や打ち合わせ記録の効率化</li>
+            </ul>
+          </div>
+          <div class="card yellow">
+            <h3>位置付け</h3>
+            <p>
+              既存のWeb会議ツールやAI文字起こし機能を活用すれば、比較的導入しやすい。
+            </p>
+            <p>
+              庁内会議やプロジェクト会議の記録を効率化する<span class="highlight">第一歩</span>として有効。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>短期的に試行できる取組</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Expansion</p>
+        <h2>今後、拡張して検討したい取組</h2>
+      </div>
+      <div class="content">
+        <table class="compare">
+          <thead>
+            <tr>
+              <th style="width: 30%;">自治体・取組</th>
+              <th>確認したい観点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>取手市：議会DX</strong></td>
+              <td>議会運営のデジタル化の参考事例として確認したい。</td>
+            </tr>
+            <tr>
+              <td><strong>鎌ヶ谷市：AmiVoiceの活用</strong></td>
+              <td>文字起こしや記録作成の効率化の参考になる。</td>
+            </tr>
+            <tr>
+              <td><strong>兵庫県姫路市：AmiVoice® Communication Suite</strong></td>
+              <td>電話対応の録音、文字起こし、要約への活用事例として参考になる。</td>
+            </tr>
+            <tr>
+              <td><strong>流山市：電子投票</strong></td>
+              <td>投票・集計業務の効率化や正確性向上の参考事例として確認したい。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="footer">
+        <span>拡張検討</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Project Design</p>
+        <h2>プロジェクトチーム・庁内検討委員会の進め方</h2>
+      </div>
+      <div class="content">
+        <p class="lead">
+          複数課にまたがる業務や、庁内全体の働き方に影響する取組は、<span class="highlight">会議体だけでなく運営方法まで設計</span>する。
+        </p>
+        <div class="grid grid-3" style="margin-top: 28px;">
+          <div class="card blue">
+            <h3>会議の進め方</h3>
+            <p>打ち合わせの方法、議論の残し方、決定事項の扱いを整理する。</p>
+          </div>
+          <div class="card green">
+            <h3>情報共有の方法</h3>
+            <p>関係課の職員が同じ情報を確認できるよう、共有場所を統一する。</p>
+          </div>
+          <div class="card yellow">
+            <h3>記録の残し方</h3>
+            <p>録画・文字起こし・要約を活用し、会議録や課題を整理する。</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>プロジェクト設計</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Process</p>
+        <h2>基本的な進め方</h2>
+      </div>
+      <div class="content">
+        <div class="step-flow">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-title">Teams等の<br>ツール導入</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-title">会議を録画<br>文字起こし</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-title">時刻付き<br>データ出力</div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-title">AI等で<br>要約作成</div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-title">決定事項・課題<br>対応事項を整理</div>
+          </div>
+        </div>
+        <div class="action-box">
+          <div class="action-icon">共</div>
+          <p>
+            最後に、関係課の職員が同じ情報を確認できるよう、<span class="highlight">共有場所を統一</span>する。
+          </p>
+        </div>
+      </div>
+      <div class="footer">
+        <span>実施手順</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Members</p>
+        <h2>プロジェクトメンバーの選定</h2>
+      </div>
+      <div class="content">
+        <div class="two-column">
+          <div>
+            <p class="lead">
+              システム導入や業務改善では、<span class="highlight">実際にその業務を担当している課</span>から職員を選抜する。
+            </p>
+            <ul class="large-list">
+              <li>現場の業務を理解している職員を参加させる。</li>
+              <li>実態に合わないシステム導入を避ける。</li>
+              <li>使われない仕組みになるリスクを減らす。</li>
+            </ul>
+          </div>
+          <div class="card blue">
+            <h3>協力が必要になる可能性がある部門</h3>
+            <ul>
+              <li>経営企画部門</li>
+              <li>デジタル部門</li>
+              <li>人事課</li>
+            </ul>
+            <p class="note" style="margin-top: 18px;">
+              庁内横断で職員を選抜するため、関係部門との調整が重要。
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>メンバー選定</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Effects</p>
+        <h2>期待できるメリット・効果</h2>
+      </div>
+      <div class="content">
+        <div class="matrix">
+          <div class="card green">
+            <h3>記録作成の効率化</h3>
+            <p>録画・文字起こし・要約を活用し、議事録や打ち合わせ記録の作成負担を軽減する。</p>
+          </div>
+          <div class="card blue">
+            <h3>情報共有の標準化</h3>
+            <p>会議録、決定事項、課題、対応事項を整理し、関係課が同じ情報を確認できる。</p>
+          </div>
+          <div class="card yellow">
+            <h3>庁内横断の推進</h3>
+            <p>複数課にまたがる業務改善やシステム導入を、計画的に進めやすくする。</p>
+          </div>
+          <div class="card">
+            <h3>現場に合った改善</h3>
+            <p>実務を理解している職員が参加することで、実態に合う仕組みを検討しやすくする。</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>メリット・効果</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Risk</p>
+        <h2>注意点・リスク</h2>
+      </div>
+      <div class="content">
+        <div class="grid grid-3">
+          <div class="card red">
+            <h3>ツール導入が目的化する</h3>
+            <p>DX・BPRは、ツールを入れること自体が目的ではない。</p>
+          </div>
+          <div class="card red">
+            <h3>会議体だけで終わる</h3>
+            <p>会議の進め方、共有方法、記録の残し方まで設計する必要がある。</p>
+          </div>
+          <div class="card red">
+            <h3>現場と合わない</h3>
+            <p>現場の業務理解が不足すると、使われない仕組みになる可能性がある。</p>
+          </div>
+        </div>
+        <div class="action-box">
+          <div class="action-icon">!</div>
+          <p>
+            不明点や未確認事項は推測せず、<span class="highlight">一般化した表現で整理</span>し、確認事項として残す。
+          </p>
+        </div>
+      </div>
+      <div class="footer">
+        <span>注意点・リスク</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Direction</p>
+        <h2>今後の方向性</h2>
+      </div>
+      <div class="content">
+        <div class="grid grid-2">
+          <div class="card blue">
+            <h3>短期的な方向性</h3>
+            <ul>
+              <li>Zoom等を活用した録画・文字起こし・要約から始める。</li>
+              <li>既存環境で試行できるものを優先する。</li>
+              <li>庁内会議やプロジェクト会議の記録効率化に活用する。</li>
+            </ul>
+          </div>
+          <div class="card green">
+            <h3>中長期的な方向性</h3>
+            <ul>
+              <li>庁内横断のプロジェクトチームを設置する。</li>
+              <li>複数課にまたがる業務改善やシステム導入を計画的に進める。</li>
+              <li>先進自治体やデジタル庁の取組を参考にする。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>今後の方向性</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Summary</p>
+        <h2>まとめ</h2>
+      </div>
+      <div class="content">
+        <p class="big-message">
+          DX・BPRを進めるうえでは、まず<span class="highlight">「何を導入するか」よりも「どのように進めるか」</span>を整理する。
+        </p>
+        <div class="grid grid-3" style="margin-top: 34px;">
+          <div class="card blue">
+            <h3>体制</h3>
+            <p>複数課にまたがる業務は、庁内横断のプロジェクトとして進める。</p>
+          </div>
+          <div class="card green">
+            <h3>試行</h3>
+            <p>既存環境でできる録画・文字起こし・要約から始める。</p>
+          </div>
+          <div class="card yellow">
+            <h3>学習</h3>
+            <p>先進自治体やデジタル庁の取組を参考にし、自庁に合う進め方を検討する。</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>まとめ</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="slide-header">
+        <p class="eyebrow">Next Action</p>
+        <h2>次のアクション</h2>
+      </div>
+      <div class="content">
+        <div class="number-list">
+          <div class="number-item">
+            <div>
+              <strong>既存環境で試行できる取組を選ぶ</strong>
+              <span>Zoom等を活用した録画・文字起こし・要約から始める。</span>
+            </div>
+          </div>
+          <div class="number-item">
+            <div>
+              <strong>参考にしたい自治体事例を整理する</strong>
+              <span>世田谷区、横浜市、神戸市、酒田市、大分県などの取組を確認する。</span>
+            </div>
+          </div>
+          <div class="number-item">
+            <div>
+              <strong>庁内横断で進める対象業務を検討する</strong>
+              <span>複数課にまたがる業務や、庁内全体の働き方に影響する取組を整理する。</span>
+            </div>
+          </div>
+          <div class="number-item">
+            <div>
+              <strong>メンバー選定と情報共有方法を設計する</strong>
+              <span>実務を理解している職員を参加させ、共有場所を統一する。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>次のアクション</span>
+        <div class="progress"><div class="progress-bar"></div></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="controls" aria-label="スライド操作">
+    <button id="prevBtn" type="button">前へ</button>
+    <div class="counter"><span id="currentSlide">1</span> / <span id="totalSlides">1</span></div>
+    <button id="nextBtn" type="button">次へ</button>
+  </nav>
+
+  <script>
+    (function () {
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      const currentSlide = document.getElementById("currentSlide");
+      const totalSlides = document.getElementById("totalSlides");
+      let index = 0;
+
+      totalSlides.textContent = slides.length;
+
+      function updateProgress() {
+        slides.forEach((slide, i) => {
+          const bar = slide.querySelector(".progress-bar");
+          if (bar) {
+            bar.style.width = ((i + 1) / slides.length * 100) + "%";
+          }
+        });
+      }
+
+      function showSlide(nextIndex) {
+        index = Math.max(0, Math.min(slides.length - 1, nextIndex));
+
+        slides.forEach((slide, i) => {
+          slide.classList.toggle("active", i === index);
+        });
+
+        currentSlide.textContent = index + 1;
+        prevBtn.disabled = index === 0;
+        nextBtn.disabled = index === slides.length - 1;
+
+        const hash = "#slide-" + (index + 1);
+        if (location.hash !== hash) {
+          history.replaceState(null, "", hash);
+        }
+      }
+
+      function move(delta) {
+        showSlide(index + delta);
+      }
+
+      prevBtn.addEventListener("click", () => move(-1));
+      nextBtn.addEventListener("click", () => move(1));
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+          event.preventDefault();
+          move(1);
+        }
+
+        if (event.key === "ArrowLeft" || event.key === "PageUp") {
+          event.preventDefault();
+          move(-1);
+        }
+
+        if (event.key === "Home") {
+          event.preventDefault();
+          showSlide(0);
+        }
+
+        if (event.key === "End") {
+          event.preventDefault();
+          showSlide(slides.length - 1);
+        }
+      });
+
+      function restoreFromHash() {
+        const match = location.hash.match(/slide-(\d+)/);
+        if (match) {
+          const target = Number(match[1]) - 1;
+          if (!Number.isNaN(target)) {
+            index = Math.max(0, Math.min(slides.length - 1, target));
+          }
+        }
+      }
+
+      window.addEventListener("hashchange", () => {
+        restoreFromHash();
+        showSlide(index);
+      });
+
+      updateProgress();
+      restoreFromHash();
+      showSlide(index);
+    })();
+  </script>
+</body>
 </html>
