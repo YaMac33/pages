@@ -211,6 +211,15 @@ code{font-family:var(--font-mono);font-size:12px;background:rgba(26,79,122,0.08)
   <a class="nav-item" href="#ops-mail">メール通知</a>
   <a class="nav-item" href="#ops-trouble">トラブルシューティング</a>
   <a class="nav-item" href="#ops-customize">カスタマイズ</a>
+
+  <div class="nav-section-label">カレンダー連携</div>
+  <a class="nav-item" href="#cal-overview">機能概要</a>
+  <a class="nav-item" href="#cal-setup">セットアップ</a>
+  <a class="nav-item sub" href="#cal-calid">カレンダーIDの確認</a>
+  <a class="nav-item sub" href="#cal-menu">メニューの使い方</a>
+  <a class="nav-item" href="#cal-logic">動作ロジック</a>
+  <a class="nav-item" href="#cal-sheet">スプレッドシート変更点</a>
+  <a class="nav-item" href="#cal-trouble">よくある問題</a>
 </nav>
 
 <!-- ===== メインコンテンツ ===== -->
@@ -495,6 +504,7 @@ code{font-family:var(--font-mono);font-size:12px;background:rgba(26,79,122,0.08)
         <tr><td>J</td><td>役職・職種等</td><td>フォーム</td><td>任意項目</td></tr>
         <tr><td>K</td><td>ステータス</td><td>管理者が手動変更</td><td>初期値：<code>確認中</code>。プルダウンあり。変更時に公開データが自動同期される。</td></tr>
         <tr><td>L</td><td>備考</td><td>管理者が手動記入</td><td>管理者メモ用。フロントには非公開。</td></tr>
+        <tr><td>M</td><td>カレンダー反映</td><td>GASが自動記録</td><td>カレンダーイベントID。空＝未登録、ID有り＝登録済み。手動編集不要。</td></tr>
       </tbody>
     </table>
   </div>
@@ -548,6 +558,9 @@ code{font-family:var(--font-mono);font-size:12px;background:rgba(26,79,122,0.08)
         <tr><td><code>formatDate(date)</code></td><td>doGet内</td><td>DateオブジェクトをYYYY-MM-DD形式に変換（フロント向け）</td></tr>
         <tr><td><code>formatTime(date)</code></td><td>doGet内</td><td>DateオブジェクトをHH:MM形式に変換（フロント向け）</td></tr>
         <tr><td><code>jsonResponse(obj)</code></td><td>doGet内</td><td>オブジェクトをJSON形式のContentServiceレスポンスに変換</td></tr>
+        <tr><td><code>onOpen()</code></td><td>スプレッドシート起動時（シンプルトリガー）</td><td>カスタムメニュー「予約管理」をスプレッドシートのメニューバーに追加する</td></tr>
+        <tr><td><code>syncCalendar()</code></td><td>カスタムメニューから手動実行</td><td>「予約確定」未登録行をカレンダーに一括作成。登録済みで予約確定以外の行はイベントを削除してM列をクリアする</td></tr>
+        <tr><td><code>parseDatetime(val)</code></td><td>syncCalendar内</td><td>シートの日時文字列またはDateオブジェクトをDateに変換する</td></tr>
       </tbody>
     </table>
   </div>
@@ -789,6 +802,148 @@ https://docs.google.com/spreadsheets/d/...</pre>
   <div class="callout callout-info">
     <span class="ico">ℹ️</span>
     <div>本システムは単一HTMLファイルのため、ファイルをダブルクリックしてブラウザで開くだけで動作します。ウェブサーバーは不要です。庁内ファイルサーバーや SharePoint・Google Drive 上に置いてリンクで共有する使い方も可能です。</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== カレンダー連携機能 ===== -->
+  <h2 class="section-title" id="cal-overview"><span class="sec-num">15</span>Googleカレンダー連携機能</h2>
+
+  <p>「予約確定」ステータスの申請をGoogleカレンダーへ一括反映する機能です。管理者がスプレッドシートのカスタムメニューから手動で実行します。二重登録防止のためM列（カレンダー反映）でイベントIDを管理します。</p>
+
+  <div class="callout callout-ok">
+    <span class="ico">✅</span>
+    <div><strong>追加されたファイル・シートの変更点まとめ：</strong><br>
+    ・GAS：<code>onOpen()</code>・<code>syncCalendar()</code>・<code>parseDatetime()</code> の3関数を追加<br>
+    ・申請データシート：M列「カレンダー反映」を追加（イベントID記録用）<br>
+    ・設定シート：B3セル「カレンダーID」を追加<br>
+    ・APP_HEADERSの定数が12列→13列に拡張</div>
+  </div>
+
+  <h3 class="sub-title" id="cal-setup">セットアップ</h3>
+
+  <h4 class="mini-title" id="cal-calid">① カレンダーIDの確認方法</h4>
+  <p>反映先のGoogleカレンダーのIDを確認します。</p>
+  <ol class="step-list">
+    <li><span class="step-num">1</span><div class="step-body">Google カレンダー（calendar.google.com）を開く</div></li>
+    <li><span class="step-num">2</span><div class="step-body">左サイドバーで反映先カレンダーにカーソルを合わせ、<strong>「⋮」→「設定と共有」</strong>をクリック</div></li>
+    <li><span class="step-num">3</span><div class="step-body">「カレンダーの統合」セクションの <strong>「カレンダーID」</strong> をコピー</div></li>
+  </ol>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>カレンダーの種類</th><th>カレンダーIDの形式</th></tr></thead>
+      <tbody>
+        <tr><td>メインカレンダー（自分のカレンダー）</td><td>Googleアカウントのメールアドレス（例：<code>taro@city.example.lg.jp</code>）</td></tr>
+        <tr><td>予約専用に新規作成したカレンダー</td><td><code>xxxxxxxxxxxxxxxx@group.calendar.google.com</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div><strong>専用カレンダーの作成を推奨：</strong>メインカレンダーに登録すると個人の予定と混在します。「会議室予約」などの名前で新規カレンダーを作成し、そのIDを設定することを推奨します。必要なメンバーと共有すれば閲覧・編集権限の管理も容易です。</div>
+  </div>
+
+  <h4 class="mini-title">② 設定シートへの記入</h4>
+  <p>設定シートの <strong>B3セル</strong> にコピーしたカレンダーIDを貼り付けます。</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>セル</th><th>記入内容</th></tr></thead>
+      <tbody>
+        <tr><td><code>A3</code></td><td>カレンダーID（ラベル。<code>initSheets</code>再実行で自動作成、または手動で記入）</td></tr>
+        <tr><td><code>B3</code></td><td>反映先カレンダーのID（コピーしたIDを貼り付け）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="ico">⚠️</span>
+    <div><strong>既存データがある場合の初期化：</strong>すでに申請データが入っているスプレッドシートで <code>initSheets</code> を再実行するとヘッダー行を重複追加する危険があります。その場合は以下を手動で対応してください。<br>
+    ・申請データシートのM1セルに「カレンダー反映」と入力<br>
+    ・設定シートのA3セルに「カレンダーID」、B3セルにカレンダーIDを入力</div>
+  </div>
+
+  <h4 class="mini-title">③ GASコードの更新・再デプロイ</h4>
+  <p>カレンダー機能追加後の <code>meeting-room-gas.js</code> をスクリプトエディタに貼り直し、再デプロイしてください（「デプロイ」→「デプロイを管理」→バージョンを「新バージョン」に更新）。</p>
+
+  <h3 class="sub-title" id="cal-menu">カスタムメニューの使い方</h3>
+  <ol class="step-list">
+    <li><span class="step-num">1</span><div class="step-body">「申請データ」シートを開く（スプレッドシートを開き直すとメニューが表示される）</div></li>
+    <li><span class="step-num">2</span><div class="step-body">メニューバーの <strong>「予約管理」→「予約確定をカレンダーに反映」</strong> をクリック</div></li>
+    <li><span class="step-num">3</span><div class="step-body">処理完了後にダイアログが表示される：<br><code>新規登録：◯件 / 削除：◯件 / スキップ：◯件</code></div></li>
+  </ol>
+
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div><strong>メニューが表示されない場合：</strong>スプレッドシートを一度閉じて開き直してください。<code>onOpen()</code> はスプレッドシート起動時に自動実行されるシンプルトリガーです。GASエディタで手動実行してもメニューは追加されません。</div>
+  </div>
+
+  <h3 class="sub-title" id="cal-logic">動作ロジック詳細</h3>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ステータス</th><th>M列（イベントID）</th><th>実行される処理</th></tr></thead>
+      <tbody>
+        <tr><td>予約確定</td><td>空（未登録）</td><td>✅ カレンダーにイベントを新規作成 → M列にイベントIDを記録</td></tr>
+        <tr><td>予約確定</td><td>IDあり（登録済み）</td><td>⏭ スキップ（重複登録しない）</td></tr>
+        <tr><td>確認中 または 申請却下</td><td>IDあり（登録済み）</td><td>🗑 カレンダーのイベントを削除 → M列をクリア</td></tr>
+        <tr><td>確認中 または 申請却下</td><td>空（未登録）</td><td>⏭ スキップ</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4 class="mini-title">作成されるカレンダー予定の形式</h4>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>項目</th><th>内容</th><th>例</th></tr></thead>
+      <tbody>
+        <tr><td>タイトル</td><td>【会議室】担当課：内容</td><td><code>【委員会室・小会議室】総務課：定例会議</code></td></tr>
+        <tr><td>開始・終了</td><td>申請データのF列・G列の日時</td><td>2025/07/01 09:00〜11:00</td></tr>
+        <tr><td>説明</td><td>申請ID・担当課・会議室・内容</td><td>申請ID：R0001<br>担当課：総務課<br>会議室：委員会室<br>内容：定例会議</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div><strong>内容が空の場合：</strong>予定のタイトルは「【委員会室】総務課」のみになります（「：内容」部分が省略）。</div>
+  </div>
+
+  <h3 class="sub-title" id="cal-sheet">スプレッドシートの変更点</h3>
+
+  <h4 class="mini-title">申請データシート — M列「カレンダー反映」</h4>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>M列の値</th><th>意味</th><th>操作</th></tr></thead>
+      <tbody>
+        <tr><td>空</td><td>カレンダー未登録</td><td>次回の syncCalendar 実行時に登録対象になる</td></tr>
+        <tr><td>イベントID文字列</td><td>カレンダー登録済み</td><td>重複登録されない。ステータスが予約確定以外になると自動削除・クリアされる</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="ico">⚠️</span>
+    <div><strong>M列は手動編集しないこと：</strong>M列のイベントIDを手動で変更・削除すると、カレンダー上の予定との紐付けが壊れます。カレンダー予定の修正はGoogleカレンダー側で直接行い、M列には触れないようにしてください。</div>
+  </div>
+
+  <h4 class="mini-title">設定シート — B3「カレンダーID」</h4>
+  <p>カレンダーIDを変更した場合は、次回の <code>syncCalendar</code> 実行から新しいカレンダーに登録されます。ただし<strong>過去に登録済みの予定（旧カレンダー）は自動では削除されません</strong>。旧カレンダーの予定は手動で削除してください。</p>
+
+  <h3 class="sub-title" id="cal-trouble">よくある問題</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>症状</th><th>原因</th><th>対処</th></tr></thead>
+      <tbody>
+        <tr><td>「カレンダーIDが設定されていません」と表示</td><td>設定シートB3が空</td><td>B3セルにカレンダーIDを記入して再実行</td></tr>
+        <tr><td>「指定されたカレンダーIDが見つかりません」と表示</td><td>カレンダーIDの誤り、またはアクセス権なし</td><td>カレンダーIDをコピペで確認。GASを実行するGoogleアカウントがそのカレンダーの編集権限を持っているか確認</td></tr>
+        <tr><td>メニュー「予約管理」が表示されない</td><td>onOpen が未実行</td><td>スプレッドシートを閉じて開き直す</td></tr>
+        <tr><td>予定が二重に登録された</td><td>M列のIDが消えた状態で再実行された</td><td>カレンダーで重複予定を手動削除。M列にイベントIDを手動で再記入するか、空のまま再実行すれば再登録される</td></tr>
+        <tr><td>申請却下にしてもカレンダーから消えない</td><td><code>syncCalendar</code> を実行していない</td><td>ステータス変更後にカスタムメニューから手動実行する（自動削除はしない設計）</td></tr>
+        <tr><td>「失敗：◯件」と表示される</td><td>日時データの形式が不正、またはカレンダーAPIのエラー</td><td>GASのスクリプトエディタで「実行数」→ログを確認して該当行を特定する</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="divider"></div>
