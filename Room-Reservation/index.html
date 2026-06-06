@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会議室予約申請</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1a4f7a;
+  --primary-light: #2563a8;
+  --primary-pale: #e8f0f8;
+  --accent: #2a9d8f;
+  --accent-light: #3ab5a5;
+  --danger: #c0392b;
+  --warn: #b7770d;
+  --text: #1a2332;
+  --text-muted: #5a6a7e;
+  --border: #d0dae6;
+  --bg: #f4f7fb;
+  --white: #ffffff;
+  --card-shadow: 0 2px 16px rgba(26,79,122,0.10);
+  --card-shadow-hover: 0 6px 28px rgba(26,79,122,0.16);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --tr: 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.7;}
+
+/* ヘッダー */
+.site-header{background:var(--primary);color:var(--white);padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(26,79,122,0.18);}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
+.site-header h1{font-size:15px;font-weight:500;letter-spacing:0.04em;}
+
+/* レイアウト */
+.main-wrap{max-width:860px;margin:0 auto;padding:32px 16px 64px;}
+.page-title-block{margin-bottom:28px;animation:fadeUp .5s ease both;}
+.page-title-block .label{font-size:11px;font-weight:700;letter-spacing:0.12em;color:var(--accent);text-transform:uppercase;margin-bottom:4px;}
+.page-title-block h2{font-size:26px;font-weight:700;color:var(--primary);letter-spacing:-0.01em;}
+
+/* カード */
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--card-shadow);padding:28px;margin-bottom:20px;animation:fadeUp .5s ease both;}
+.card-title{font-size:13px;font-weight:700;letter-spacing:0.08em;color:var(--primary);text-transform:uppercase;border-left:3px solid var(--accent);padding-left:10px;margin-bottom:20px;}
+
+/* フォームグリッド */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px;}
+.form-grid .full{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;}
+.required{font-size:10px;background:var(--primary);color:var(--white);padding:1px 5px;border-radius:3px;}
+.optional{font-size:10px;background:#dce8f0;color:var(--text-muted);padding:1px 5px;border-radius:3px;}
+
+input[type="text"],input[type="number"],input[type="time"],input[type="datetime-local"],textarea,select{
+  width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-family:inherit;font-size:14px;color:var(--text);background:var(--white);
+  transition:border-color var(--tr),box-shadow var(--tr);outline:none;-webkit-appearance:none;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(37,99,168,0.12);}
+input.error,textarea.error{border-color:var(--danger);box-shadow:0 0 0 3px rgba(192,57,43,0.10);}
+textarea{resize:vertical;min-height:80px;}
+
+/* チェックボックス */
+.checkbox-group{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.checkbox-item{display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);transition:border-color var(--tr),background var(--tr);user-select:none;}
+.checkbox-item:hover{border-color:var(--primary-light);background:var(--primary-pale);}
+.checkbox-item input[type="checkbox"]{display:none;}
+.check-box{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all var(--tr);flex-shrink:0;background:var(--white);}
+.checkbox-item input:checked~.check-box{background:var(--primary);border-color:var(--primary);}
+.checkbox-item input:checked~.check-box::after{content:'';display:block;width:4px;height:8px;border:2px solid white;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);}
+.checkbox-item input:checked~.check-label{color:var(--primary);font-weight:500;}
+.checkbox-item.error{border-color:var(--danger);}
+.check-label{font-size:13.5px;}
+
+/* エラー */
+.error-msg{font-size:11.5px;color:var(--danger);display:none;align-items:center;gap:3px;}
+.error-msg.show{display:flex;}
+
+/* ボタン */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 28px;border-radius:var(--radius-sm);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all var(--tr);letter-spacing:0.03em;}
+.btn-primary{background:var(--primary);color:var(--white);}
+.btn-primary:hover{background:var(--primary-light);box-shadow:0 4px 16px rgba(26,79,122,0.22);transform:translateY(-1px);}
+.btn-accent{background:var(--accent);color:var(--white);}
+.btn-accent:hover{background:var(--accent-light);box-shadow:0 4px 16px rgba(42,157,143,0.22);transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--primary);border:1.5px solid var(--border);}
+.btn-ghost:hover{border-color:var(--primary);background:var(--primary-pale);}
+.btn-link{background:none;border:none;color:var(--primary-light);font-size:13px;font-weight:700;cursor:pointer;padding:0;text-decoration:underline;font-family:inherit;}
+.btn-sm{padding:7px 16px;font-size:12.5px;}
+.form-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+
+/* セクション */
+.section{display:none;}
+.section.active{display:block;}
+
+/* ===== 日時エリア ===== */
+.datetime-section{}
+.single-mode{}
+.datetime-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* 複数日トグルリンク */
+.multi-toggle-wrap{margin-top:10px;display:flex;align-items:center;gap:8px;}
+.multi-toggle-wrap .divider{flex:1;height:1px;background:var(--border);}
+
+/* 複数日モード全体 */
+.multi-mode{display:none;margin-top:4px;}
+.multi-mode.open{display:block;animation:fadeUp .3s ease both;}
+
+/* 共通時間 */
+.common-time-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+
+/* カレンダー */
+.cal-wrap{border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;background:var(--primary);color:var(--white);padding:10px 14px;}
+.cal-header .cal-month{font-size:14px;font-weight:700;letter-spacing:0.04em;}
+.cal-nav{background:none;border:none;color:var(--white);font-size:18px;cursor:pointer;padding:2px 8px;border-radius:4px;line-height:1;transition:background var(--tr);}
+.cal-nav:hover{background:rgba(255,255,255,0.15);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);background:var(--white);}
+.cal-dow{text-align:center;font-size:11px;font-weight:700;padding:8px 0;color:var(--text-muted);border-bottom:1px solid var(--border);}
+.cal-dow:first-child{color:#c0392b;}
+.cal-dow:last-child{color:#2563a8;}
+.cal-day{text-align:center;padding:7px 2px;font-size:13px;cursor:pointer;transition:background var(--tr),color var(--tr);position:relative;border-bottom:1px solid #f0f4f8;}
+.cal-day:hover:not(.empty):not(.past){background:var(--primary-pale);}
+.cal-day.empty{cursor:default;}
+.cal-day.past{color:#bbb;cursor:not-allowed;}
+.cal-day.sun{color:#c0392b;}
+.cal-day.sat{color:#2563a8;}
+.cal-day.selected{background:var(--primary);color:var(--white)!important;font-weight:700;border-radius:4px;}
+.cal-day.selected:hover{background:var(--primary-light);}
+.cal-day.today-mark::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent);}
+
+/* 選択日リスト */
+.selected-dates-list{display:flex;flex-direction:column;gap:8px;}
+.selected-date-item{display:grid;grid-template-columns:auto 1fr auto 1fr auto;align-items:center;gap:8px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:#fafcff;font-size:13px;}
+.selected-date-item .date-label{font-weight:700;color:var(--primary);white-space:nowrap;}
+.selected-date-item .sep{color:var(--text-muted);font-size:12px;}
+.selected-date-item input[type="time"]{padding:6px 8px;font-size:13px;}
+.selected-date-item .remove-btn{background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;line-height:1;padding:2px 4px;border-radius:4px;transition:color var(--tr);}
+.selected-date-item .remove-btn:hover{color:var(--danger);}
+.no-dates-hint{font-size:13px;color:var(--text-muted);text-align:center;padding:12px;background:#f8fafc;border-radius:var(--radius-sm);border:1.5px dashed var(--border);}
+
+/* 確認テーブル */
+.confirm-table{width:100%;border-collapse:collapse;}
+.confirm-table tr{border-bottom:1px solid var(--border);}
+.confirm-table tr:last-child{border-bottom:none;}
+.confirm-table th{padding:12px 16px 12px 0;font-size:12px;font-weight:700;color:var(--text-muted);text-align:left;white-space:nowrap;width:140px;vertical-align:top;}
+.confirm-table td{padding:12px 0;font-size:14px;color:var(--text);}
+.room-tag{display:inline-block;background:var(--primary-pale);color:var(--primary);border:1px solid #b8cfe0;border-radius:4px;font-size:12px;font-weight:500;padding:2px 8px;margin:2px 3px 2px 0;}
+.date-confirm-item{font-size:13px;padding:4px 0;border-bottom:1px solid #f0f4f8;display:flex;gap:8px;align-items:center;}
+.date-confirm-item:last-child{border-bottom:none;}
+.confirm-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+
+/* 完了 */
+.success-block{text-align:center;padding:32px 16px;animation:fadeUp .4s ease both;}
+.success-block .icon{width:64px;height:64px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;}
+.success-block h3{font-size:20px;font-weight:700;color:var(--primary);margin-bottom:8px;}
+.success-block p{color:var(--text-muted);font-size:14px;}
+.success-block .btn{margin-top:20px;}
+
+/* ステータスバッジ */
+.status-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;letter-spacing:0.03em;}
+.status-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.7;}
+.status-badge.pending{background:#fef9e7;color:#b7770d;border:1px solid #f5d97a;}
+.status-badge.confirmed{background:#e8f8f5;color:#1a7a5e;border:1px solid #a8ddd1;}
+.status-badge.rejected{background:#fdf0ef;color:#a93226;border:1px solid #f0b0aa;}
+
+/* 予約状況エリア */
+.sheet-area{margin-top:8px;animation:fadeUp .6s .1s ease both;}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.sheet-header-left{display:flex;align-items:center;gap:10px;}
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:#e8f8f5;color:var(--accent);border:1px solid #b2ddd8;border-radius:20px;font-size:11px;font-weight:700;padding:3px 9px;}
+.live-badge::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 1.5s ease infinite;}
+.reservation-cards{display:flex;flex-direction:column;gap:10px;}
+.res-card{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:10px 14px;align-items:center;transition:box-shadow var(--tr);background:var(--white);}
+.res-card:hover{box-shadow:var(--card-shadow-hover);}
+.res-date{text-align:center;background:var(--primary-pale);border-radius:8px;padding:8px 10px;min-width:56px;}
+.res-date .month{font-size:10px;color:var(--primary);font-weight:700;letter-spacing:0.06em;}
+.res-date .day{font-size:22px;font-weight:700;color:var(--primary);line-height:1.1;}
+.res-date .weekday{font-size:10px;color:var(--text-muted);}
+.res-room{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:2px;}
+.res-dept{font-size:12px;color:var(--text-muted);margin-top:1px;}
+.res-time{font-size:12px;color:var(--text-muted);text-align:right;white-space:nowrap;}
+.res-time .time-range{font-size:13px;font-weight:700;color:var(--primary);}
+.all-table-wrap{display:none;overflow-x:auto;border-radius:var(--radius-sm);border:1.5px solid var(--border);margin-top:10px;}
+.all-table-wrap.show{display:block;}
+.all-table{width:100%;border-collapse:collapse;font-size:13px;}
+.all-table th{background:var(--primary);color:var(--white);padding:10px 12px;text-align:left;font-size:11.5px;font-weight:700;letter-spacing:0.05em;white-space:nowrap;}
+.all-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.all-table tr:last-child td{border-bottom:none;}
+.all-table tr:nth-child(even) td{background:#f9fbfd;}
+.room-chip{display:inline-block;background:var(--primary-pale);color:var(--primary);border-radius:4px;font-size:11px;font-weight:500;padding:1px 6px;margin:1px 2px;border:1px solid #c0d4e8;}
+.sheet-loading,.sheet-error,.sheet-empty{text-align:center;padding:24px;color:var(--text-muted);font-size:13px;}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
+.sheet-error{color:var(--danger);}
+.show-all-btn-wrap{text-align:center;margin-top:12px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+@media(max-width:600px){
+  .card{padding:20px 16px;}
+  .form-grid{grid-template-columns:1fr;}
+  .form-grid .full{grid-column:1;}
+  .datetime-pair,.common-time-row{grid-template-columns:1fr;}
+  .checkbox-group{grid-template-columns:1fr 1fr;}
+  .selected-date-item{grid-template-columns:auto 1fr auto;flex-wrap:wrap;}
+  .confirm-table th{width:90px;font-size:11px;}
+  .res-card{grid-template-columns:auto 1fr;}
+  .res-time{grid-column:2;}
+}
+@media(max-width:400px){.checkbox-group{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo-mark">会</div>
+  <h1>会議室予約申請システム</h1>
+</header>
+
+<div class="main-wrap">
+  <div class="page-title-block">
+    <div class="label">Room Reservation</div>
+    <h2>会議室予約申請</h2>
+  </div>
+
+  <!-- ===== 入力フォーム ===== -->
+  <div id="section-form" class="section active">
+
+    <!-- 申請者情報 -->
+    <div class="card" style="animation-delay:.05s">
+      <div class="card-title">申請者情報</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>担当課 <span class="required">必須</span></label>
+          <input type="text" id="dept" placeholder="例：総務課">
+          <span class="error-msg" id="err-dept">担当課を入力してください</span>
+        </div>
+        <div class="field">
+          <label>担当者名 <span class="required">必須</span></label>
+          <input type="text" id="name" placeholder="例：山田 太郎">
+          <span class="error-msg" id="err-name">担当者名を入力してください</span>
+        </div>
+        <div class="field full">
+          <label>利用者の役職・職種等 <span class="optional">任意</span></label>
+          <input type="text" id="role" placeholder="例：課長、主任、外部委員 等">
+        </div>
+      </div>
+    </div>
+
+    <!-- 会議室・日時 -->
+    <div class="card" style="animation-delay:.10s">
+      <div class="card-title">会議室・日時</div>
+      <div class="form-grid">
+
+        <!-- 会議室 -->
+        <div class="field full">
+          <label>利用希望の会議室 <span class="required">必須</span></label>
+          <div class="checkbox-group" id="rooms-group">
+            <label class="checkbox-item"><input type="checkbox" name="room" value="委員会室"><span class="check-box"></span><span class="check-label">委員会室</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="room" value="小委員会室"><span class="check-box"></span><span class="check-label">小委員会室</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="room" value="部課長控室"><span class="check-box"></span><span class="check-label">部課長控室</span></label>
+            <label class="checkbox-item"><input type="checkbox" name="room" value="小会議室"><span class="check-box"></span><span class="check-label">小会議室</span></label>
+          </div>
+          <span class="error-msg" id="err-rooms">会議室を1つ以上選択してください</span>
+        </div>
+
+        <!-- 日時（通常モード） -->
+        <div class="field full" id="single-mode-wrap">
+          <label>利用日時 <span class="required">必須</span></label>
+          <div class="datetime-pair">
+            <div class="field">
+              <label style="font-weight:400;color:var(--text-muted);font-size:12px;">開始日時</label>
+              <input type="datetime-local" id="start-dt">
+              <span class="error-msg" id="err-start">開始日時を入力してください</span>
+            </div>
+            <div class="field">
+              <label style="font-weight:400;color:var(--text-muted);font-size:12px;">終了日時</label>
+              <input type="datetime-local" id="end-dt">
+              <span class="error-msg" id="err-end">終了日時を入力してください（開始より後）</span>
+            </div>
+          </div>
+          <!-- 複数日トグル -->
+          <div class="multi-toggle-wrap">
+            <span class="divider"></span>
+            <button type="button" class="btn-link" id="multi-toggle-btn" onclick="openMultiMode()">＋ 複数日を選択する場合はこちら</button>
+            <span class="divider"></span>
+          </div>
+        </div>
+
+        <!-- 複数日モード -->
+        <div class="full" id="multi-mode-wrap" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <label style="font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px;">
+              利用日時（複数日） <span class="required">必須</span>
+            </label>
+            <button type="button" class="btn-link" onclick="closeMultiMode()" style="font-size:12px;">← 1日のみに戻す</button>
+          </div>
+
+          <!-- 共通時間 -->
+          <div style="margin-bottom:14px;">
+            <div style="font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px;">共通の時間（全日に適用）</div>
+            <div class="common-time-row">
+              <div class="field">
+                <label style="font-weight:400;color:var(--text-muted);font-size:12px;">開始時刻</label>
+                <input type="time" id="common-start" value="09:00" onchange="applyCommonTime()">
+              </div>
+              <div class="field">
+                <label style="font-weight:400;color:var(--text-muted);font-size:12px;">終了時刻</label>
+                <input type="time" id="common-end" value="17:00" onchange="applyCommonTime()">
+              </div>
+            </div>
+          </div>
+
+          <!-- カレンダー -->
+          <div class="cal-wrap" id="cal-wrap">
+            <div class="cal-header">
+              <button type="button" class="cal-nav" onclick="calPrev()">‹</button>
+              <span class="cal-month" id="cal-month-label"></span>
+              <button type="button" class="cal-nav" onclick="calNext()">›</button>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+          </div>
+
+          <!-- 選択日リスト -->
+          <div style="font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:8px;">選択した日付 <span id="selected-count" style="color:var(--primary);">0件</span></div>
+          <div id="selected-dates-list" class="selected-dates-list">
+            <div class="no-dates-hint">カレンダーで日付をクリックして選択してください</div>
+          </div>
+          <span class="error-msg" id="err-multi" style="margin-top:6px;">日付を1日以上選択してください</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 利用詳細 -->
+    <div class="card" style="animation-delay:.15s">
+      <div class="card-title">利用詳細</div>
+      <div class="form-grid">
+        <div class="field full">
+          <label>内容 <span class="optional">任意</span></label>
+          <textarea id="content" placeholder="会議・打合せの内容・目的など"></textarea>
+        </div>
+        <div class="field">
+          <label>想定利用人数 <span class="optional">任意</span></label>
+          <input type="number" id="headcount" min="1" max="999" placeholder="例：10">
+        </div>
+      </div>
+    </div>
+
+    <!-- 確認ボタン -->
+    <div class="card" style="padding:20px 28px;animation-delay:.20s">
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="goConfirm()">内容を確認する　→</button>
+      </div>
+    </div>
+
+  </div><!-- /section-form -->
+
+  <!-- ===== 確認セクション ===== -->
+  <div id="section-confirm" class="section">
+    <div class="card">
+      <div class="card-title">申請内容の確認</div>
+      <table class="confirm-table" id="confirm-table"></table>
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" onclick="goBack()">← 修正する</button>
+        <button class="btn btn-accent" onclick="submitForm()">送信する　✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 完了セクション ===== -->
+  <div id="section-done" class="section">
+    <div class="card">
+      <div class="success-block">
+        <div class="icon">✓</div>
+        <h3>申請を受け付けました</h3>
+        <p>ご申請ありがとうございます。<br>担当者より折り返しご連絡いたします。</p>
+        <button class="btn btn-primary" onclick="resetForm()">新しい申請を行う</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 予約状況エリア ===== -->
+  <div class="card sheet-area">
+    <div class="sheet-header">
+      <div class="sheet-header-left">
+        <div class="card-title" style="margin:0;">予約状況</div>
+        <span class="live-badge">LIVE</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="fetchReservations()">🔄 更新</button>
+    </div>
+    <div class="sheet-loading" id="sheet-loading"><div class="spinner"></div>読み込み中...</div>
+    <div class="sheet-error" id="sheet-error" style="display:none;">⚠ データの取得に失敗しました。<br><small>GASのURLが設定されているか確認してください。</small></div>
+    <div id="recent-cards" class="reservation-cards" style="display:none;"></div>
+    <div class="show-all-btn-wrap" id="show-all-wrap" style="display:none;">
+      <button class="btn btn-ghost btn-sm" id="show-all-btn" onclick="toggleAllTable()">すべての予約を見る ↓</button>
+    </div>
+    <div class="all-table-wrap" id="all-table-wrap">
+      <table class="all-table" id="all-table">
+        <thead><tr>
+          <th>日付</th><th>時間</th><th>会議室</th><th>担当課</th><th>ステータス</th>
+        </tr></thead>
+        <tbody id="all-table-body"></tbody>
+      </table>
+    </div>
+    <div class="sheet-empty" id="sheet-empty" style="display:none;">予約データがありません</div>
+  </div>
+
+</div><!-- /main-wrap -->
+
+<script>
+// ============================================================
+//  ★ GAS接続設定
+// ============================================================
+const GAS_URL = "https://script.google.com/macros/s/AKfycbx39licwil2jxl8BVidKYUhqRyL-y1w3qeddsKwu099PFnXQhHXIdeVpNGkUFTknhG6KQ/exec"; // 例: "https://script.google.com/macros/s/XXXXXX/exec"
+
+// ============================================================
+//  ユーティリティ
+// ============================================================
+function $(id){ return document.getElementById(id); }
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function escapeHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+const WEEKDAY = ['日','月','火','水','木','金','土'];
+function fmtDatetime(dtStr){
+  if(!dtStr) return '―';
+  const d = new Date(dtStr);
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}（${WEEKDAY[d.getDay()]}）${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function fmtDate(dateStr){
+  const d = new Date(dateStr);
+  return { month:(d.getMonth()+1)+'月', day:d.getDate(), weekday:WEEKDAY[d.getDay()], wd:d.getDay() };
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+
+// ============================================================
+//  複数日モード管理
+// ============================================================
+let isMultiMode = false;
+// selectedDates: { [dateStr: YYYY-MM-DD]: { start: "HH:MM", end: "HH:MM" } }
+let selectedDates = {};
+
+// カレンダー状態
+let calYear, calMonth;
+
+function openMultiMode(){
+  isMultiMode = true;
+  $('single-mode-wrap').style.display = 'none';
+  $('multi-mode-wrap').style.display = 'block';
+  // 単一モードの値をクリア
+  $('start-dt').value = '';
+  $('end-dt').value = '';
+  // カレンダー初期化
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+}
+
+function closeMultiMode(){
+  isMultiMode = false;
+  selectedDates = {};
+  $('multi-mode-wrap').style.display = 'none';
+  $('single-mode-wrap').style.display = 'block';
+  renderSelectedList();
+}
+
+// ===== カレンダー描画 =====
+function renderCalendar(){
+  const label = `${calYear}年${calMonth+1}月`;
+  $('cal-month-label').textContent = label;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 曜日（0=日）
+  const lastDate = new Date(calYear, calMonth+1, 0).getDate();
+
+  let html = '';
+  // 曜日ヘッダー
+  ['日','月','火','水','木','金','土'].forEach((d,i) => {
+    html += `<div class="cal-dow" style="${i===0?'color:#c0392b':i===6?'color:#2563a8':''}">${d}</div>`;
+  });
+  // 空白
+  for(let i=0;i<firstDay;i++) html += `<div class="cal-day empty"></div>`;
+  // 日付
+  for(let d=1;d<=lastDate;d++){
+    const dateStr = `${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+    const dt = new Date(calYear, calMonth, d);
+    const isPast = dt < today;
+    const isToday = dt.getTime() === today.getTime();
+    const isSelected = !!selectedDates[dateStr];
+    const wd = dt.getDay();
+    let cls = 'cal-day';
+    if(isPast) cls += ' past';
+    if(wd===0) cls += ' sun';
+    if(wd===6) cls += ' sat';
+    if(isSelected) cls += ' selected';
+    if(isToday) cls += ' today-mark';
+    const onclick = isPast ? '' : `onclick="toggleDate('${dateStr}')"`;
+    html += `<div class="${cls}" ${onclick}>${d}</div>`;
+  }
+  $('cal-grid').innerHTML = html;
+}
+
+function calPrev(){
+  calMonth--;
+  if(calMonth < 0){ calMonth=11; calYear--; }
+  renderCalendar();
+}
+function calNext(){
+  calMonth++;
+  if(calMonth > 11){ calMonth=0; calYear++; }
+  renderCalendar();
+}
+
+function toggleDate(dateStr){
+  if(selectedDates[dateStr]){
+    delete selectedDates[dateStr];
+  } else {
+    const cs = $('common-start').value || '09:00';
+    const ce = $('common-end').value || '17:00';
+    selectedDates[dateStr] = { start: cs, end: ce };
+  }
+  renderCalendar();
+  renderSelectedList();
+}
+
+function applyCommonTime(){
+  const cs = $('common-start').value;
+  const ce = $('common-end').value;
+  Object.keys(selectedDates).forEach(k => {
+    selectedDates[k] = { start: cs, end: ce };
+  });
+  renderSelectedList();
+}
+
+function renderSelectedList(){
+  const keys = Object.keys(selectedDates).sort();
+  $('selected-count').textContent = keys.length + '件';
+
+  if(keys.length === 0){
+    $('selected-dates-list').innerHTML = '<div class="no-dates-hint">カレンダーで日付をクリックして選択してください</div>';
+    return;
+  }
+
+  $('selected-dates-list').innerHTML = keys.map(dateStr => {
+    const d = new Date(dateStr);
+    const label = `${d.getMonth()+1}月${d.getDate()}日（${WEEKDAY[d.getDay()]}）`;
+    const val = selectedDates[dateStr];
+    return `
+      <div class="selected-date-item">
+        <span class="date-label">${label}</span>
+        <span class="sep">開始</span>
+        <input type="time" value="${val.start}" onchange="updateDatetime('${dateStr}','start',this.value)" style="width:100px;">
+        <span class="sep">終了</span>
+        <input type="time" value="${val.end}" onchange="updateDatetime('${dateStr}','end',this.value)" style="width:100px;">
+        <button type="button" class="remove-btn" onclick="removeDate('${dateStr}')">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function updateDatetime(dateStr, key, val){
+  if(selectedDates[dateStr]) selectedDates[dateStr][key] = val;
+}
+
+function removeDate(dateStr){
+  delete selectedDates[dateStr];
+  renderCalendar();
+  renderSelectedList();
+}
+
+// ============================================================
+//  バリデーション
+// ============================================================
+function validate(){
+  let ok = true;
+
+  // 担当課
+  if(!$('dept').value.trim()){
+    $('dept').classList.add('error'); $('err-dept').classList.add('show'); ok=false;
+  } else { $('dept').classList.remove('error'); $('err-dept').classList.remove('show'); }
+
+  // 担当者名
+  if(!$('name').value.trim()){
+    $('name').classList.add('error'); $('err-name').classList.add('show'); ok=false;
+  } else { $('name').classList.remove('error'); $('err-name').classList.remove('show'); }
+
+  // 会議室
+  const rooms = [...document.querySelectorAll('input[name="room"]:checked')].map(c=>c.value);
+  if(rooms.length===0){
+    document.querySelectorAll('.checkbox-item').forEach(el=>el.classList.add('error'));
+    $('err-rooms').classList.add('show'); ok=false;
+  } else {
+    document.querySelectorAll('.checkbox-item').forEach(el=>el.classList.remove('error'));
+    $('err-rooms').classList.remove('show');
+  }
+
+  // 日時
+  if(!isMultiMode){
+    const s = $('start-dt').value, e = $('end-dt').value;
+    if(!s){ $('start-dt').classList.add('error'); $('err-start').classList.add('show'); ok=false; }
+    else  { $('start-dt').classList.remove('error'); $('err-start').classList.remove('show'); }
+    if(!e || (s && e && e<=s)){ $('end-dt').classList.add('error'); $('err-end').classList.add('show'); ok=false; }
+    else  { $('end-dt').classList.remove('error'); $('err-end').classList.remove('show'); }
+  } else {
+    if(Object.keys(selectedDates).length===0){
+      $('err-multi').classList.add('show'); ok=false;
+    } else {
+      $('err-multi').classList.remove('show');
+    }
+  }
+
+  return ok;
+}
+
+// ============================================================
+//  確認画面へ
+// ============================================================
+function goConfirm(){
+  if(!validate()) return;
+
+  const rooms = [...document.querySelectorAll('input[name="room"]:checked')].map(c=>c.value);
+  let rows = [
+    { th:'担当課',           td: $('dept').value.trim() },
+    { th:'担当者名',         td: $('name').value.trim() },
+    { th:'利用希望の会議室', td: rooms, type:'rooms' },
+  ];
+
+  if(!isMultiMode){
+    rows.push({ th:'開始日時', td: fmtDatetime($('start-dt').value) });
+    rows.push({ th:'終了日時', td: fmtDatetime($('end-dt').value) });
+  } else {
+    rows.push({ th:'利用日時', td: Object.entries(selectedDates).sort((a,b)=>a[0]<b[0]?-1:1), type:'multidate' });
+  }
+
+  rows.push(
+    { th:'内容',         td: $('content').value.trim() || '―' },
+    { th:'想定利用人数', td: $('headcount').value ? $('headcount').value+'名' : '―' },
+    { th:'役職・職種等', td: $('role').value.trim() || '―' },
+  );
+
+  $('confirm-table').innerHTML = rows.map(r => {
+    let tdContent = '';
+    if(r.type==='rooms'){
+      tdContent = r.td.map(rm=>`<span class="room-tag">${rm}</span>`).join('');
+    } else if(r.type==='multidate'){
+      tdContent = '<div>' + r.td.map(([ds,v]) => {
+        const d = new Date(ds);
+        return `<div class="date-confirm-item"><span style="font-weight:700;color:var(--primary);min-width:140px;">${d.getMonth()+1}月${d.getDate()}日（${WEEKDAY[d.getDay()]}）</span><span style="font-size:12px;color:var(--text-muted);">${v.start}〜${v.end}</span></div>`;
+      }).join('') + '</div>';
+    } else {
+      tdContent = escapeHtml(String(r.td));
+    }
+    return `<tr><th>${r.th}</th><td>${tdContent}</td></tr>`;
+  }).join('');
+
+  showSection('section-confirm');
+}
+
+function goBack(){ showSection('section-form'); }
+
+// ============================================================
+//  送信
+// ============================================================
+function submitForm(){
+  const rooms = [...document.querySelectorAll('input[name="room"]:checked')].map(c=>c.value);
+  const base = {
+    dept:      $('dept').value.trim(),
+    name:      $('name').value.trim(),
+    rooms,
+    content:   $('content').value.trim(),
+    headcount: $('headcount').value || '',
+    role:      $('role').value.trim(),
+    submittedAt: new Date().toISOString(),
+  };
+
+  // 複数日の場合は日付分の配列で送る
+  let payload;
+  if(!isMultiMode){
+    payload = { ...base, startDt: $('start-dt').value, endDt: $('end-dt').value, isMulti: false };
+  } else {
+    const dates = Object.entries(selectedDates).sort((a,b)=>a[0]<b[0]?-1:1).map(([ds,v])=>({
+      date: ds, startTime: v.start, endTime: v.end
+    }));
+    payload = { ...base, dates, isMulti: true };
+  }
+
+  if(!GAS_URL){
+    console.log('[DEBUG] 送信データ（GAS未接続）:', payload);
+    showSection('section-done');
+    return;
+  }
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    mode: 'no-cors',
+  })
+  .then(() => {
+    showSection('section-done');
+    setTimeout(fetchReservations, 1500);
+  })
+  .catch(err => {
+    console.error('送信エラー:', err);
+    alert('送信に失敗しました。ネットワーク接続を確認してください。');
+  });
+}
+
+// ============================================================
+//  リセット
+// ============================================================
+function resetForm(){
+  document.querySelectorAll('input[type="text"],input[type="number"],textarea').forEach(el=>{ el.value=''; el.classList.remove('error'); });
+  document.querySelectorAll('input[type="datetime-local"]').forEach(el=>{ el.value=''; el.classList.remove('error'); });
+  document.querySelectorAll('input[name="room"]').forEach(el=>el.checked=false);
+  document.querySelectorAll('.error-msg').forEach(el=>el.classList.remove('show'));
+  document.querySelectorAll('.checkbox-item').forEach(el=>el.classList.remove('error'));
+  selectedDates = {};
+  if(isMultiMode) closeMultiMode();
+  showSection('section-form');
+}
+
+// ============================================================
+//  予約状況
+// ============================================================
+let allReservations = [];
+
+function fetchReservations(){
+  $('sheet-loading').style.display='block';
+  $('sheet-error').style.display='none';
+  $('recent-cards').style.display='none';
+  $('show-all-wrap').style.display='none';
+  $('all-table-wrap').classList.remove('show');
+  $('sheet-empty').style.display='none';
+  $('show-all-btn').textContent='すべての予約を見る ↓';
+
+  if(!GAS_URL){
+    const today = new Date();
+    const ad = (n) => { const d=new Date(today); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+    setTimeout(()=>renderReservations([
+      { date:ad(0), startTime:'09:00', endTime:'11:00', rooms:['委員会室'],             dept:'総務課',     status:'予約確定' },
+      { date:ad(0), startTime:'13:00', endTime:'14:30', rooms:['小会議室'],             dept:'企画政策課', status:'確認中'   },
+      { date:ad(0), startTime:'15:00', endTime:'17:00', rooms:['部課長控室','小委員会室'], dept:'財政課',   status:'申請却下' },
+      { date:ad(1), startTime:'10:00', endTime:'12:00', rooms:['委員会室'],             dept:'市民課',     status:'予約確定' },
+      { date:ad(1), startTime:'14:00', endTime:'16:00', rooms:['小委員会室'],           dept:'健康増進課', status:'確認中'   },
+      { date:ad(2), startTime:'09:30', endTime:'11:30', rooms:['小会議室'],             dept:'建設課',     status:'予約確定' },
+    ]), 600);
+    return;
+  }
+  fetch(GAS_URL+'?action=list',{mode:'cors'})
+    .then(r=>r.json())
+    .then(d=>renderReservations(d.reservations||[]))
+    .catch(err=>{ console.error(err); $('sheet-loading').style.display='none'; $('sheet-error').style.display='block'; });
+}
+
+function addDays(date,n){ const d=new Date(date); d.setDate(d.getDate()+n); return d; }
+
+function renderReservations(list){
+  allReservations = list;
+  $('sheet-loading').style.display='none';
+  if(!list||list.length===0){ $('sheet-empty').style.display='block'; return; }
+  $('recent-cards').innerHTML = list.slice(0,3).map(buildResCard).join('');
+  $('recent-cards').style.display='flex';
+  if(list.length>3) $('show-all-wrap').style.display='block';
+  $('all-table-body').innerHTML = list.map(buildTableRow).join('');
+}
+
+function statusBadge(s){
+  const map={'確認中':{cls:'pending',label:'確認中'},'予約確定':{cls:'confirmed',label:'予約確定'},'申請却下':{cls:'rejected',label:'申請却下'}};
+  const v=map[s]||{cls:'pending',label:s||'確認中'};
+  return `<span class="status-badge ${v.cls}">${v.label}</span>`;
+}
+
+function buildResCard(r){
+  const df=fmtDate(r.date);
+  const rooms=Array.isArray(r.rooms)?r.rooms:[r.rooms];
+  return `<div class="res-card">
+    <div class="res-date"><div class="month">${df.month}</div><div class="day">${df.day}</div><div class="weekday">${df.weekday}</div></div>
+    <div class="res-body">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"><span class="res-room">${rooms.join(' · ')}</span>${statusBadge(r.status)}</div>
+      <div class="res-dept">${escapeHtml(r.dept)}</div>
+    </div>
+    <div class="res-time"><div class="time-range">${r.startTime}〜</div><div>${r.endTime}</div></div>
+  </div>`;
+}
+
+function buildTableRow(r){
+  const rooms=Array.isArray(r.rooms)?r.rooms:[r.rooms];
+  const chips=rooms.map(rm=>`<span class="room-chip">${escapeHtml(rm)}</span>`).join('');
+  const df=fmtDate(r.date);
+  return `<tr>
+    <td>${df.month}${df.day}日（${df.weekday}）</td>
+    <td>${r.startTime}〜${r.endTime}</td>
+    <td>${chips}</td>
+    <td>${escapeHtml(r.dept)}</td>
+    <td>${statusBadge(r.status)}</td>
+  </tr>`;
+}
+
+function toggleAllTable(){
+  const wrap=$('all-table-wrap'), btn=$('show-all-btn');
+  if(wrap.classList.contains('show')){ wrap.classList.remove('show'); btn.textContent='すべての予約を見る ↓'; }
+  else { wrap.classList.add('show'); btn.textContent='折りたたむ ↑'; }
+}
+
+window.addEventListener('DOMContentLoaded', fetchReservations);
+</script>
+</body>
+</html>
+
