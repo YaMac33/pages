@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>README – 会議室予約申請システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#1a4f7a;--primary-light:#2563a8;--primary-pale:#e8f0f8;
+  --accent:#2a9d8f;--accent-pale:#e8f8f5;
+  --warn:#b7770d;--warn-pale:#fef9e7;
+  --danger:#c0392b;--danger-pale:#fdf0ef;
+  --ok:#1a7a5e;--ok-pale:#e8f8f5;
+  --text:#1a2332;--text-muted:#5a6a7e;--text-light:#8a9ab0;
+  --border:#d0dae6;--border-light:#e8eef6;
+  --bg:#f4f7fb;--white:#fff;
+  --code-bg:#1e2a3a;--code-text:#e2eaf5;
+  --shadow:0 2px 16px rgba(26,79,122,0.10);
+  --radius:10px;--radius-sm:6px;
+  --font:'Noto Sans JP',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.8;}
+
+/* ===== サイドバーレイアウト ===== */
+.layout{display:flex;min-height:100vh;}
+.sidebar{
+  width:260px;flex-shrink:0;background:var(--primary);color:var(--white);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:0 0 32px;
+  display:flex;flex-direction:column;
+}
+.sidebar-logo{
+  padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:8px;
+}
+.sidebar-logo .sys-label{font-size:10px;letter-spacing:0.14em;opacity:0.6;text-transform:uppercase;margin-bottom:4px;}
+.sidebar-logo .sys-name{font-size:13px;font-weight:700;line-height:1.4;}
+.sidebar-logo .version-badge{
+  display:inline-block;margin-top:6px;background:var(--accent);color:var(--white);
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:0.05em;
+}
+.nav-section-label{
+  font-size:9.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;
+  opacity:0.5;padding:12px 20px 4px;
+}
+.nav-item{
+  display:block;padding:8px 20px 8px 20px;font-size:12.5px;color:rgba(255,255,255,0.8);
+  text-decoration:none;border-left:3px solid transparent;transition:all .15s;cursor:pointer;
+}
+.nav-item:hover{color:var(--white);background:rgba(255,255,255,0.08);border-left-color:var(--accent);}
+.nav-item.active{color:var(--white);background:rgba(255,255,255,0.12);border-left-color:var(--accent);font-weight:700;}
+.nav-item.sub{padding-left:32px;font-size:11.5px;opacity:0.85;}
+
+/* ===== メインコンテンツ ===== */
+.main{flex:1;min-width:0;padding:48px 56px 80px;max-width:900px;}
+
+/* ===== 見出し ===== */
+.doc-hero{margin-bottom:48px;padding-bottom:28px;border-bottom:2px solid var(--border);}
+.doc-hero .kicker{font-size:11px;font-weight:700;letter-spacing:0.14em;color:var(--accent);text-transform:uppercase;margin-bottom:8px;}
+.doc-hero h1{font-family:'Noto Serif JP',serif;font-size:28px;font-weight:700;color:var(--primary);line-height:1.3;margin-bottom:12px;}
+.doc-hero .subtitle{font-size:13.5px;color:var(--text-muted);line-height:1.7;}
+.doc-hero .badges{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;}
+.badge-blue{background:var(--primary-pale);color:var(--primary);border:1px solid #b8cfe0;}
+.badge-green{background:var(--ok-pale);color:var(--ok);border:1px solid #a8ddd1;}
+.badge-warn{background:var(--warn-pale);color:var(--warn);border:1px solid #f5d97a;}
+
+h2.section-title{
+  font-size:19px;font-weight:700;color:var(--primary);margin:48px 0 20px;
+  padding-bottom:10px;border-bottom:2px solid var(--primary-pale);
+  display:flex;align-items:center;gap:10px;
+}
+h2.section-title .sec-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;background:var(--primary);color:var(--white);
+  border-radius:6px;font-size:13px;flex-shrink:0;
+}
+h3.sub-title{font-size:15px;font-weight:700;color:var(--primary);margin:28px 0 12px;padding-left:10px;border-left:3px solid var(--accent);}
+h4.mini-title{font-size:13px;font-weight:700;color:var(--text);margin:18px 0 8px;}
+
+p{margin-bottom:12px;line-height:1.85;font-size:13.5px;}
+p:last-child{margin-bottom:0;}
+
+/* ===== コールアウト ===== */
+.callout{border-radius:var(--radius-sm);padding:14px 16px;margin:16px 0;display:flex;gap:12px;font-size:13px;line-height:1.7;}
+.callout .ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+.callout-info{background:var(--primary-pale);border:1px solid #b8cfe0;color:var(--primary);}
+.callout-warn{background:var(--warn-pale);border:1px solid #f5d97a;color:#7a4f0d;}
+.callout-danger{background:var(--danger-pale);border:1px solid #f0b0aa;color:#7a1a10;}
+.callout-ok{background:var(--ok-pale);border:1px solid #a8ddd1;color:#0d4f3a;}
+.callout strong{font-weight:700;}
+
+/* ===== テーブル ===== */
+.tbl-wrap{overflow-x:auto;margin:14px 0 20px;border-radius:var(--radius-sm);border:1.5px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--primary);color:var(--white);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;letter-spacing:0.04em;white-space:nowrap;}
+tbody td{padding:9px 14px;border-bottom:1px solid var(--border-light);vertical-align:top;line-height:1.65;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:nth-child(even) td{background:#f9fbfd;}
+td code,th code{font-family:var(--font-mono);font-size:11.5px;background:rgba(26,79,122,0.08);padding:1px 5px;border-radius:3px;}
+
+/* ===== コードブロック ===== */
+.code-block{background:var(--code-bg);border-radius:var(--radius-sm);margin:12px 0 18px;overflow:hidden;}
+.code-block .code-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.code-block .code-lang{font-size:11px;color:rgba(255,255,255,0.45);font-family:var(--font-mono);letter-spacing:0.08em;}
+.code-block pre{padding:16px 18px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.7;color:var(--code-text);}
+.code-block .kw{color:#7dd3fc;}
+.code-block .str{color:#86efac;}
+.code-block .cm{color:#64748b;}
+.code-block .fn{color:#fde68a;}
+.code-block .num{color:#f9a8d4;}
+
+/* ===== ステップリスト ===== */
+.step-list{list-style:none;display:flex;flex-direction:column;gap:12px;margin:12px 0 20px;}
+.step-list li{display:flex;gap:14px;align-items:flex-start;}
+.step-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;background:var(--primary);color:var(--white);
+  font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px;
+}
+.step-body{flex:1;font-size:13.5px;line-height:1.75;}
+.step-body strong{color:var(--primary);}
+
+/* ===== フローチャート ===== */
+.flow{display:flex;flex-direction:column;gap:0;margin:14px 0 20px;}
+.flow-item{display:flex;align-items:stretch;gap:14px;}
+.flow-line{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0;}
+.flow-dot{width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--white);box-shadow:0 0 0 2px var(--accent);flex-shrink:0;margin-top:6px;}
+.flow-vline{width:2px;flex:1;background:var(--border);min-height:12px;}
+.flow-item:last-child .flow-vline{display:none;}
+.flow-content{flex:1;padding:0 0 18px;}
+.flow-label{font-size:12.5px;font-weight:700;color:var(--primary);margin-bottom:2px;}
+.flow-desc{font-size:12.5px;color:var(--text-muted);line-height:1.65;}
+
+/* ===== インラインコード ===== */
+code{font-family:var(--font-mono);font-size:12px;background:rgba(26,79,122,0.08);padding:1px 5px;border-radius:3px;color:var(--primary);}
+
+/* ===== シート構造図 ===== */
+.sheet-visual{border:1.5px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin:14px 0 20px;}
+.sheet-tab-row{display:flex;background:#f0f4f8;border-bottom:1.5px solid var(--border);}
+.sheet-tab{padding:7px 16px;font-size:12px;font-weight:700;color:var(--text-muted);cursor:default;border-right:1px solid var(--border);}
+.sheet-tab.active{background:var(--white);color:var(--primary);border-bottom:2px solid var(--primary);margin-bottom:-1.5px;}
+.sheet-grid{display:grid;grid-template-columns:repeat(12,1fr);font-size:11px;font-family:var(--font-mono);}
+.sg-head{background:var(--primary);color:var(--white);padding:5px 6px;font-weight:700;text-align:center;border-right:1px solid rgba(255,255,255,0.15);}
+.sg-cell{padding:5px 6px;border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);color:var(--text);font-size:10.5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.sg-cell.key{background:#fafcff;font-weight:700;color:var(--primary-light);}
+.sg-cell.status-p{background:#fef9e7;color:#b7770d;}
+.sg-cell.status-ok{background:#e8f8f5;color:#1a7a5e;}
+.sg-cell.status-ng{background:#fdf0ef;color:#a93226;}
+.col-a{grid-column:span 1;}
+.col-b{grid-column:span 2;}
+.col-ab{grid-column:span 3;}
+
+/* ===== 区切り ===== */
+.divider{height:1px;background:var(--border-light);margin:36px 0;}
+
+/* ===== レスポンシブ ===== */
+@media(max-width:760px){
+  .sidebar{display:none;}
+  .main{padding:28px 20px 60px;}
+  h2.section-title{font-size:17px;}
+  .sheet-grid{grid-template-columns:repeat(6,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ===== サイドバー ===== -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sys-label">Documentation</div>
+    <div class="sys-name">会議室予約申請システム</div>
+    <span class="version-badge">v1.0</span>
+  </div>
+
+  <div class="nav-section-label">はじめに</div>
+  <a class="nav-item active" href="#overview">システム概要</a>
+  <a class="nav-item" href="#files">ファイル構成</a>
+  <a class="nav-item" href="#architecture">アーキテクチャ</a>
+
+  <div class="nav-section-label">セットアップ</div>
+  <a class="nav-item" href="#setup-sheet">スプレッドシート準備</a>
+  <a class="nav-item sub" href="#setup-sheet">① シート作成</a>
+  <a class="nav-item sub" href="#setup-init">② initSheets実行</a>
+  <a class="nav-item sub" href="#setup-config">③ 設定シート記入</a>
+  <a class="nav-item" href="#setup-gas">GASデプロイ</a>
+  <a class="nav-item sub" href="#setup-gas">④ コード貼り付け</a>
+  <a class="nav-item sub" href="#setup-deploy">⑤ ウェブアプリ公開</a>
+  <a class="nav-item sub" href="#setup-trigger">⑥ トリガー設定</a>
+  <a class="nav-item" href="#setup-html">HTML設定</a>
+  <a class="nav-item sub" href="#setup-html">⑦ GAS_URL設定</a>
+
+  <div class="nav-section-label">仕様詳細</div>
+  <a class="nav-item" href="#spec-form">フォーム仕様</a>
+  <a class="nav-item" href="#spec-multidate">複数日選択</a>
+  <a class="nav-item" href="#spec-sheet">スプレッドシート仕様</a>
+  <a class="nav-item" href="#spec-gas">GAS関数リファレンス</a>
+  <a class="nav-item" href="#spec-flow">処理フロー</a>
+  <a class="nav-item" href="#spec-status">ステータス管理</a>
+  <a class="nav-item" href="#spec-api">APIリファレンス</a>
+
+  <div class="nav-section-label">運用・保守</div>
+  <a class="nav-item" href="#ops-admin">管理者操作</a>
+  <a class="nav-item" href="#ops-mail">メール通知</a>
+  <a class="nav-item" href="#ops-trouble">トラブルシューティング</a>
+  <a class="nav-item" href="#ops-customize">カスタマイズ</a>
+</nav>
+
+<!-- ===== メインコンテンツ ===== -->
+<main class="main">
+
+  <!-- ヒーロー -->
+  <div class="doc-hero" id="overview">
+    <div class="kicker">README / Documentation</div>
+    <h1>会議室予約申請システム</h1>
+    <p class="subtitle">
+      HTMLフォーム（フロントエンド）と Google スプレッドシート＋Google Apps Script（バックエンド）で構成される、
+      サーバーレスの会議室予約申請システムです。外部サービスへの依存なしに庁内・組織内で即運用できます。
+    </p>
+    <div class="badges">
+      <span class="badge badge-blue">HTML / CSS / JavaScript</span>
+      <span class="badge badge-blue">Google Apps Script</span>
+      <span class="badge badge-green">サーバーレス</span>
+      <span class="badge badge-green">外部依存なし</span>
+      <span class="badge badge-warn">要 Google アカウント</span>
+    </div>
+  </div>
+
+  <!-- ===== ファイル構成 ===== -->
+  <h2 class="section-title" id="files"><span class="sec-num">1</span>ファイル構成</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ファイル名</th><th>種別</th><th>役割</th></tr></thead>
+      <tbody>
+        <tr><td><code>meeting-room-form.html</code></td><td>フロントエンド</td><td>申請フォーム本体。ブラウザ上で動作する単一HTMLファイル。スタイル・ロジックをすべて内包。</td></tr>
+        <tr><td><code>meeting-room-gas.js</code></td><td>バックエンド（GAS）</td><td>Google Apps Script のコード。申請受信・スプレッドシート書き込み・メール通知・公開データ同期を担う。</td></tr>
+        <tr><td><code>README.html</code></td><td>ドキュメント</td><td>本ファイル。システム仕様・セットアップ手順・運用方法を記述。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== アーキテクチャ ===== -->
+  <h2 class="section-title" id="architecture"><span class="sec-num">2</span>アーキテクチャ</h2>
+  <p>本システムはすべて Google のインフラ上で完結します。専用サーバーや有料サービスは不要です。</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>レイヤー</th><th>技術</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr><td>フロントエンド</td><td>HTML / CSS / JavaScript（単一ファイル）</td><td>申請フォーム・確認画面・予約状況表示。外部ライブラリ不使用（Google Fonts のみ）。</td></tr>
+        <tr><td>API層</td><td>Google Apps Script（ウェブアプリ）</td><td>POST（申請受信）/ GET（予約一覧取得）エンドポイントを提供。</td></tr>
+        <tr><td>データ層</td><td>Google スプレッドシート</td><td>申請データ・公開データ・設定を3シートで管理。</td></tr>
+        <tr><td>通知</td><td>GmailApp（GAS内蔵）</td><td>申請受信時に管理者へメール送信。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div><strong>GAS の制限について：</strong>無料の Google アカウントでは、GAS の実行時間・メール送信数などに上限があります（1日のメール送信上限：100通）。大量申請が見込まれる場合は Google Workspace アカウントの利用を検討してください。</div>
+  </div>
+
+  <!-- ===== セットアップ ===== -->
+  <h2 class="section-title" id="setup-sheet"><span class="sec-num">3</span>セットアップ手順</h2>
+
+  <h3 class="sub-title">① スプレッドシートの準備</h3>
+  <p>Google スプレッドシートを新規作成し、以下の3つのシートを作成します（シート名は完全一致が必要です）。</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>シート名</th><th>用途</th><th>備考</th></tr></thead>
+      <tbody>
+        <tr><td><code>申請データ</code></td><td>全申請情報を記録。管理者が操作するシート。</td><td>ステータス列にプルダウンが自動設定される</td></tr>
+        <tr><td><code>公開データ</code></td><td>フロントの予約状況エリアが参照するシート。</td><td>GASが自動同期。手動編集不要。</td></tr>
+        <tr><td><code>設定</code></td><td>通知先メールアドレス等の設定値を管理。</td><td>B1セルにメールアドレスを記入</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="ico">⚠️</span>
+    <div><strong>シート名は全角・半角を含め完全一致：</strong>「申請データ」「公開データ」「設定」のシート名が GAS コード内の定数と一致しないと動作しません。コピペで作成することを推奨します。</div>
+  </div>
+
+  <h3 class="sub-title" id="setup-init">② initSheets 関数の実行（初回のみ）</h3>
+  <p>スクリプトエディタを開き、<code>initSheets</code> 関数を手動実行します。これにより各シートのヘッダー行・プルダウン設定が自動作成されます。</p>
+
+  <ol class="step-list">
+    <li><span class="step-num">1</span><div class="step-body">スプレッドシートのメニューから <strong>「拡張機能」→「Apps Script」</strong> を開く</div></li>
+    <li><span class="step-num">2</span><div class="step-body">GASコード（<code>meeting-room-gas.js</code>の内容）をエディタに貼り付け、<strong>保存</strong></div></li>
+    <li><span class="step-num">3</span><div class="step-body">関数名の選択プルダウンで <strong>「initSheets」</strong> を選択し、▶ 実行ボタンをクリック</div></li>
+    <li><span class="step-num">4</span><div class="step-body">初回は権限の確認ダイアログが表示されます。<strong>「権限を確認」→ Googleアカウントを選択 →「詳細」→「安全ではないページに移動」→「許可」</strong> の順に進めてください</div></li>
+    <li><span class="step-num">5</span><div class="step-body">「初期化が完了しました。」のアラートが表示されれば成功</div></li>
+  </ol>
+
+  <div class="callout callout-ok">
+    <span class="ico">✅</span>
+    <div><strong>initSheets 実行後の状態：</strong>「申請データ」シートに12列のヘッダー行が作成され、K列（ステータス）に「確認中 / 予約確定 / 申請却下」のプルダウンが設定されます。「公開データ」「設定」シートにもヘッダーと初期値が作成されます。</div>
+  </div>
+
+  <h3 class="sub-title" id="setup-config">③ 設定シートへの記入</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>セル</th><th>項目名</th><th>記入内容</th><th>例</th></tr></thead>
+      <tbody>
+        <tr><td><code>A1</code></td><td>通知先メールアドレス（ラベル）</td><td>変更不要</td><td>—</td></tr>
+        <tr><td><code>B1</code></td><td>通知先メールアドレス（値）</td><td>管理者のメールアドレス。複数の場合はカンマ区切り。</td><td><code>soumu@city.example.lg.jp,hisho@city.example.lg.jp</code></td></tr>
+        <tr><td><code>A2</code></td><td>システム名（ラベル）</td><td>変更不要</td><td>—</td></tr>
+        <tr><td><code>B2</code></td><td>システム名（値）</td><td>メール件名に使用するシステム名。</td><td><code>会議室予約申請システム</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title" id="setup-gas">④ GAS のウェブアプリとしてデプロイ</h3>
+  <ol class="step-list">
+    <li><span class="step-num">1</span><div class="step-body">スクリプトエディタ右上の <strong>「デプロイ」→「新しいデプロイ」</strong> をクリック</div></li>
+    <li><span class="step-num">2</span><div class="step-body">種類の選択で <strong>「ウェブアプリ」</strong> を選択</div></li>
+    <li><span class="step-num">3</span><div class="step-body">以下の設定を行う：<br>
+      ・説明：任意（例：会議室予約申請システム v1.0）<br>
+      ・<strong>次のユーザーとして実行：自分</strong><br>
+      ・<strong>アクセスできるユーザー：全員</strong>（組織内のみに限定する場合は「自分と同じドメイン内の全員」を選択）
+    </div></li>
+    <li><span class="step-num">4</span><div class="step-body">「デプロイ」をクリックし、表示された <strong>ウェブアプリの URL をコピー</strong></div></li>
+  </ol>
+
+  <div class="callout callout-warn">
+    <span class="ico">⚠️</span>
+    <div><strong>コードを変更したら再デプロイが必要：</strong>GAS コードを修正した場合は「デプロイ」→「デプロイを管理」→「編集（鉛筆アイコン）」→バージョンを「新バージョン」にして「デプロイ」し直してください。同じURLで更新されます。</div>
+  </div>
+
+  <h3 class="sub-title" id="setup-trigger">⑤ onEdit トリガーの設定</h3>
+  <p>「申請データ」シートを管理者が編集（ステータス変更等）したときに「公開データ」シートを自動更新するためのトリガーを設定します。</p>
+  <ol class="step-list">
+    <li><span class="step-num">1</span><div class="step-body">スクリプトエディタの左メニューから <strong>「トリガー（時計アイコン）」</strong> を開く</div></li>
+    <li><span class="step-num">2</span><div class="step-body">右下の <strong>「トリガーを追加」</strong> をクリック</div></li>
+    <li><span class="step-num">3</span><div class="step-body">以下の設定を行う：<br>
+      ・<strong>実行する関数：onEditTrigger</strong><br>
+      ・実行するデプロイ：Head<br>
+      ・<strong>イベントのソース：スプレッドシートから</strong><br>
+      ・<strong>イベントの種類：編集時</strong>
+    </div></li>
+    <li><span class="step-num">4</span><div class="step-body">「保存」をクリック。権限確認が表示された場合は許可する。</div></li>
+  </ol>
+
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div><strong>なぜ onEdit ではなく onEditTrigger なのか：</strong>GAS の単純な <code>onEdit</code> 関数はシンプルトリガーとして動作しますが、スプレッドシートへの書き込み権限を持ちません。インストーラブルトリガーとして <code>onEditTrigger</code> 関数を登録することで、適切な権限で動作します。</div>
+  </div>
+
+  <h3 class="sub-title" id="setup-html">⑥ HTML ファイルへの GAS URL 設定</h3>
+  <p><code>meeting-room-form.html</code> をテキストエディタで開き、冒頭の <code>GAS_URL</code> 定数にデプロイURLを貼り付けます。</p>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">JavaScript（meeting-room-form.html 内）</span></div>
+    <pre><span class="cm">// ★ ここにデプロイURLを貼り付ける</span>
+<span class="kw">const</span> GAS_URL = <span class="str">"https://script.google.com/macros/s/AKfy.../exec"</span>;
+</pre>
+  </div>
+
+  <div class="callout callout-ok">
+    <span class="ico">✅</span>
+    <div><strong>GAS_URL が空のままでも動作確認できます：</strong>未設定の場合はモックデータが表示され、送信もコンソールログのみで完了扱いになります。開発・デザイン確認時に活用してください。</div>
+  </div>
+
+  <!-- ===== フォーム仕様 ===== -->
+  <h2 class="section-title" id="spec-form"><span class="sec-num">4</span>フォーム仕様</h2>
+
+  <h3 class="sub-title">入力項目一覧</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>項目名</th><th>種別</th><th>必須</th><th>バリデーション</th><th>GASへの送信キー</th></tr></thead>
+      <tbody>
+        <tr><td>担当課</td><td>テキスト入力</td><td>◯</td><td>空白不可</td><td><code>dept</code></td></tr>
+        <tr><td>担当者名</td><td>テキスト入力</td><td>◯</td><td>空白不可</td><td><code>name</code></td></tr>
+        <tr><td>利用希望の会議室</td><td>チェックボックス（複数可）</td><td>◯</td><td>1つ以上選択必須</td><td><code>rooms</code>（配列）</td></tr>
+        <tr><td>開始日時</td><td>datetime-local（単日モード）</td><td>◯</td><td>空白不可</td><td><code>startDt</code></td></tr>
+        <tr><td>終了日時</td><td>datetime-local（単日モード）</td><td>◯</td><td>開始日時より後であること</td><td><code>endDt</code></td></tr>
+        <tr><td>利用日時（複数日）</td><td>カレンダーUI（複数日モード）</td><td>◯</td><td>1日以上選択必須</td><td><code>dates</code>（配列）</td></tr>
+        <tr><td>内容</td><td>テキストエリア</td><td>—</td><td>なし</td><td><code>content</code></td></tr>
+        <tr><td>想定利用人数</td><td>数値入力</td><td>—</td><td>なし</td><td><code>headcount</code></td></tr>
+        <tr><td>利用者の役職・職種等</td><td>テキスト入力</td><td>—</td><td>なし</td><td><code>role</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title">選択可能な会議室</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>会議室名</th><th>送信時の値</th></tr></thead>
+      <tbody>
+        <tr><td>委員会室</td><td><code>委員会室</code></td></tr>
+        <tr><td>小委員会室</td><td><code>小委員会室</code></td></tr>
+        <tr><td>部課長控室</td><td><code>部課長控室</code></td></tr>
+        <tr><td>小会議室</td><td><code>小会議室</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title">画面遷移</h3>
+  <div class="flow">
+    <div class="flow-item">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div>
+      <div class="flow-content"><div class="flow-label">入力フォーム画面</div><div class="flow-desc">申請者情報・会議室・日時・利用詳細を入力する。</div></div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div>
+      <div class="flow-content"><div class="flow-label">「内容を確認する」ボタン</div><div class="flow-desc">バリデーション実行。エラーがあれば該当フィールドを赤枠でハイライト。</div></div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div>
+      <div class="flow-content"><div class="flow-label">確認画面</div><div class="flow-desc">入力内容を表形式で一覧表示。「修正する」で入力画面に戻れる。</div></div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div>
+      <div class="flow-content"><div class="flow-label">「送信する」ボタン</div><div class="flow-desc">GAS の doPost エンドポイントへ JSON で POST 送信。</div></div>
+    </div>
+    <div class="flow-item">
+      <div class="flow-line"><div class="flow-dot"></div></div>
+      <div class="flow-content"><div class="flow-label">完了画面</div><div class="flow-desc">送信完了メッセージを表示。「新しい申請を行う」でフォームをリセット。</div></div>
+    </div>
+  </div>
+
+  <!-- ===== 複数日選択 ===== -->
+  <h2 class="section-title" id="spec-multidate"><span class="sec-num">5</span>複数日選択機能</h2>
+
+  <p>日時入力エリアの下部にある「＋ 複数日を選択する場合はこちら」リンクをクリックすると複数日モードが展開されます。</p>
+
+  <h3 class="sub-title">複数日モードの操作手順</h3>
+  <ol class="step-list">
+    <li><span class="step-num">1</span><div class="step-body"><strong>「＋ 複数日を選択する場合はこちら」</strong> をクリック → カレンダーUIが展開し、単日入力が非表示になる</div></li>
+    <li><span class="step-num">2</span><div class="step-body"><strong>共通の時間</strong>（開始・終了時刻）を設定する（デフォルト：09:00〜17:00）</div></li>
+    <li><span class="step-num">3</span><div class="step-body"><strong>カレンダー上で日付をクリック</strong>して選択（青塗りになる）。もう一度クリックで解除。過去日はクリック不可。</div></li>
+    <li><span class="step-num">4</span><div class="step-body">カレンダー下の<strong>選択日リスト</strong>で、日ごとに時刻を個別上書き可能。「✕」ボタンで個別削除。</div></li>
+    <li><span class="step-num">5</span><div class="step-body">共通時間を変更すると、選択済み全日の時刻が一括上書きされる（個別設定も上書きされるので注意）</div></li>
+    <li><span class="step-num">6</span><div class="step-body">「← 1日のみに戻す」で通常モードに戻る（選択した日付はすべてリセットされる）</div></li>
+  </ol>
+
+  <h3 class="sub-title">複数日申請時のデータ形式</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">JSON（GASへのPOSTデータ・複数日モード）</span></div>
+    <pre>{
+  <span class="str">"dept"</span>:      <span class="str">"総務課"</span>,
+  <span class="str">"name"</span>:      <span class="str">"山田 太郎"</span>,
+  <span class="str">"rooms"</span>:     [<span class="str">"委員会室"</span>],
+  <span class="str">"content"</span>:   <span class="str">"定例会議"</span>,
+  <span class="str">"headcount"</span>: <span class="str">"10"</span>,
+  <span class="str">"role"</span>:      <span class="str">"課長"</span>,
+  <span class="str">"isMulti"</span>:   <span class="kw">true</span>,
+  <span class="str">"dates"</span>: [
+    { <span class="str">"date"</span>: <span class="str">"2025-07-01"</span>, <span class="str">"startTime"</span>: <span class="str">"09:00"</span>, <span class="str">"endTime"</span>: <span class="str">"11:00"</span> },
+    { <span class="str">"date"</span>: <span class="str">"2025-07-08"</span>, <span class="str">"startTime"</span>: <span class="str">"09:00"</span>, <span class="str">"endTime"</span>: <span class="str">"12:00"</span> },
+    { <span class="str">"date"</span>: <span class="str">"2025-07-15"</span>, <span class="str">"startTime"</span>: <span class="str">"13:00"</span>, <span class="str">"endTime"</span>: <span class="str">"17:00"</span> }
+  ],
+  <span class="str">"submittedAt"</span>: <span class="str">"2025-06-10T09:30:00.000Z"</span>
+}</pre>
+  </div>
+
+  <h3 class="sub-title">スプレッドシートへの記録（複数日）</h3>
+  <p>選択された日付の数だけ行が追加されます。申請IDは親ID＋枝番形式になります。</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>申請ID</th><th>開始日時</th><th>終了日時</th><th>担当課</th><th>ステータス</th></tr></thead>
+      <tbody>
+        <tr><td><code>R0001-1</code></td><td>2025/07/01 09:00</td><td>2025/07/01 11:00</td><td>総務課</td><td>確認中</td></tr>
+        <tr><td><code>R0001-2</code></td><td>2025/07/08 09:00</td><td>2025/07/08 12:00</td><td>総務課</td><td>確認中</td></tr>
+        <tr><td><code>R0001-3</code></td><td>2025/07/15 13:00</td><td>2025/07/15 17:00</td><td>総務課</td><td>確認中</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== スプレッドシート仕様 ===== -->
+  <h2 class="section-title" id="spec-sheet"><span class="sec-num">6</span>スプレッドシート仕様</h2>
+
+  <h3 class="sub-title">「申請データ」シート（12列）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>列</th><th>項目名</th><th>入力元</th><th>備考</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>申請ID</td><td>GAS自動採番</td><td>単日：<code>R0001</code>、複数日：<code>R0001-1</code></td></tr>
+        <tr><td>B</td><td>申請日時</td><td>GAS自動記録</td><td>形式：<code>YYYY/MM/DD HH:MM</code></td></tr>
+        <tr><td>C</td><td>担当課</td><td>フォーム</td><td></td></tr>
+        <tr><td>D</td><td>担当者名</td><td>フォーム</td><td></td></tr>
+        <tr><td>E</td><td>会議室</td><td>フォーム</td><td>複数選択はカンマ区切り（例：<code>委員会室,小会議室</code>）</td></tr>
+        <tr><td>F</td><td>開始日時</td><td>フォーム</td><td>形式：<code>YYYY/MM/DD HH:MM</code></td></tr>
+        <tr><td>G</td><td>終了日時</td><td>フォーム</td><td>形式：<code>YYYY/MM/DD HH:MM</code></td></tr>
+        <tr><td>H</td><td>内容</td><td>フォーム</td><td>任意項目</td></tr>
+        <tr><td>I</td><td>想定利用人数</td><td>フォーム</td><td>任意項目</td></tr>
+        <tr><td>J</td><td>役職・職種等</td><td>フォーム</td><td>任意項目</td></tr>
+        <tr><td>K</td><td>ステータス</td><td>管理者が手動変更</td><td>初期値：<code>確認中</code>。プルダウンあり。変更時に公開データが自動同期される。</td></tr>
+        <tr><td>L</td><td>備考</td><td>管理者が手動記入</td><td>管理者メモ用。フロントには非公開。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title">「公開データ」シート（5列）</h3>
+  <p>「申請データ」シートから自動同期されます。<strong>手動編集は不要・非推奨</strong>です（次の同期で上書きされます）。</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>列</th><th>項目名</th><th>同期元（申請データシート）</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>会議室</td><td>E列（カンマ区切りのまま）</td></tr>
+        <tr><td>B</td><td>開始日時</td><td>F列</td></tr>
+        <tr><td>C</td><td>終了日時</td><td>G列</td></tr>
+        <tr><td>D</td><td>担当課</td><td>C列</td></tr>
+        <tr><td>E</td><td>ステータス</td><td>K列</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div><strong>同期タイミング：</strong>①申請フォームから送信されたとき（doPost内で即時同期）、②「申請データ」シートが編集されたとき（onEditTrigger経由）の2タイミングで自動実行されます。</div>
+  </div>
+
+  <h3 class="sub-title">「設定」シート</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>セル</th><th>項目</th><th>値の例</th></tr></thead>
+      <tbody>
+        <tr><td>B1</td><td>通知先メールアドレス（カンマ区切りで複数可）</td><td><code>admin@example.lg.jp,sub@example.lg.jp</code></td></tr>
+        <tr><td>B2</td><td>システム名（メール件名に使用）</td><td><code>会議室予約申請システム</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== GAS関数リファレンス ===== -->
+  <h2 class="section-title" id="spec-gas"><span class="sec-num">7</span>GAS 関数リファレンス</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>関数名</th><th>呼び出し元</th><th>役割</th></tr></thead>
+      <tbody>
+        <tr><td><code>initSheets()</code></td><td>手動実行（初回のみ）</td><td>全シートのヘッダー行・プルダウン・初期値を作成する</td></tr>
+        <tr><td><code>doPost(e)</code></td><td>フォームからのPOSTリクエスト</td><td>申請データをシートに追記し、syncPublicData・メール通知を呼び出す</td></tr>
+        <tr><td><code>doGet(e)</code></td><td>フロントからのGETリクエスト</td><td>「公開データ」シートの内容をJSON形式で返す</td></tr>
+        <tr><td><code>syncPublicData()</code></td><td>doPost・onEditTrigger</td><td>「申請データ」を元に「公開データ」シートを全件再構築する</td></tr>
+        <tr><td><code>onEditTrigger(e)</code></td><td>インストーラブルトリガー（編集時）</td><td>「申請データ」シートの編集を検知してsyncPublicDataを呼び出す</td></tr>
+        <tr><td><code>sendNotificationEmail()</code></td><td>doPost（単日申請時）</td><td>管理者に単日申請の受付メールを送信する</td></tr>
+        <tr><td><code>sendNotificationEmailMulti()</code></td><td>doPost（複数日申請時）</td><td>管理者に複数日申請の受付メールを送信する（日付一覧付き）</td></tr>
+        <tr><td><code>formatDatetime(date)</code></td><td>各関数内</td><td>DateオブジェクトをYYYY/MM/DD HH:MM形式に変換</td></tr>
+        <tr><td><code>formatDate(date)</code></td><td>doGet内</td><td>DateオブジェクトをYYYY-MM-DD形式に変換（フロント向け）</td></tr>
+        <tr><td><code>formatTime(date)</code></td><td>doGet内</td><td>DateオブジェクトをHH:MM形式に変換（フロント向け）</td></tr>
+        <tr><td><code>jsonResponse(obj)</code></td><td>doGet内</td><td>オブジェクトをJSON形式のContentServiceレスポンスに変換</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== 処理フロー ===== -->
+  <h2 class="section-title" id="spec-flow"><span class="sec-num">8</span>処理フロー</h2>
+
+  <h3 class="sub-title">申請送信フロー</h3>
+  <div class="flow">
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">フォーム送信（フロント）</div><div class="flow-desc">JSON ペイロードを GAS の doPost エンドポイントへ POST。<code>mode: 'no-cors'</code>で送信。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">doPost（GAS）</div><div class="flow-desc">リクエストボディをパース。<code>isMulti</code> フラグで単日・複数日を分岐。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">申請IDの採番・シートへの追記</div><div class="flow-desc">現在の行数をベースに申請IDを生成（単日：<code>R0001</code>、複数日：<code>R0001-1</code>〜）。ステータスは「確認中」で初期化。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">syncPublicData() 実行</div><div class="flow-desc">申請データシート全行を公開データシートに再書き込み。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div></div><div class="flow-content"><div class="flow-label">管理者へメール通知</div><div class="flow-desc">設定シートB1のアドレス宛にGmailで送信。複数日の場合は日付一覧付きメール。</div></div></div>
+  </div>
+
+  <h3 class="sub-title">予約状況表示フロー</h3>
+  <div class="flow">
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">ページ読み込み時 / 更新ボタン押下</div><div class="flow-desc">フロントが <code>GAS_URL?action=list</code> へ GET リクエストを送信。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">doGet（GAS）</div><div class="flow-desc">「公開データ」シートの全行を取得し、JSONに変換して返す。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div></div><div class="flow-content"><div class="flow-label">フロント描画</div><div class="flow-desc">直近3件をカード形式で表示。「すべての予約を見る」でテーブルを展開。ステータスはバッジで色分け表示。</div></div></div>
+  </div>
+
+  <h3 class="sub-title">ステータス変更フロー</h3>
+  <div class="flow">
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">管理者がK列のプルダウンを変更</div><div class="flow-desc">「確認中」→「予約確定」または「申請却下」に変更する。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div><div class="flow-vline"></div></div><div class="flow-content"><div class="flow-label">onEditTrigger 発火</div><div class="flow-desc">インストーラブルトリガーが編集を検知。申請データシート以外の編集・ヘッダー行の編集は無視。</div></div></div>
+    <div class="flow-item"><div class="flow-line"><div class="flow-dot"></div></div><div class="flow-content"><div class="flow-label">syncPublicData() 実行</div><div class="flow-desc">公開データシートが最新状態に再構築され、フロントの「更新」ボタンで即座に反映確認できる。</div></div></div>
+  </div>
+
+  <!-- ===== ステータス管理 ===== -->
+  <h2 class="section-title" id="spec-status"><span class="sec-num">9</span>ステータス管理</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ステータス値</th><th>意味</th><th>フロント表示色</th><th>初期値</th></tr></thead>
+      <tbody>
+        <tr><td><code>確認中</code></td><td>申請受付済み、管理者未処理</td><td>黄系バッジ</td><td>◯（申請時に自動設定）</td></tr>
+        <tr><td><code>予約確定</code></td><td>管理者が予約を承認した</td><td>緑系バッジ</td><td>—</td></tr>
+        <tr><td><code>申請却下</code></td><td>管理者が申請を却下した</td><td>赤系バッジ</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div><strong>全ステータスが公開データに同期されます：</strong>「確認中」「予約確定」「申請却下」のいずれもフロントの予約状況エリアに表示されます。担当者名・内容・備考は公開データに含まれません。</div>
+  </div>
+
+  <!-- ===== APIリファレンス ===== -->
+  <h2 class="section-title" id="spec-api"><span class="sec-num">10</span>API リファレンス</h2>
+
+  <h3 class="sub-title">POST — 申請送信</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>項目</th><th>値</th></tr></thead>
+      <tbody>
+        <tr><td>URL</td><td><code>GAS_URL</code>（ウェブアプリURL）</td></tr>
+        <tr><td>メソッド</td><td>POST</td></tr>
+        <tr><td>Content-Type</td><td><code>application/json</code></td></tr>
+        <tr><td>mode</td><td><code>no-cors</code>（GASのCORS制約のため）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4 class="mini-title">レスポンス（単日申請）</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">JSON</span></div>
+    <pre>{ <span class="str">"success"</span>: <span class="kw">true</span>, <span class="str">"id"</span>: <span class="str">"R0001"</span> }</pre>
+  </div>
+
+  <h4 class="mini-title">レスポンス（複数日申請）</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">JSON</span></div>
+    <pre>{ <span class="str">"success"</span>: <span class="kw">true</span>, <span class="str">"ids"</span>: [<span class="str">"R0001-1"</span>, <span class="str">"R0001-2"</span>, <span class="str">"R0001-3"</span>] }</pre>
+  </div>
+
+  <h3 class="sub-title">GET — 予約一覧取得</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>項目</th><th>値</th></tr></thead>
+      <tbody>
+        <tr><td>URL</td><td><code>GAS_URL?action=list</code></td></tr>
+        <tr><td>メソッド</td><td>GET</td></tr>
+        <tr><td>mode</td><td><code>cors</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4 class="mini-title">レスポンス</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">JSON</span></div>
+    <pre>{
+  <span class="str">"reservations"</span>: [
+    {
+      <span class="str">"rooms"</span>:     [<span class="str">"委員会室"</span>],
+      <span class="str">"date"</span>:      <span class="str">"2025-07-01"</span>,
+      <span class="str">"startTime"</span>: <span class="str">"09:00"</span>,
+      <span class="str">"endTime"</span>:   <span class="str">"11:00"</span>,
+      <span class="str">"dept"</span>:      <span class="str">"総務課"</span>,
+      <span class="str">"status"</span>:    <span class="str">"予約確定"</span>
+    }
+  ]
+}</pre>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="ico">⚠️</span>
+    <div><strong><code>no-cors</code> モードの制限：</strong>フロントから <code>mode: 'no-cors'</code> でPOSTを送信した場合、GASからのレスポンス（申請IDなど）はJavaScript側では読み取れません。送信の成否は <code>then()</code> の呼び出しで判断しています（エラー時は <code>catch()</code>）。</div>
+  </div>
+
+  <!-- ===== 管理者操作 ===== -->
+  <h2 class="section-title" id="ops-admin"><span class="sec-num">11</span>管理者の日常操作</h2>
+
+  <h3 class="sub-title">ステータスを変更する</h3>
+  <ol class="step-list">
+    <li><span class="step-num">1</span><div class="step-body">「申請データ」シートを開き、該当行のK列（ステータス）をクリック</div></li>
+    <li><span class="step-num">2</span><div class="step-body">プルダウンから「予約確定」または「申請却下」を選択</div></li>
+    <li><span class="step-num">3</span><div class="step-body">自動的に onEditTrigger が発火し、「公開データ」シートが更新される</div></li>
+    <li><span class="step-num">4</span><div class="step-body">フロントで「更新」ボタンを押すと最新の予約状況が表示される</div></li>
+  </ol>
+
+  <h3 class="sub-title">備考を記入する</h3>
+  <p>「申請データ」シートのL列（備考）に自由にメモを記入できます。フロントには表示されません。備考列の編集も onEditTrigger が発火しますが、公開データには備考列は含まれないため実害はありません。</p>
+
+  <!-- ===== メール通知 ===== -->
+  <h2 class="section-title" id="ops-mail"><span class="sec-num">12</span>メール通知</h2>
+
+  <h3 class="sub-title">通知メールの内容（単日申請）</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">メール本文サンプル</span></div>
+    <pre>件名：【会議室予約申請システム】新規申請（R0001）
+
+会議室予約の新規申請がありました。
+
+━━━━━━━━━━━━━━━━━━━━
+申請ID    ：R0001
+申請日時  ：2025/07/01 10:30
+━━━━━━━━━━━━━━━━━━━━
+担当課    ：総務課
+担当者名  ：山田 太郎
+会議室    ：委員会室
+開始日時  ：2025/07/10 10:00
+終了日時  ：2025/07/10 12:00
+内容      ：定例会議
+想定人数  ：12名
+役職・職種：課長・係長
+━━━━━━━━━━━━━━━━━━━━
+
+スプレッドシートでステータスをご確認・変更ください。
+https://docs.google.com/spreadsheets/d/...</pre>
+  </div>
+
+  <h3 class="sub-title">通知メールの内容（複数日申請）</h3>
+  <p>件名に日数が付記され、本文末尾に利用日時一覧が追加されます。</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">メール本文サンプル（複数日）</span></div>
+    <pre>件名：【会議室予約申請システム】新規申請（R0002、複数日・3件）
+
+...（共通情報）...
+
+【利用日時一覧】
+  1. 2025-07-01　09:00〜11:00
+  2. 2025-07-08　09:00〜12:00
+  3. 2025-07-15　13:00〜17:00</pre>
+  </div>
+
+  <!-- ===== トラブルシューティング ===== -->
+  <h2 class="section-title" id="ops-trouble"><span class="sec-num">13</span>トラブルシューティング</h2>
+
+  <h3 class="sub-title">予約状況が表示されない・エラーになる</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>症状</th><th>原因</th><th>対処</th></tr></thead>
+      <tbody>
+        <tr><td>「データの取得に失敗しました」と表示</td><td><code>GAS_URL</code> が未設定または誤り</td><td>HTMLの<code>GAS_URL</code>定数を確認。デプロイURLをコピペし直す。</td></tr>
+        <tr><td>コンソールにCORSエラー</td><td>GASのデプロイ設定でアクセスが制限されている</td><td>「アクセスできるユーザー」を「全員」に変更して再デプロイ。</td></tr>
+        <tr><td>送信後も「確認中」のまま更新されない</td><td>onEditTrigger が設定されていない</td><td>トリガー設定を確認し、<code>onEditTrigger</code> 関数を編集時トリガーとして登録する。</td></tr>
+        <tr><td>公開データシートが空のまま</td><td>syncPublicData が未実行</td><td>申請データのステータスを一度変更して保存し、手動でトリガーを発火させる。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title">送信してもスプレッドシートに記録されない</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>症状</th><th>原因</th><th>対処</th></tr></thead>
+      <tbody>
+        <tr><td>シートに行が追加されない</td><td>シート名が一致しない</td><td>スプレッドシートのシート名（タブ名）が「申請データ」と完全一致しているか確認。</td></tr>
+        <tr><td>GASのログにエラーが出る</td><td>initSheets を実行していない</td><td>スクリプトエディタで <code>initSheets</code> を手動実行する。</td></tr>
+        <tr><td>権限エラーが出る</td><td>GASの権限が付与されていない</td><td>initSheets 実行時の権限承認をやり直す。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="sub-title">メール通知が届かない</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>原因</th><th>対処</th></tr></thead>
+      <tbody>
+        <tr><td>設定シートB1のメールアドレスが空</td><td>B1セルに通知先メールアドレスを記入する。</td></tr>
+        <tr><td>メールアドレスの書式が誤り</td><td>カンマ区切りは半角カンマ。スペースが混入していないか確認。</td></tr>
+        <tr><td>GmailApp の1日の送信上限（100通）に達している</td><td>Google Workspace アカウントへの切り替えを検討（1500通/日）。</td></tr>
+        <tr><td>スパムフォルダに振り分けられている</td><td>メールクライアントのスパムフィルタを確認する。</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== カスタマイズ ===== -->
+  <h2 class="section-title" id="ops-customize"><span class="sec-num">14</span>カスタマイズガイド</h2>
+
+  <h3 class="sub-title">会議室の名称・数を変更する</h3>
+  <p>HTMLの以下の箇所を編集します。</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">HTML（meeting-room-form.html）</span></div>
+    <pre><span class="cm">&lt;!-- 会議室チェックボックス --&gt;</span>
+&lt;label class=<span class="str">"checkbox-item"</span>&gt;
+  &lt;input type=<span class="str">"checkbox"</span> name=<span class="str">"room"</span> value=<span class="str">"委員会室"</span>&gt;  <span class="cm">&lt;!-- ← value を変更 --&gt;</span>
+  &lt;span class=<span class="str">"check-box"</span>&gt;&lt;/span&gt;
+  &lt;span class=<span class="str">"check-label"</span>&gt;委員会室&lt;/span&gt;           <span class="cm">&lt;!-- ← 表示名を変更 --&gt;</span>
+&lt;/label&gt;</pre>
+  </div>
+
+  <h3 class="sub-title">アクセントカラーを変更する</h3>
+  <p>CSS変数を変更するだけで全体の色調が変わります。</p>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">CSS（:root セクション）</span></div>
+    <pre>:root {
+  <span class="str">--primary</span>: <span class="num">#1a4f7a</span>;       <span class="cm">/* メインカラー（青系） */</span>
+  <span class="str">--primary-light</span>: <span class="num">#2563a8</span>; <span class="cm">/* ホバー時など */</span>
+  <span class="str">--accent</span>: <span class="num">#2a9d8f</span>;        <span class="cm">/* アクセントカラー（緑系） */</span>
+}</pre>
+  </div>
+
+  <h3 class="sub-title">通知メールの件名・本文を変更する</h3>
+  <p>GAS の <code>sendNotificationEmail()</code> / <code>sendNotificationEmailMulti()</code> 関数内の <code>subject</code> 変数・<code>body</code> テンプレートリテラルを直接編集してください。変更後は再デプロイが必要です。</p>
+
+  <h3 class="sub-title">フロントをウェブサーバーではなくローカルで使う場合</h3>
+  <div class="callout callout-info">
+    <span class="ico">ℹ️</span>
+    <div>本システムは単一HTMLファイルのため、ファイルをダブルクリックしてブラウザで開くだけで動作します。ウェブサーバーは不要です。庁内ファイルサーバーや SharePoint・Google Drive 上に置いてリンクで共有する使い方も可能です。</div>
+  </div>
+
+  <div class="divider"></div>
+  <p style="font-size:12px;color:var(--text-light);text-align:center;">会議室予約申請システム v1.0 ／ 作成日：2025年6月</p>
+
+</main>
+</div>
+</body>
+</html>
+
