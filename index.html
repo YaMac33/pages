@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ページ一覧</title>
+
+<!-- ============================================================
+     設定：ここの3行だけ自分のものに変更してください
+     ============================================================ -->
+<script>
+  const CONFIG = {
+    owner:  "あなたのユーザー名",   // 例: "sy-gov"
+    repo:   "リポジトリ名",         // 例: "tools"
+    branch: "main"                 // 例: "main" または "master"
+  };
+</script>
+
+<style>
+  :root {
+    --paper:    #f7f8fa;
+    --ink:      #16181d;
+    --muted:    #6b7280;
+    --line:     #e3e6ec;
+    --accent:   #1f5eff;
+    --accent-bg:#eef3ff;
+    --mono: ui-monospace, "SFMono-Regular", "SF Mono", "Cascadia Mono",
+            "Roboto Mono", Menlo, Consolas, "Courier New", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+            "Noto Sans JP", Meiryo, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 20px 80px;
+  }
+
+  /* ---- ヘッダー ---- */
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: .01em;
+    margin: 0;
+  }
+  .count {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ---- 一覧 ---- */
+  ul#list { list-style: none; margin: 8px 0 0; padding: 0; }
+
+  ul#list li {
+    border-bottom: 1px solid var(--line);
+    opacity: 0;
+    transform: translateY(6px);
+    animation: rise .4s ease forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  a.row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 12px;
+    text-decoration: none;
+    color: inherit;
+    border-left: 3px solid transparent;
+    transition: background .15s ease, border-color .15s ease, padding-left .15s ease;
+  }
+  a.row:hover,
+  a.row:focus-visible {
+    background: var(--accent-bg);
+    border-left-color: var(--accent);
+    padding-left: 16px;
+    outline: none;
+  }
+
+  .glyph {
+    flex: none;
+    width: 22px; height: 22px;
+    color: var(--accent);
+  }
+  .name {
+    font-family: var(--mono);
+    font-size: 15px;
+    word-break: break-all;
+  }
+  .name .slash { color: var(--muted); }   /* 末尾スラッシュを淡く＝パスらしさ */
+  .arrow {
+    margin-left: auto;
+    flex: none;
+    color: var(--muted);
+    transition: transform .15s ease, color .15s ease;
+  }
+  a.row:hover .arrow,
+  a.row:focus-visible .arrow { color: var(--accent); transform: translateX(3px); }
+
+  /* ---- 状態表示（読み込み・空・エラー） ---- */
+  .state {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    padding: 28px 12px;
+  }
+  .state.error { color: #b42318; }
+  .state a { color: var(--accent); }
+
+  footer {
+    margin-top: 36px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    ul#list li { animation: none; opacity: 1; transform: none; }
+    a.row, .arrow { transition: none; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>ページ一覧</h1>
+      <span class="count" id="count"></span>
+    </header>
+
+    <ul id="list"></ul>
+    <div class="state" id="state">読み込み中…</div>
+
+    <footer id="footer"></footer>
+  </div>
+
+<script>
+(async () => {
+  const listEl  = document.getElementById("list");
+  const stateEl = document.getElementById("state");
+  const countEl = document.getElementById("count");
+  const footerEl= document.getElementById("footer");
+
+  const { owner, repo, branch } = CONFIG;
+  const api = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`;
+
+  try {
+    const res = await fetch(api);
+
+    // レート制限（未認証は60回/時）に当たった場合
+    if (res.status === 403 && res.headers.get("X-RateLimit-Remaining") === "0") {
+      throw new Error("rate-limit");
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    if (!Array.isArray(data.tree)) throw new Error("no-tree");
+
+    // 「直下のサブディレクトリ/index.html」だけを抽出（深さ1のみ）
+    const dirs = data.tree
+      .map(item => item.path)
+      .filter(p => /^[^/]+\/index\.html$/.test(p))
+      .map(p => p.replace(/\/index\.html$/, ""))
+      .sort((a, b) => a.localeCompare(b, "ja"));
+
+    if (dirs.length === 0) {
+      stateEl.textContent = "リンクできるディレクトリがありません。";
+      return;
+    }
+
+    const folderSvg = `
+      <svg class="glyph" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+      </svg>`;
+    const arrowSvg = `
+      <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 12h14M13 6l6 6-6 6"/>
+      </svg>`;
+
+    dirs.forEach((dir, i) => {
+      const li = document.createElement("li");
+      li.style.animationDelay = (i * 40) + "ms";
+      const a = document.createElement("a");
+      a.className = "row";
+      a.href = `./${encodeURIComponent(dir)}/`;
+      a.innerHTML =
+        folderSvg +
+        `<span class="name">${dir}<span class="slash">/</span></span>` +
+        arrowSvg;
+      li.appendChild(a);
+      listEl.appendChild(li);
+    });
+
+    stateEl.style.display = "none";
+    countEl.textContent = dirs.length + " 件";
+    footerEl.innerHTML =
+      `source: <a href="https://github.com/${owner}/${repo}">${owner}/${repo}</a> @ ${branch}`;
+
+  } catch (err) {
+    stateEl.classList.add("error");
+    if (err.message === "rate-limit") {
+      stateEl.textContent =
+        "GitHub API の利用制限（未認証 60回/時）に達しました。しばらく待って再読み込みしてください。";
+    } else {
+      stateEl.innerHTML =
+        "一覧を取得できませんでした。設定（owner / repo / branch）が正しいか確認してください。";
+    }
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>
