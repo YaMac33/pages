@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TODOリスト</title>
+<style>
+  :root {
+    --bg: #f7f6f2; --panel: #ffffff; --ink: #1f2733; --muted: #6b7480;
+    --line: #e2e0d8; --accent: #2f4858; --accent-soft: #eaeef1;
+    --done: #9aa3ad; --danger: #a4444a; --danger-soft: #f7e9ea; --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 80px; }
+  header h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; letter-spacing: .02em; }
+  header p  { margin: 0 0 24px; color: var(--muted); font-size: .9rem; }
+
+  /* drop zone */
+  .dropzone {
+    border: 2px dashed var(--line); border-radius: var(--radius);
+    background: var(--panel); padding: 28px 20px; text-align: center;
+    transition: border-color .15s, background .15s; cursor: pointer;
+  }
+  .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .dropzone p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .dropzone strong { color: var(--accent); }
+  #fileInput { display: none; }
+
+  /* file chips */
+  .files { margin: 16px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .file-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 14px; font-size: .85rem;
+  }
+  .file-chip label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+  .file-chip.modified::after {
+    content: "未保存"; font-size: .7rem; color: var(--danger);
+    background: var(--danger-soft); padding: 1px 6px; border-radius: 4px;
+  }
+  .file-chip .count { color: var(--muted); font-size: .75rem; }
+
+  /* buttons */
+  button {
+    font: inherit; cursor: pointer; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--panel);
+    color: var(--ink); padding: 8px 16px; transition: background .15s, border-color .15s;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { background: #25404f; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.sm { padding: 4px 10px; font-size: .78rem; border-radius: 6px; }
+  button.edit-btn   { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+  button.edit-btn:hover { border-color: var(--accent); }
+  button.del-btn    { color: var(--danger); background: var(--danger-soft); border-color: transparent; }
+  button.del-btn:hover { border-color: var(--danger); }
+
+  /* toolbar */
+  .toolbar { display: flex; align-items: center; gap: 12px; margin: 14px 0; flex-wrap: wrap; }
+  .toolbar .spacer { flex: 1; }
+  .sort-btn .arrow { font-size: .75rem; color: var(--muted); margin-left: 4px; }
+
+  /* form */
+  .add-form {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px;
+  }
+  .form-title {
+    font-size: .78rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em; margin: 0 0 10px;
+  }
+  .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px; }
+  .form-row:last-child { margin-bottom: 0; }
+  .fg { display: flex; flex-direction: column; gap: 3px; }
+  .fg.grow { flex: 1; min-width: 160px; }
+  .fg.end  { justify-content: flex-end; }
+  .fg label { font-size: .76rem; color: var(--muted); font-weight: 600; }
+  .fg label .hint { font-weight: 400; font-size: .7rem; }
+  .fg label .req  { color: var(--danger); }
+  input[type="datetime-local"],
+  input[type="date"],
+  input[type="text"],
+  select {
+    font: inherit; border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 10px; background: var(--bg); color: var(--ink); transition: border-color .15s;
+  }
+  input[type="text"] { width: 100%; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+  /* prereq checkbox list */
+  .prereq-list {
+    max-height: 108px; overflow-y: auto; border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 8px; background: var(--bg); min-width: 200px;
+  }
+  .prereq-list label {
+    display: flex; align-items: baseline; gap: 6px; padding: 2px 3px;
+    border-radius: 4px; cursor: pointer; font-size: .82rem; color: var(--ink); font-weight: 400;
+  }
+  .prereq-list label:hover { background: var(--accent-soft); }
+  .prereq-list input[type="checkbox"] { width: 13px; height: 13px; flex-shrink: 0; }
+  .prereq-empty { color: var(--muted); font-size: .82rem; }
+
+  /* section */
+  .section-label {
+    font-size: .78rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin: 26px 0 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  /* table */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; font-size: .76rem; color: var(--muted);
+    font-weight: 600; padding: 7px 10px; border-bottom: 2px solid var(--line); white-space: nowrap;
+  }
+  tbody td { padding: 9px 10px; border-bottom: 1px solid var(--line); font-size: .87rem; vertical-align: middle; }
+  tbody tr:hover { background: #fafaf8; }
+  tbody tr.editing { background: var(--accent-soft) !important; }
+  tbody tr.editing td { padding: 0; }
+
+  .col-ck  { width: 34px; text-align: center; }
+  .col-st  { width: 112px; }
+  .col-dt  { width: 138px; font-variant-numeric: tabular-nums; }
+  .col-dl  { width: 130px; font-variant-numeric: tabular-nums; }
+  .col-src { width: 110px; }
+  .col-act { width: 80px; text-align: right; white-space: nowrap; }
+
+  input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  tr.done td { color: var(--done); }
+  tr.done .task { text-decoration: line-through; }
+  .src-tag {
+    font-size: .7rem; color: var(--muted); background: var(--accent-soft);
+    padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+  }
+
+  /* status badges */
+  .badge {
+    display: inline-block; font-size: .7rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+  }
+  .b-ok     { background: #e8f5e9; color: #2e7d32; }
+  .b-prereq { background: #fff3e0; color: #bf360c; }
+  .b-date   { background: #e3f2fd; color: #1565c0; }
+  .b-wait   { background: var(--accent-soft); color: var(--muted); }
+
+  /* overdue deadline */
+  .overdue { color: var(--danger) !important; font-weight: 700; }
+
+  /* inline edit */
+  .edit-wrap { padding: 12px 16px; }
+  .edit-wrap .form-row { margin-bottom: 8px; }
+  .inline-input {
+    font: inherit; border: 1px solid var(--accent); border-radius: 6px;
+    padding: 5px 8px; background: #fff; color: var(--ink); font-size: .87rem; width: 100%;
+  }
+  .inline-input:focus { outline: none; }
+
+  .empty {
+    text-align: center; color: var(--muted); font-size: .9rem; padding: 40px 20px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  .hidden { display: none; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 8px;
+    font-size: .85rem; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 100;
+  }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 700px) {
+    .col-src, .col-dl, .col-st { display: none; }
+    .col-dt { width: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>TODOリスト</h1>
+    <p>CSVを読み込んでタスクを管理。追加・編集・完了チェックができ、変更はCSVとして保存できます。</p>
+  </header>
+
+  <div class="dropzone" id="dropzone">
+    <p><strong>CSVファイルを選択</strong> またはここにドラッグ＆ドロップ（複数可）</p>
+    <input type="file" id="fileInput" accept=".csv" multiple>
+  </div>
+
+  <div class="files" id="fileList"></div>
+
+  <!-- タスク追加フォーム -->
+  <div class="add-form hidden" id="addForm">
+    <p class="form-title">タスクを追加</p>
+    <div class="form-row">
+      <div class="fg">
+        <label for="nDatetime">日時 <span class="hint">（空欄で現在日時）</span></label>
+        <input type="datetime-local" id="nDatetime">
+      </div>
+      <div class="fg grow">
+        <label for="nTask">タスク内容 <span class="req">*</span></label>
+        <input type="text" id="nTask" placeholder="タスクの内容を入力">
+      </div>
+      <div class="fg">
+        <label for="nDeadline">期限 <span class="hint">（任意）</span></label>
+        <input type="datetime-local" id="nDeadline">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="fg">
+        <label for="nStartDate">着手可能日 <span class="hint">（任意）</span></label>
+        <input type="date" id="nStartDate">
+      </div>
+      <div class="fg grow">
+        <label>前提タスク <span class="hint">（任意・複数選択可）</span></label>
+        <div class="prereq-list" id="nPrereqList"><span class="prereq-empty">タスクがありません</span></div>
+      </div>
+      <div class="fg">
+        <label for="nFile">追加先ファイル</label>
+        <select id="nFile"></select>
+      </div>
+      <div class="fg end">
+        <button class="primary" id="addBtn">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <button class="sort-btn" id="sortBtn">日時で並び替え<span class="arrow" id="sortArrow">▲ 昇順</span></button>
+    <div class="spacer"></div>
+    <button class="primary" id="saveBtn">変更を保存</button>
+  </div>
+
+  <div id="board"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---- state ----
+  // files: name -> { name, rows, visible, modified }
+  // row:   { id, datetime, task, done, deadline, startDate, prereqIds[] }
+  let files = {};
+  let sortAsc = true;
+
+  const DONE_TRUE  = "完了";
+  const DONE_FALSE = "未完了";
+  const NEW_HDR    = ["ID","日時","タスク内容","完了","期限","着手可能日","前提タスクID"];
+
+  const $ = id => document.getElementById(id);
+
+  // ---- ID generation ----
+  let _seq = 0;
+  function genId() { return "t" + Date.now() + "_" + (++_seq); }
+
+  // ---- CSV parsing (handles quoted fields) ----
+  function parseCSV(text) {
+    const rows = [];
+    let field = "", row = [], inQ = false;
+    text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+        else field += c;
+      } else {
+        if (c === '"') inQ = true;
+        else if (c === ",") { row.push(field); field = ""; }
+        else if (c === "\n") { row.push(field); rows.push(row); field = ""; row = []; }
+        else field += c;
+      }
+    }
+    if (field !== "" || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(r => r.length && !(r.length === 1 && r[0].trim() === ""));
+  }
+
+  function escapeField(v) {
+    v = String(v == null ? "" : v);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+
+  // ---- header -> column index map ----
+  function makeHmap(header) {
+    const m = {};
+    header.forEach((col, i) => { m[col.trim()] = i; });
+    return m;
+  }
+  function col(cols, hmap, name) {
+    const i = hmap[name];
+    return (i !== undefined && cols[i] !== undefined) ? cols[i].trim() : "";
+  }
+
+  // ---- parse one data row ----
+  function parseRow(cols, hmap) {
+    const isNew = "ID" in hmap;
+    const pStr  = col(cols, hmap, "前提タスクID");
+    return {
+      id:        isNew ? (col(cols, hmap, "ID") || genId()) : genId(),
+      datetime:  col(cols, hmap, "日時"),
+      task:      col(cols, hmap, "タスク内容"),
+      done:      col(cols, hmap, "完了") === DONE_TRUE,
+      deadline:  col(cols, hmap, "期限"),
+      startDate: col(cols, hmap, "着手可能日"),
+      prereqIds: pStr ? pStr.split("|").filter(Boolean) : []
+    };
+  }
+
+  // ---- build CSV string (always new format) ----
+  function buildCSV(file) {
+    const lines = [NEW_HDR.join(",")];
+    for (const r of file.rows) {
+      lines.push([
+        r.id, r.datetime, r.task,
+        r.done ? DONE_TRUE : DONE_FALSE,
+        r.deadline || "", r.startDate || "",
+        (r.prereqIds || []).join("|")
+      ].map(escapeField).join(","));
+    }
+    return lines.join("\r\n");
+  }
+
+  // ---- date utils ----
+  function toTime(s) {
+    const t = Date.parse(String(s).replace(/\//g, "-").replace(" ", "T"));
+    return isNaN(t) ? Infinity : t;
+  }
+  function inputToDatetime(val) { return val ? val.replace("T", " ") : ""; }
+  function datetimeToInput(s)   { return s ? s.replace(" ", "T").replace(/\//g, "-") : ""; }
+  function nowLocal() {
+    const d = new Date(); d.setSeconds(0, 0);
+    const pad = n => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) +
+           "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  // ---- file reading ----
+  function readFile(file) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const rows = parseCSV(reader.result);
+        if (!rows.length) { resolve(); return; }
+        const hmap = makeHmap(rows[0]);
+        const body = rows.slice(1).map(cols => parseRow(cols, hmap));
+        files[file.name] = { name: file.name, rows: body, visible: true, modified: false };
+        resolve();
+      };
+      reader.readAsText(file, "UTF-8");
+    });
+  }
+
+  async function handleFiles(fileList) {
+    const arr = [...fileList].filter(f => /\.csv$/i.test(f.name));
+    if (!arr.length) { toast("CSVファイルを選択してください"); return; }
+    await Promise.all(arr.map(readFile));
+    render();
+  }
+
+  // ---- availability check ----
+  function allRows() {
+    const out = [];
+    Object.values(files).forEach(f => f.rows.forEach(r => out.push(r)));
+    return out;
+  }
+
+  // 着手可能判定: 着手可能日到来 かつ 前提タスクがすべて完了
+  function checkAvail(row) {
+    let reasonDate = false, reasonPrereq = false;
+
+    if (row.startDate) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const sd = new Date(row.startDate + "T00:00:00");
+      if (!isNaN(sd) && sd > today) reasonDate = true;
+    }
+
+    if (row.prereqIds && row.prereqIds.length > 0) {
+      const flat = allRows();
+      const allDone = row.prereqIds.every(pid => {
+        const p = flat.find(r => r.id === pid);
+        return !p || p.done; // 削除済み前提は完了扱い
+      });
+      if (!allDone) reasonPrereq = true;
+    }
+
+    return { available: !reasonDate && !reasonPrereq, reasonDate, reasonPrereq };
+  }
+
+  function isOverdue(row) {
+    return !!(row.deadline && !row.done && toTime(row.deadline) < Date.now());
+  }
+
+  // ---- render ----
+  function render() {
+    renderChips();
+    renderAddForm();
+    renderTables();
+    $("toolbar").style.display = Object.keys(files).length ? "flex" : "none";
+  }
+
+  function renderChips() {
+    const list = $("fileList"); list.innerHTML = "";
+    Object.values(files).forEach(f => {
+      const chip = document.createElement("div");
+      chip.className = "file-chip" + (f.modified ? " modified" : "");
+      const lbl = document.createElement("label");
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = f.visible;
+      cb.onchange = () => { f.visible = cb.checked; renderTables(); };
+      const nm = document.createElement("span"); nm.textContent = f.name;
+      const ct = document.createElement("span"); ct.className = "count"; ct.textContent = "(" + f.rows.length + ")";
+      lbl.append(cb, nm, ct); chip.append(lbl); list.append(chip);
+    });
+  }
+
+  // ---- add form ----
+  function renderAddForm() {
+    const names = Object.keys(files);
+    const form = $("addForm");
+    if (!names.length) { form.classList.add("hidden"); return; }
+    form.classList.remove("hidden");
+
+    const sel = $("nFile"); const prev = sel.value; sel.innerHTML = "";
+    names.forEach(n => { const o = document.createElement("option"); o.value = n; o.textContent = n; sel.append(o); });
+    if (prev && files[prev]) sel.value = prev;
+
+    populatePrereqList($("nPrereqList"), null, []);
+  }
+
+  // 前提タスク候補をチェックボックスリストで表示
+  // excludeId: 編集中のタスク自身を除外, selectedIds: 既選択ID
+  function populatePrereqList(container, excludeId, selectedIds) {
+    container.innerHTML = "";
+    // 未完了タスク + 既に選択済みのタスク（完了済みでも表示）
+    const tasks = allRows().filter(r => r.id !== excludeId && (!r.done || selectedIds.includes(r.id)));
+    if (!tasks.length) {
+      container.innerHTML = '<span class="prereq-empty">前提候補のタスクがありません</span>';
+      return;
+    }
+    tasks.forEach(r => {
+      const lbl = document.createElement("label");
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.value = r.id;
+      if (selectedIds.includes(r.id)) cb.checked = true;
+      const txt = document.createTextNode(r.task + (r.datetime ? "（" + r.datetime + "）" : "") + (r.done ? " ✓" : ""));
+      lbl.append(cb, txt);
+      if (r.done) lbl.style.opacity = "0.55";
+      container.append(lbl);
+    });
+  }
+
+  function getChecked(container) {
+    return [...container.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
+  }
+
+  $("addBtn").onclick = () => {
+    const taskVal = $("nTask").value.trim();
+    if (!taskVal) { toast("タスク内容を入力してください"); return; }
+    const targetName = $("nFile").value;
+    if (!files[targetName]) { toast("追加先ファイルが見つかりません"); return; }
+
+    files[targetName].rows.push({
+      id:        genId(),
+      datetime:  inputToDatetime($("nDatetime").value || nowLocal()),
+      task:      taskVal,
+      done:      false,
+      deadline:  inputToDatetime($("nDeadline").value),
+      startDate: $("nStartDate").value,
+      prereqIds: getChecked($("nPrereqList"))
+    });
+    files[targetName].modified = true;
+    $("nTask").value = "";
+    $("nDeadline").value = "";
+    $("nStartDate").value = "";
+    render();
+    toast("タスクを追加しました");
+  };
+
+  // ---- table rendering ----
+  function visibleItems() {
+    const out = [];
+    Object.values(files).forEach(f => {
+      if (!f.visible) return;
+      f.rows.forEach((r, i) => out.push({ file: f, row: r, idx: i }));
+    });
+    return out;
+  }
+
+  function renderTables() {
+    const board = $("board"); board.innerHTML = "";
+    const all = visibleItems();
+    if (!all.length) {
+      board.innerHTML = '<div class="empty">表示するタスクがありません。CSVを読み込むか、ファイルの表示をオンにしてください。</div>';
+      return;
+    }
+    const dir = sortAsc ? 1 : -1;
+    const sort = (a, b) => (toTime(a.row.datetime) - toTime(b.row.datetime)) * dir;
+    const pending = all.filter(x => !x.row.done).sort(sort);
+    const done    = all.filter(x =>  x.row.done).sort(sort);
+    board.append(buildSection("未完了", pending, false));
+    if (done.length) board.append(buildSection("完了", done, true));
+  }
+
+  const NCOLS = 7; // □ 状態 日時 タスク内容 期限 ファイル 操作
+
+  function buildSection(title, items, isDone) {
+    const frag = document.createDocumentFragment();
+    const lbl = document.createElement("div");
+    lbl.className = "section-label"; lbl.textContent = title + "（" + items.length + "）";
+    frag.append(lbl);
+
+    if (!items.length) {
+      const e = document.createElement("div"); e.className = "empty"; e.textContent = "なし";
+      frag.append(e); return frag;
+    }
+
+    const table = document.createElement("table");
+    table.innerHTML = `<thead><tr>
+      <th class="col-ck"></th>
+      <th class="col-st">${isDone ? "" : "状態"}</th>
+      <th class="col-dt">日時</th>
+      <th>タスク内容</th>
+      <th class="col-dl">期限</th>
+      <th class="col-src">ファイル</th>
+      <th class="col-act"></th>
+    </tr></thead>`;
+    const tbody = document.createElement("tbody");
+    items.forEach(({ file, row, idx }) => tbody.append(buildRow(file, row, idx, isDone)));
+    table.append(tbody); frag.append(table);
+    return frag;
+  }
+
+  function buildRow(file, row, idx, isDone) {
+    const tr = document.createElement("tr");
+    if (row.done) tr.className = "done";
+
+    // チェックボックス
+    const tdCk = document.createElement("td"); tdCk.className = "col-ck";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = row.done;
+    cb.onchange = () => { row.done = cb.checked; file.modified = true; render(); };
+    tdCk.append(cb);
+
+    // 状態バッジ（未完了のみ）
+    const tdSt = document.createElement("td"); tdSt.className = "col-st";
+    if (!isDone) {
+      const { available, reasonDate, reasonPrereq } = checkAvail(row);
+      const badge = document.createElement("span"); badge.className = "badge";
+      if (available) {
+        badge.classList.add("b-ok"); badge.textContent = "着手可能";
+      } else if (reasonPrereq && reasonDate) {
+        badge.classList.add("b-wait"); badge.textContent = "前提+日付待ち";
+      } else if (reasonPrereq) {
+        badge.classList.add("b-prereq");
+        badge.textContent = "前提待ち（" + row.prereqIds.length + "件）";
+      } else {
+        // 日付のみ待ち
+        const sd = new Date(row.startDate + "T00:00:00");
+        badge.classList.add("b-date");
+        badge.textContent = (sd.getMonth()+1) + "/" + sd.getDate() + "以降";
+      }
+      tdSt.append(badge);
+    }
+
+    // 日時
+    const tdDt = document.createElement("td"); tdDt.className = "col-dt";
+    tdDt.textContent = row.datetime || "—";
+
+    // タスク内容
+    const tdTk = document.createElement("td"); tdTk.className = "task";
+    tdTk.textContent = row.task;
+
+    // 期限
+    const tdDl = document.createElement("td"); tdDl.className = "col-dl";
+    tdDl.textContent = row.deadline || "—";
+    if (isOverdue(row)) tdDl.classList.add("overdue");
+
+    // ファイル
+    const tdSr = document.createElement("td"); tdSr.className = "col-src";
+    const tag = document.createElement("span"); tag.className = "src-tag"; tag.textContent = file.name;
+    tdSr.append(tag);
+
+    // 操作
+    const tdAc = document.createElement("td"); tdAc.className = "col-act";
+    const editBtn = document.createElement("button");
+    editBtn.className = "sm edit-btn"; editBtn.textContent = "編集";
+    editBtn.onclick = () => switchToEdit(tr, file, row, idx);
+    const delBtn = document.createElement("button");
+    delBtn.className = "sm del-btn"; delBtn.textContent = "削除";
+    delBtn.onclick = () => {
+      if (!confirm("このタスクを削除しますか？")) return;
+      file.rows.splice(idx, 1); file.modified = true; render(); toast("タスクを削除しました");
+    };
+    tdAc.append(editBtn, delBtn);
+
+    tr.append(tdCk, tdSt, tdDt, tdTk, tdDl, tdSr, tdAc);
+    return tr;
+  }
+
+  // ---- インライン編集 ----
+  function switchToEdit(tr, file, row, idx) {
+    const editTr = document.createElement("tr"); editTr.className = "editing";
+    const td = document.createElement("td"); td.colSpan = NCOLS;
+    const wrap = document.createElement("div"); wrap.className = "edit-wrap";
+
+    // --- 行1: 完了チェック / 日時 / タスク内容 / 期限 ---
+    const r1 = document.createElement("div"); r1.className = "form-row";
+
+    const gDone = fg("完了");
+    const cbDone = document.createElement("input"); cbDone.type = "checkbox"; cbDone.checked = row.done;
+    cbDone.style.cssText = "width:16px;height:16px;accent-color:var(--accent);cursor:pointer;";
+    gDone.append(cbDone);
+
+    const gDt = fg("日時"); const inDt = inField("datetime-local"); inDt.value = datetimeToInput(row.datetime); gDt.append(inDt);
+    const gTk = fg("タスク内容"); gTk.classList.add("grow");
+    const inTk = inField("text"); inTk.value = row.task; gTk.append(inTk);
+    const gDl = fg("期限"); const inDl = inField("datetime-local"); inDl.value = datetimeToInput(row.deadline); gDl.append(inDl);
+
+    r1.append(gDone, gDt, gTk, gDl);
+
+    // --- 行2: 着手可能日 / 前提タスク / ボタン ---
+    const r2 = document.createElement("div"); r2.className = "form-row";
+
+    const gSd = fg("着手可能日"); const inSd = inField("date"); inSd.value = row.startDate || ""; gSd.append(inSd);
+
+    const gPr = fg("前提タスク"); gPr.classList.add("grow");
+    const prDiv = document.createElement("div"); prDiv.className = "prereq-list";
+    populatePrereqList(prDiv, row.id, row.prereqIds || []);
+    gPr.append(prDiv);
+
+    const gBtn = fg(""); gBtn.classList.add("end");
+    const saveBtn = document.createElement("button"); saveBtn.className = "primary sm"; saveBtn.textContent = "保存";
+    saveBtn.onclick = () => {
+      const taskVal = inTk.value.trim();
+      if (!taskVal) { toast("タスク内容を入力してください"); return; }
+      row.datetime  = inputToDatetime(inDt.value) || inputToDatetime(nowLocal());
+      row.task      = taskVal;
+      row.done      = cbDone.checked;
+      row.deadline  = inputToDatetime(inDl.value);
+      row.startDate = inSd.value;
+      row.prereqIds = getChecked(prDiv);
+      file.modified = true;
+      render(); toast("タスクを更新しました");
+    };
+    const cancelBtn = document.createElement("button"); cancelBtn.className = "sm"; cancelBtn.textContent = "取消";
+    cancelBtn.onclick = () => render();
+    gBtn.append(saveBtn, cancelBtn);
+
+    r2.append(gSd, gPr, gBtn);
+    wrap.append(r1, r2); td.append(wrap); editTr.append(td);
+    tr.replaceWith(editTr);
+    inTk.focus();
+  }
+
+  // fg: フォームグループ要素を作る
+  function fg(labelText) {
+    const g = document.createElement("div"); g.className = "fg";
+    if (labelText) {
+      const l = document.createElement("label"); l.textContent = labelText; g.append(l);
+    }
+    return g;
+  }
+  // inField: インライン入力欄を作る
+  function inField(type) {
+    const i = document.createElement("input"); i.type = type; i.className = "inline-input"; return i;
+  }
+
+  // ---- save ----
+  function saveAll() {
+    const modified = Object.values(files).filter(f => f.modified);
+    if (!modified.length) { toast("保存する変更はありません"); return; }
+    modified.forEach(f => {
+      const blob = new Blob(["﻿" + buildCSV(f)], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = f.name;
+      document.body.append(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      f.modified = false;
+    });
+    renderChips();
+    toast(modified.length + "件のファイルを書き出しました");
+  }
+
+  // ---- toast ----
+  let _tt;
+  function toast(msg) {
+    const t = $("toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  // ---- events ----
+  const dropzone = $("dropzone"), fileInput = $("fileInput");
+  dropzone.onclick = () => fileInput.click();
+  fileInput.onchange = () => { handleFiles(fileInput.files); fileInput.value = ""; };
+  ["dragenter","dragover"].forEach(ev =>
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add("drag"); }));
+  ["dragleave","drop"].forEach(ev =>
+    dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove("drag"); }));
+  dropzone.addEventListener("drop", e => handleFiles(e.dataTransfer.files));
+  $("sortBtn").onclick = () => {
+    sortAsc = !sortAsc; $("sortArrow").textContent = sortAsc ? "▲ 昇順" : "▼ 降順"; renderTables();
+  };
+  $("saveBtn").onclick = saveAll;
+  $("nTask").addEventListener("keydown", e => { if (e.key === "Enter") $("addBtn").click(); });
+})();
+</script>
+</body>
+</html>
