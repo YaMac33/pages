@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公共DXコンサル 3社比較ドシエ</title>
+<style>
+  :root{
+    --ink:#1a1d24;
+    --paper:#f6f4ef;
+    --card:#ffffff;
+    --line:#d8d3c8;
+    --muted:#6b6f78;
+    --abeam:#c8512b;
+    --dentsu:#2d6a8e;
+    --ntt:#3a7d44;
+    --accent:#b5894a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.75;
+    font-size:15px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 18px;}
+
+  /* hero */
+  header.hero{
+    padding:54px 0 30px;
+    border-bottom:2px solid var(--ink);
+  }
+  .eyebrow{
+    font-size:11px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:14px;
+  }
+  h1{
+    font-family:"Times New Roman",serif;
+    font-size:34px;line-height:1.2;font-weight:700;letter-spacing:.01em;
+    margin-bottom:10px;
+  }
+  h1 .jp{font-family:"Hiragino Mincho ProN","Yu Mincho",serif;}
+  .sub{color:var(--muted);font-size:14px;max-width:600px;}
+  .stamp{
+    display:inline-block;margin-top:18px;font-size:11px;letter-spacing:.1em;
+    color:var(--muted);border:1px solid var(--line);
+    padding:5px 12px;border-radius:2px;
+  }
+
+  /* nav */
+  nav.jump{
+    position:sticky;top:0;z-index:20;
+    background:rgba(246,244,239,.94);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+    display:flex;gap:4px;padding:9px 0;margin-bottom:8px;
+    overflow-x:auto;
+  }
+  nav.jump .wrap{display:flex;gap:6px;padding:0 18px;}
+  nav.jump a{
+    flex:0 0 auto;font-size:12px;text-decoration:none;color:var(--ink);
+    border:1px solid var(--line);border-radius:20px;padding:5px 13px;
+    white-space:nowrap;transition:.15s;
+  }
+  nav.jump a:hover{background:var(--ink);color:#fff;}
+
+  section{padding:38px 0;border-bottom:1px solid var(--line);}
+  .sec-label{
+    font-size:11px;letter-spacing:.2em;color:var(--muted);
+    font-weight:700;text-transform:uppercase;margin-bottom:6px;
+  }
+  h2{font-size:22px;font-weight:700;margin-bottom:20px;letter-spacing:.02em;}
+
+  /* at-a-glance table */
+  .glance{width:100%;border-collapse:collapse;font-size:13px;}
+  .glance th,.glance td{
+    text-align:left;padding:11px 10px;border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  .glance thead th{
+    font-size:11px;letter-spacing:.08em;color:var(--muted);
+    border-bottom:2px solid var(--ink);text-transform:uppercase;
+  }
+  .glance tbody th{font-weight:700;width:108px;color:var(--muted);font-size:12px;}
+  .firmname{font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px;}
+  .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .d-a{background:var(--abeam);}
+  .d-d{background:var(--dentsu);}
+  .d-n{background:var(--ntt);}
+  .glance .num{font-variant-numeric:tabular-nums;}
+
+  /* firm cards */
+  .firm{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:6px;padding:26px 22px;margin-bottom:22px;
+    border-top:4px solid var(--accent);
+  }
+  .firm.abeam{border-top-color:var(--abeam);}
+  .firm.dentsu{border-top-color:var(--dentsu);}
+  .firm.ntt{border-top-color:var(--ntt);}
+  .firm h3{font-size:20px;margin-bottom:3px;}
+  .firm .romaji{font-size:11px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:18px;}
+
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:7px 14px;font-size:13px;margin-bottom:18px;}
+  .kv dt{color:var(--muted);font-weight:700;font-size:12px;}
+  .kv dd{}
+
+  .block-label{
+    font-size:11px;letter-spacing:.14em;font-weight:700;color:var(--muted);
+    text-transform:uppercase;margin:16px 0 7px;
+    padding-bottom:4px;border-bottom:1px solid var(--line);
+  }
+  .firm ul{list-style:none;font-size:13px;}
+  .firm ul li{padding:4px 0 4px 17px;position:relative;}
+  .firm ul li::before{
+    content:"";position:absolute;left:0;top:13px;
+    width:6px;height:1px;background:var(--ink);
+  }
+  .req li::before{height:6px;width:6px;border-radius:50%;background:none;border:1.5px solid var(--accent);top:9px;}
+  .firm.abeam .req li::before{border-color:var(--abeam);}
+  .firm.dentsu .req li::before{border-color:var(--dentsu);}
+  .firm.ntt .req li::before{border-color:var(--ntt);}
+
+  .cases{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+  .case-chip{
+    font-size:11px;background:var(--paper);border:1px solid var(--line);
+    border-radius:3px;padding:4px 9px;color:var(--ink);
+  }
+  .fit{
+    margin-top:18px;padding:14px 15px;border-radius:4px;
+    background:var(--paper);border-left:3px solid var(--accent);
+    font-size:13px;
+  }
+  .firm.abeam .fit{border-left-color:var(--abeam);}
+  .firm.dentsu .fit{border-left-color:var(--dentsu);}
+  .firm.ntt .fit{border-left-color:var(--ntt);}
+  .fit b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+
+  a.src{color:inherit;text-decoration:none;border-bottom:1px dotted var(--muted);font-size:12px;color:var(--muted);}
+  a.src:hover{color:var(--ink);border-bottom-style:solid;}
+
+  /* verdict */
+  .verdict .row{
+    display:flex;gap:14px;align-items:baseline;padding:14px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .verdict .row:last-child{border-bottom:none;}
+  .rank{font-family:"Times New Roman",serif;font-size:30px;font-weight:700;color:var(--accent);flex:0 0 38px;line-height:1;}
+  .verdict .rtext b{font-size:15px;}
+  .verdict .rtext p{font-size:13px;color:var(--muted);margin-top:2px;}
+
+  footer{padding:30px 0 50px;font-size:12px;color:var(--muted);}
+  .disc{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;}
+
+  @media(max-width:560px){
+    h1{font-size:26px;}
+    .kv{grid-template-columns:96px 1fr;}
+    .glance{font-size:12px;}
+    .glance th,.glance td{padding:9px 7px;}
+    .glance tbody th{width:84px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Career Dossier &middot; Public-Sector DX</div>
+    <h1>公共DXコンサル<br><span class="jp">三社比較ドシエ</span></h1>
+    <p class="sub">アビーム・電通総研・NTT東日本。自治体DX領域で官公庁出身者を迎える3社を、会社概要・募集要件・実績・自分との相性で並べた意思決定用の資料。</p>
+    <span class="stamp">作成 2026年6月 / 応募・選考中</span>
+  </div>
+</header>
+
+<nav class="jump">
+  <div class="wrap">
+    <a href="#glance">早見表</a>
+    <a href="#abeam">アビーム</a>
+    <a href="#dentsu">電通総研</a>
+    <a href="#ntt">NTT東日本</a>
+    <a href="#verdict">総括</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- GLANCE -->
+<section id="glance">
+  <div class="sec-label">At a glance</div>
+  <h2>早見表</h2>
+  <table class="glance">
+    <thead>
+      <tr><th>項目</th><th>アビーム</th><th>電通総研</th><th>NTT東日本</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>区分</th>
+        <td>総合系コンサル</td>
+        <td>IT・シンクタンク</td>
+        <td>通信インフラ</td>
+      </tr>
+      <tr>
+        <th>想定年収</th>
+        <td class="num">500–1,000万</td>
+        <td class="num">730–1,360万</td>
+        <td class="num">590–1,040万</td>
+      </tr>
+      <tr>
+        <th>残業目安</th>
+        <td class="num">中（案件次第）</td>
+        <td class="num">26.7h 実績</td>
+        <td class="num">35h 平均</td>
+      </tr>
+      <tr>
+        <th>年間休日</th>
+        <td class="num">120日前後</td>
+        <td class="num">124日</td>
+        <td class="num">128日</td>
+      </tr>
+      <tr>
+        <th>退職金</th>
+        <td>なし(DC)</td>
+        <td>なし</td>
+        <td>あり</td>
+      </tr>
+      <tr>
+        <th>リモート</th>
+        <td>可</td>
+        <td>可</td>
+        <td>全員可</td>
+      </tr>
+      <tr>
+        <th>安定性</th>
+        <td>○</td>
+        <td>◎</td>
+        <td>◎</td>
+      </tr>
+      <tr>
+        <th>自治体DX<br>直結度</th>
+        <td>◎</td>
+        <td>◎</td>
+        <td>◎</td>
+      </tr>
+      <tr>
+        <th>専門卒</th>
+        <td>可</td>
+        <td>可</td>
+        <td>可</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ABEAM -->
+<section id="abeam">
+  <div class="firm abeam">
+    <h3>アビームコンサルティング</h3>
+    <div class="romaji">ABeam Consulting &middot; 官公庁・公共機関コンサルタント</div>
+
+    <dl class="kv">
+      <dt>親会社</dt><dd>NTTデータグループ</dd>
+      <dt>性格</dt><dd>日系総合コンサル。実装・定着まで伴走するスタイルが強み</dd>
+      <dt>想定年収</dt><dd>500〜1,000万円（下限が低めなので交渉が要）</dd>
+      <dt>働き方</dt><dd>フレックス（5:00〜22:00）／リモート可</dd>
+      <dt>応募経路</dt><dd>ビズリーチ経由（クレドス）で面談調整中</dd>
+    </dl>
+
+    <div class="block-label">必須要件（いずれか合計4年以上）</div>
+    <ul class="req">
+      <li>コンサル・シンクタンクでの公共向けプロジェクト経験</li>
+      <li>監査法人での公共向け会計・業務改革アドバイザリー</li>
+      <li>SIベンダーでの公共向け基幹システム導入</li>
+      <li>官公庁・自治体での経営企画・IT・基幹業務部門の経験 ← 該当</li>
+    </ul>
+
+    <div class="block-label">自治体DX・BPR実績（抜粋）</div>
+    <div class="cases">
+      <span class="case-chip">神戸市 業務改革</span>
+      <span class="case-chip">滝川市 書かない窓口</span>
+      <span class="case-chip">経産省 生成AI行政効率化</span>
+      <span class="case-chip">デジタル庁 標準GL改定</span>
+      <span class="case-chip">基幹系システム再構築</span>
+      <span class="case-chip">LGWAN・三層分離支援</span>
+    </div>
+
+    <div class="fit">
+      <b>自分との相性</b>
+      「提案して実装まで見届けたい」という志向に最も近い。実績件数も省庁〜市町村まで最多。一方で年収下限500万・評価制度の不透明さは要確認。
+    </div>
+    <p style="margin-top:14px;"><a class="src" href="https://www.abeam.com/jp/ja/industry/public" target="_blank" rel="noopener">公式実績ページ →</a></p>
+  </div>
+</section>
+
+<!-- DENTSU -->
+<section id="dentsu">
+  <div class="firm dentsu">
+    <h3>電通総研</h3>
+    <div class="romaji">Dentsu Soken &middot; 公共領域コンサルタント</div>
+
+    <dl class="kv">
+      <dt>旧社名</dt><dd>電通国際情報サービス（ISID）</dd>
+      <dt>資本金</dt><dd>81.8億円／東証プライム上場</dd>
+      <dt>従業員</dt><dd>4,618名（2025年末）</dd>
+      <dt>性格</dt><dd>SI・コンサル・シンクタンクの3機能。提言で終わらせない実装力</dd>
+      <dt>想定年収</dt><dd>コンサル730万〜／シニア940万〜／マネージャー1,220万〜</dd>
+      <dt>働き方</dt><dd>裁量労働 or フレックス／在宅可／有休入社即日20日</dd>
+      <dt>応募経路</dt><dd>リクルートエージェント経由・連絡待ち</dd>
+    </dl>
+
+    <div class="block-label">必須要件（公式版・いずれか2つ以上 / 3年目安）</div>
+    <ul class="req">
+      <li>中央省庁向けコンサルティングの実務経験</li>
+      <li>EBPM・統計分析の実務経験</li>
+      <li>中央省庁向けシステム構築の大規模PM・PMO経験</li>
+    </ul>
+    <p style="font-size:12px;color:var(--muted);margin-top:6px;">※エージェント版は「官公庁での実務経験3年以上」とより広い。書類はエージェントが可能性ありと判断して送付済み。</p>
+
+    <div class="block-label">自治体DX・BPR実績（抜粋）</div>
+    <div class="cases">
+      <span class="case-chip">岡山県 生成AI minnect</span>
+      <span class="case-chip">藤沢市 全庁AI展開</span>
+      <span class="case-chip">静岡市 ワンストップ窓口</span>
+      <span class="case-chip">加西市 都市OS CIVILIOS</span>
+      <span class="case-chip">LGWAN対応 生成AI</span>
+    </div>
+
+    <div class="fit">
+      <b>自分との相性</b>
+      「LGWAN対応の生成AI」「BPR後の定着支援」が自分の思想と最も近い。福利厚生・残業・安定性のバランスが3社で最良。ただし公式必須要件はやや高め。
+    </div>
+    <p style="margin-top:14px;">
+      <a class="src" href="https://www.dentsusoken.com/case_report/case" target="_blank" rel="noopener">事例一覧 →</a>　
+      <a class="src" href="https://smart-society.dentsusoken.com/" target="_blank" rel="noopener">自治体DX特設サイト →</a>
+    </p>
+  </div>
+</section>
+
+<!-- NTT -->
+<section id="ntt">
+  <div class="firm ntt">
+    <h3>NTT東日本</h3>
+    <div class="romaji">NTT East &middot; 自治体向けバックオフィスDX推進</div>
+
+    <dl class="kv">
+      <dt>性格</dt><dd>地域密着のICT企業。NTTグループ（国が筆頭株主）の準公的安定性</dd>
+      <dt>配属</dt><dd>ビジネスイノベーション本部 基盤ビジネス推進部</dd>
+      <dt>想定年収</dt><dd>担当者750万／リーダー970万（具体例が明示）</dd>
+      <dt>働き方</dt><dd>フレックス(コアなし)／在宅全員可／年休128日</dd>
+      <dt>手当</dt><dd>退職金あり・住宅手当・子育て手当・寮社宅・保養所</dd>
+      <dt>応募経路</dt><dd>リクルートエージェント経由・連絡待ち</dd>
+    </dl>
+
+    <div class="block-label">必須要件</div>
+    <ul class="req">
+      <li>ネットワークに関する基本的な知識</li>
+      <li>自治体向け又は大手企業のバックオフィスDX推進のIT経験 ← 該当</li>
+    </ul>
+
+    <div class="block-label">自治体DX・BPR実績（抜粋）</div>
+    <div class="cases">
+      <span class="case-chip">綾瀬市 BPR伴走・人材育成</span>
+      <span class="case-chip">ガバメントクラウド移行</span>
+      <span class="case-chip">LGWAN接続 AI-OCR</span>
+      <span class="case-chip">おまかせRPA</span>
+      <span class="case-chip">災害対策・地方創生</span>
+    </div>
+
+    <div class="fit">
+      <b>自分との相性</b>
+      唯一「退職金あり」で公務員の安定に最も近い。休日128日も最多。BPR伴走と人材育成の現場感は自分の経験と直結。中途配属は通常総合職と文化が異なる点に注意。
+    </div>
+    <p style="margin-top:14px;">
+      <a class="src" href="https://business.ntt-east.co.jp/case/ayasecity-government-dx.html" target="_blank" rel="noopener">綾瀬市 BPR事例 →</a>　
+      <a class="src" href="https://business.ntt-east.co.jp/content/local-government-dx/infrastructure.html" target="_blank" rel="noopener">自治体DXソリューション →</a>
+    </p>
+  </div>
+</section>
+
+<!-- VERDICT -->
+<section id="verdict" class="verdict">
+  <div class="sec-label">Verdict</div>
+  <h2>総括 — おすすめ順</h2>
+  <div class="row">
+    <div class="rank">1</div>
+    <div class="rtext">
+      <b>電通総研</b>
+      <p>年収・残業実績・福利厚生・安定性・ネガティブ離職の少なさが総合最良。LGWAN生成AI・定着支援が思想と一致。必須要件のハードルだけが論点。</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="rank">2</div>
+    <div class="rtext">
+      <b>NTT東日本</b>
+      <p>唯一の退職金あり・休日最多・準公的な安定性。公務員の安定に最も近い乗り換え先。BPR伴走の現場感も合う。</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="rank">3</div>
+    <div class="rtext">
+      <b>アビーム</b>
+      <p>実装まで伴走するスタイルは性格に最も合致。実績も豊富。年収下限と評価制度の不透明さを面談で確認できれば順位は上がる。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>3社とも「自治体DX直結・官公庁経験者歓迎・専門卒可」で共通。職務経歴書は1本で使い回し可能。</p>
+  <p class="disc">本資料は公開情報・求人票・各社公式サイトをもとに作成した個人用メモであり、年収・残業・要件は時期や職位により変動します。最終確認は各社の正式な募集要項・面談で行ってください。</p>
+</footer>
+
+</div>
+</body>
+</html>
