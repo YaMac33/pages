@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コンサルティングファーム比較：PwC vs アビーム</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #f7f9fc;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #2c3e50;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            width: 100%;
+        }
+        .description {
+            margin-top: 30px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+            background-color: #edf2f7;
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>PwC (G&PS) vs アビームコンサルティング (公共部門)</h1>
+    
+    <div class="chart-container">
+        <canvas id="radarChart"></canvas>
+    </div>
+
+    <div class="description">
+        <strong>【チャートの評価項目について】</strong><br>
+        一般的な市場の傾向と、自治体向けコンサルタントとしての視点から以下の6項目（5段階評価）を設定しています。<br><br>
+        <ul>
+            <li><strong>給与水準 (800万達成の早さ):</strong> Big4であるPwCがやや高水準の傾向にあります。</li>
+            <li><strong>グローバルネットワーク:</strong> 世界展開するPwCが強みを持ちます。</li>
+            <li><strong>地方自治体向け実績:</strong> 日系ファームであるアビームは国内行政や地方自治体に深く根付いた実績があります。</li>
+            <li><strong>IT・システム実装力:</strong> どちらも高いですが、アビームはERP等の大規模システム導入で確固たる基盤を持ちます。</li>
+            <li><strong>ワークライフバランス:</strong> コンサル業界の中では、アビームが比較的働きやすい環境づくりに注力していると評価されています。</li>
+            <li><strong>学歴・未経験の柔軟性:</strong> 残念ながら両社とも大卒以上が基本要件となるため、短大卒・未経験からの直接応募ハードルはともに高く設定しています（スコア低）。</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    
+    const data = {
+        labels: [
+            '給与水準 (800万到達)',
+            'グローバルネットワーク',
+            '地方自治体向け実績',
+            'IT・システム実装力',
+            'ワークライフバランス',
+            '学歴・未経験の柔軟性'
+        ],
+        datasets: [
+            {
+                label: 'PwC (G&PS)',
+                data: [5, 5, 4, 4, 3, 2],
+                fill: true,
+                backgroundColor: 'rgba(235, 140, 0, 0.2)', // PwCをイメージしたオレンジ系
+                borderColor: 'rgba(235, 140, 0, 1)',
+                pointBackgroundColor: 'rgba(235, 140, 0, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(235, 140, 0, 1)'
+            },
+            {
+                label: 'アビームコンサルティング',
+                data: [4, 3, 5, 5, 4, 2],
+                fill: true,
+                backgroundColor: 'rgba(0, 85, 150, 0.2)', // アビームをイメージしたブルー系
+                borderColor: 'rgba(0, 85, 150, 1)',
+                pointBackgroundColor: 'rgba(0, 85, 150, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(0, 85, 150, 1)'
+            }
+        ]
+    };
+
+    const config = {
+        type: 'radar',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: 0,
+                    suggestedMax: 5,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    new Chart(ctx, config);
+</script>
+
+</body>
+</html>
