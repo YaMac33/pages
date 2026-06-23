@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>コンサルティングファーム比較：PwC vs アビーム</title>
+    <title>公共・自治体向けコンサルティングファーム比較（5社）</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -14,7 +14,7 @@
             padding: 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             background-color: #fff;
             padding: 30px;
@@ -23,7 +23,7 @@
         }
         h1 {
             text-align: center;
-            font-size: 24px;
+            font-size: 22px;
             color: #2c3e50;
             border-bottom: 2px solid #e2e8f0;
             padding-bottom: 10px;
@@ -31,7 +31,7 @@
         }
         .chart-container {
             position: relative;
-            height: 500px;
+            height: 600px;
             width: 100%;
         }
         .description {
@@ -40,30 +40,32 @@
             line-height: 1.6;
             color: #555;
             background-color: #edf2f7;
-            padding: 15px;
+            padding: 20px;
             border-radius: 5px;
+        }
+        .description h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>PwC (G&PS) vs アビームコンサルティング (公共部門)</h1>
+    <h1>公共・自治体向けコンサルティングファーム 5社比較</h1>
+    <p style="text-align: center; font-size: 14px; color: #666;">※上部の社名をクリックすると、表示・非表示を切り替えられます</p>
     
     <div class="chart-container">
         <canvas id="radarChart"></canvas>
     </div>
 
     <div class="description">
-        <strong>【チャートの評価項目について】</strong><br>
-        一般的な市場の傾向と、自治体向けコンサルタントとしての視点から以下の6項目（5段階評価）を設定しています。<br><br>
+        <h3>追加された3社の特徴とスコアの背景</h3>
         <ul>
-            <li><strong>給与水準 (800万達成の早さ):</strong> Big4であるPwCがやや高水準の傾向にあります。</li>
-            <li><strong>グローバルネットワーク:</strong> 世界展開するPwCが強みを持ちます。</li>
-            <li><strong>地方自治体向け実績:</strong> 日系ファームであるアビームは国内行政や地方自治体に深く根付いた実績があります。</li>
-            <li><strong>IT・システム実装力:</strong> どちらも高いですが、アビームはERP等の大規模システム導入で確固たる基盤を持ちます。</li>
-            <li><strong>ワークライフバランス:</strong> コンサル業界の中では、アビームが比較的働きやすい環境づくりに注力していると評価されています。</li>
-            <li><strong>学歴・未経験の柔軟性:</strong> 残念ながら両社とも大卒以上が基本要件となるため、短大卒・未経験からの直接応募ハードルはともに高く設定しています（スコア低）。</li>
+            <li><strong>デロイト トーマツ (DTC):</strong> 自治体DXやシステム標準化の最上流で圧倒的な実績（5）。Big4としての高い給与水準とグローバル網を持ちます。「ITコンサル枠」で応募することで、学歴のハードルを通常より少し下げられるため柔軟性を「3」としています。</li>
+            <li><strong>アクセンチュア:</strong> テクノロジーを駆使したスマートシティ実装やBPOに強み（IT実装力5）。特筆すべきは、クラウドエンジニア枠等で「短大・専門卒」を明確に応募可としている柔軟性の高さ（4）と、働き方改革によるWLBの改善（4）です。</li>
+            <li><strong>船井総合研究所:</strong> 日系の独立系ファーム。グローバルや大規模IT実装のスコアは控目ですが、地方創生や公民連携など「自治体のビジネス・企画側」の実績は豊富（4）です。学歴不問の求人も一部存在するため柔軟性は「3」としています。</li>
         </ul>
     </div>
 </div>
@@ -82,26 +84,65 @@
         ],
         datasets: [
             {
+                label: 'デロイト トーマツ (DTC)',
+                data: [5, 5, 5, 4, 3, 3],
+                fill: true,
+                backgroundColor: 'rgba(134, 188, 37, 0.2)', // デロイトグリーン
+                borderColor: 'rgba(134, 188, 37, 1)',
+                pointBackgroundColor: 'rgba(134, 188, 37, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(134, 188, 37, 1)',
+                borderWidth: 2
+            },
+            {
+                label: 'アクセンチュア',
+                data: [5, 5, 4, 5, 4, 4],
+                fill: true,
+                backgroundColor: 'rgba(161, 0, 255, 0.2)', // アクセンチュアパープル
+                borderColor: 'rgba(161, 0, 255, 1)',
+                pointBackgroundColor: 'rgba(161, 0, 255, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(161, 0, 255, 1)',
+                borderWidth: 2
+            },
+            {
                 label: 'PwC (G&PS)',
                 data: [5, 5, 4, 4, 3, 2],
                 fill: true,
-                backgroundColor: 'rgba(235, 140, 0, 0.2)', // PwCをイメージしたオレンジ系
+                backgroundColor: 'rgba(235, 140, 0, 0.1)', // オレンジ（少し透過強め）
                 borderColor: 'rgba(235, 140, 0, 1)',
                 pointBackgroundColor: 'rgba(235, 140, 0, 1)',
                 pointBorderColor: '#fff',
                 pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(235, 140, 0, 1)'
+                pointHoverBorderColor: 'rgba(235, 140, 0, 1)',
+                borderWidth: 2,
+                hidden: true // 初期状態では非表示（比較しやすくするため）
             },
             {
                 label: 'アビームコンサルティング',
                 data: [4, 3, 5, 5, 4, 2],
                 fill: true,
-                backgroundColor: 'rgba(0, 85, 150, 0.2)', // アビームをイメージしたブルー系
+                backgroundColor: 'rgba(0, 85, 150, 0.2)', // アビームブルー
                 borderColor: 'rgba(0, 85, 150, 1)',
                 pointBackgroundColor: 'rgba(0, 85, 150, 1)',
                 pointBorderColor: '#fff',
                 pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(0, 85, 150, 1)'
+                pointHoverBorderColor: 'rgba(0, 85, 150, 1)',
+                borderWidth: 2
+            },
+            {
+                label: '船井総合研究所',
+                data: [3, 1, 4, 2, 3, 3],
+                fill: true,
+                backgroundColor: 'rgba(227, 24, 55, 0.2)', // 船井レッド
+                borderColor: 'rgba(227, 24, 55, 1)',
+                pointBackgroundColor: 'rgba(227, 24, 55, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(227, 24, 55, 1)',
+                borderWidth: 2
             }
         ]
     };
@@ -120,7 +161,16 @@
                     suggestedMin: 0,
                     suggestedMax: 5,
                     ticks: {
-                        stepSize: 1
+                        stepSize: 1,
+                        font: {
+                            size: 12
+                        }
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
                     }
                 }
             },
@@ -129,9 +179,21 @@
                     position: 'top',
                     labels: {
                         font: {
-                            size: 14
-                        }
+                            size: 13
+                        },
+                        padding: 15,
+                        usePointStyle: true
                     }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 14
+                    },
+                    padding: 10
                 }
             }
         }
