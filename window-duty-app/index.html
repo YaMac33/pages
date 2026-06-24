@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>窓口受付当番表作成アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <h1>窓口受付当番表作成アプリ</h1>
+      <p>平日のCW枠・CW以外枠を、職員ごとの総回数・枠別回数・月別調整ルールを見ながら自動割当します。</p>
+      <nav class="page-nav" aria-label="ページ移動">
+        <a href="README.html">説明書を見る</a>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="card schedule-card" aria-labelledby="schedule-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="schedule-title">当番表作成</h2>
+            <p class="section-note">CWは午前・昼・午後、CW以外は午前・昼1・昼2・午後がなるべく均等になるように割当します。土日と手動祝日は除外します。</p>
+          </div>
+          <span id="scheduleLabel" class="count-label">未作成</span>
+        </div>
+
+        <div class="action-panel">
+          <label class="field">
+            <span>年</span>
+            <input id="yearInput" type="number" min="2000" max="2100" inputmode="numeric">
+          </label>
+
+          <label class="field">
+            <span>月</span>
+            <select id="monthSelect">
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+          </label>
+
+          <button id="generateBtn" type="button" class="primary">自動作成</button>
+          <button id="regenerateBtn" type="button">再作成</button>
+          <button id="csvBtn" type="button">CSV出力</button>
+        </div>
+
+        <div id="messageArea" class="message-area" role="status" aria-live="polite"></div>
+
+        <div class="swap-panel" aria-labelledby="swap-title">
+          <div>
+            <h3 id="swap-title">手動入れ替え</h3>
+            <p class="section-note">当番表内の名前を2つ選択し、その2枠だけを入れ替えます。</p>
+          </div>
+          <div class="swap-selection">
+            <div class="swap-chip">
+              <span>1枠目</span>
+              <strong id="swapFirstLabel">未選択</strong>
+            </div>
+            <div class="swap-chip">
+              <span>2枠目</span>
+              <strong id="swapSecondLabel">未選択</strong>
+            </div>
+            <button id="swapCellsBtn" type="button" class="primary">選択した2枠を入れ替え</button>
+            <button id="clearSwapSelectionBtn" type="button">選択解除</button>
+          </div>
+          <div class="form-row cell-edit-form">
+            <label class="field">
+              <span>選択中の1枠目をこの職員に変更</span>
+              <select id="cellEditStaffSelect"></select>
+            </label>
+            <button id="replaceCellStaffBtn" type="button" class="primary">名前を書き換え</button>
+          </div>
+        </div>
+
+        <div class="table-wrap schedule-table-wrap">
+          <table class="schedule-table">
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>曜日</th>
+                <th>CW 午前</th>
+                <th>CW 昼</th>
+                <th>CW 午後</th>
+                <th>CW以外 午前</th>
+                <th>CW以外 昼1</th>
+                <th>CW以外 昼2</th>
+                <th>CW以外 午後</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleTableBody">
+              <tr>
+                <td colspan="9" class="empty-cell">対象月を選択して当番表を作成してください。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="rule-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="rule-title">月別ルール</h2>
+            <p class="section-note">選択中の月だけに適用する調整です。例：前月少なかった人を今月は1回増やす。</p>
+          </div>
+          <span id="ruleMonthLabel" class="count-label">当月</span>
+        </div>
+
+        <div class="form-row monthly-rule-form">
+          <label class="field">
+            <span>対象職員</span>
+            <select id="ruleStaffSelect"></select>
+          </label>
+
+          <label class="field">
+            <span>目標回数調整</span>
+            <select id="ruleAdjustmentSelect">
+              <option value="1">+1回</option>
+              <option value="2">+2回</option>
+              <option value="-1">-1回</option>
+              <option value="-2">-2回</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>メモ</span>
+            <input id="ruleNoteInput" type="text" placeholder="例：前月少なかったため">
+          </label>
+
+          <button id="addRuleBtn" type="button" class="primary">ルールを追加</button>
+        </div>
+
+        <div class="table-wrap compact-table">
+          <table>
+            <thead>
+              <tr>
+                <th>対象月</th>
+                <th>職員</th>
+                <th>調整</th>
+                <th>メモ</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyRuleTableBody">
+              <tr>
+                <td colspan="5" class="empty-cell">この月の追加ルールはありません。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="settings-grid">
+        <section class="card" aria-labelledby="vacation-title">
+          <div class="section-heading">
+            <h2 id="vacation-title">休暇設定</h2>
+          </div>
+
+          <div class="form-row">
+            <label class="field">
+              <span>対象者</span>
+              <select id="vacationStaffSelect"></select>
+            </label>
+
+            <label class="field">
+              <span>休暇日</span>
+              <input id="vacationDateInput" type="date">
+            </label>
+
+            <button id="addVacationBtn" type="button" class="primary">休暇を追加</button>
+          </div>
+
+          <div class="table-wrap compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>対象者</th>
+                  <th>休暇日</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="vacationTableBody">
+                <tr>
+                  <td colspan="3" class="empty-cell">登録済み休暇はありません。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="holiday-title">
+          <div class="section-heading">
+            <h2 id="holiday-title">祝日設定</h2>
+          </div>
+
+          <div class="form-row holiday-form">
+            <label class="field">
+              <span>祝日</span>
+              <input id="holidayDateInput" type="date">
+            </label>
+
+            <label class="field">
+              <span>名称</span>
+              <input id="holidayNameInput" type="text" placeholder="例：建国記念の日">
+            </label>
+
+            <button id="addHolidayBtn" type="button" class="primary">祝日を追加</button>
+          </div>
+
+          <div class="table-wrap compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>日付</th>
+                  <th>名称</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="holidayTableBody">
+                <tr>
+                  <td colspan="3" class="empty-cell">登録済み祝日はありません。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <details class="card staff-details">
+        <summary>
+          <span>職員一覧</span>
+          <span id="staffCount" class="count-label">0人</span>
+        </summary>
+
+        <div class="staff-tools">
+          <div class="form-row add-staff-form">
+            <label class="field">
+              <span>氏名</span>
+              <input id="staffNameInput" type="text" placeholder="例：山田 太郎">
+            </label>
+
+            <label class="field">
+              <span>区分</span>
+              <select id="staffTypeSelect">
+                <option value="cw">CW</option>
+                <option value="nonCw">CW以外</option>
+              </select>
+            </label>
+
+            <button id="addStaffBtn" type="button" class="primary">職員を追加</button>
+            <button id="sampleBtn" type="button">サンプル職員を読み込む</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>staff_id</th>
+                <th>氏名</th>
+                <th>区分</th>
+                <th>active</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="staffTableBody">
+              <tr>
+                <td colspan="5" class="empty-cell">職員データがありません。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <section class="card" aria-labelledby="summary-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="summary-title">割当バランス</h2>
+            <p class="section-note">作成後に、職員ごとの総回数と枠別の回数を確認できます。</p>
+          </div>
+        </div>
+
+        <div class="table-wrap compact-table">
+          <table>
+            <thead>
+              <tr>
+                <th>職員</th>
+                <th>総回数</th>
+                <th>CW 午前</th>
+                <th>CW 昼</th>
+                <th>CW 午後</th>
+                <th>CW以外 午前</th>
+                <th>CW以外 昼1</th>
+                <th>CW以外 昼2</th>
+                <th>CW以外 午後</th>
+                <th>月/金</th>
+                <th>目標調整</th>
+              </tr>
+            </thead>
+            <tbody id="balanceTableBody">
+              <tr>
+                <td colspan="11" class="empty-cell">当番表を作成すると表示されます。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
