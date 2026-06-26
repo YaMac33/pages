@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人物特性プロファイル — 心身ともに没頭する研究者</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;700&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#0d2438;        /* 製図ブルーの濃 */
+    --blue:#1c4e80;       /* ブループリント */
+    --blue-line:#2f6db0;
+    --grid:rgba(120,170,225,.22);
+    --paper:#0f2c47;      /* 背景の青写真紙 */
+    --paper2:#0b2238;
+    --cream:#eef4fb;
+    --accent:#e8b04b;     /* 黄=注釈・マーカー */
+    --accent2:#d96a4a;    /* 朱=注意 */
+    --good:#4fb286;
+    --muted:#9fc0e0;
+    --hair:rgba(150,195,240,.28);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Zen Kaku Gothic New",sans-serif;
+    background:
+      linear-gradient(var(--grid) 1px,transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/28px 28px,
+      radial-gradient(circle at 30% 0%,rgba(28,78,128,.35) 0,transparent 60%),
+      linear-gradient(160deg,var(--paper) 0%,var(--paper2) 100%);
+    background-attachment:fixed;
+    color:var(--cream);
+    line-height:1.85;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px}
+  .mono{font-family:"Roboto Mono",monospace}
+
+  /* ---- 罫線フレーム ---- */
+  .sheet{
+    border:1px solid var(--hair);
+    margin:38px auto;
+    position:relative;
+    background:linear-gradient(180deg,rgba(13,40,66,.4),rgba(9,30,52,.55));
+    backdrop-filter:blur(2px);
+  }
+  .sheet::before,.sheet::after{
+    content:"";position:absolute;width:10px;height:10px;
+    border:1px solid var(--accent);opacity:.6;
+  }
+  .sheet::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+  .sheet::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+
+  /* ---- HERO ---- */
+  header{padding:54px 0 30px;border-bottom:1px solid var(--hair);position:relative}
+  .stamp{
+    position:absolute;top:34px;right:0;
+    border:2px solid var(--accent2);color:var(--accent2);
+    font-family:"Roboto Condensed",sans-serif;letter-spacing:2px;
+    padding:5px 12px;font-size:12px;transform:rotate(-7deg);
+    border-radius:3px;opacity:.85
+  }
+  .eyebrow{
+    font-family:"Roboto Mono",monospace;font-size:12px;letter-spacing:5px;
+    color:var(--accent);text-transform:uppercase;margin-bottom:16px
+  }
+  h1{
+    font-weight:900;font-size:clamp(30px,6.4vw,58px);line-height:1.12;
+    letter-spacing:-.5px;color:#fff;margin-bottom:6px
+  }
+  h1 .sub{display:block;font-size:clamp(14px,2.6vw,19px);font-weight:500;color:var(--muted);letter-spacing:2px;margin-top:14px}
+  .id-row{
+    display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:26px;
+    font-family:"Roboto Mono",monospace;font-size:12.5px;color:var(--muted)
+  }
+  .id-row span b{color:var(--cream);font-weight:700}
+
+  /* ---- セクション見出し ---- */
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin:0 0 26px}
+  .sec-no{font-family:"Roboto Mono",monospace;color:var(--accent);font-size:13px;letter-spacing:2px;border:1px solid var(--accent);padding:2px 8px;border-radius:2px}
+  .sec-head h2{font-size:clamp(20px,3.8vw,28px);font-weight:900;color:#fff;letter-spacing:.5px}
+  section{padding:46px 0}
+  section + section{border-top:1px dashed var(--hair)}
+
+  /* ---- リード文 ---- */
+  .lead{font-size:16.5px;color:#dce8f6;max-width:760px}
+  .lead .hl{color:var(--accent);font-weight:700}
+  .lead .hl2{color:#fff;font-weight:700;border-bottom:1px solid var(--accent2)}
+
+  /* ---- スペックグリッド（4軸） ---- */
+  .specs{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:8px}
+  .spec{border:1px solid var(--hair);padding:16px 14px;position:relative;background:rgba(20,55,90,.3)}
+  .spec .k{font-family:"Roboto Mono",monospace;font-size:11px;letter-spacing:1px;color:var(--muted);margin-bottom:10px}
+  .spec .v{font-weight:900;font-size:34px;color:var(--accent);line-height:1}
+  .spec .v small{font-size:14px;color:var(--muted);font-weight:500}
+  .spec .lbl{font-size:13px;color:var(--cream);margin-top:6px;font-weight:700}
+  .spec .bar{height:5px;background:rgba(150,195,240,.18);margin-top:12px;border-radius:3px;overflow:hidden}
+  .spec .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px}
+  .spec .opp{font-size:10.5px;color:var(--muted);margin-top:7px;font-family:"Roboto Mono",monospace}
+
+  /* ---- チャート枠 ---- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .card{border:1px solid var(--hair);padding:22px;background:rgba(11,34,56,.45)}
+  .card h3{font-size:15px;color:#fff;margin-bottom:4px;letter-spacing:.5px}
+  .card p.note{font-size:12.5px;color:var(--muted);margin-bottom:14px;font-family:"Roboto Mono",monospace}
+  .chart-box{position:relative;width:100%;height:320px}
+  .chart-box.tall{height:360px}
+
+  /* ---- ランキング行 ---- */
+  .ranks{margin-top:6px}
+  .rank{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--hair)}
+  .rank .n{font-family:"Roboto Mono",monospace;color:var(--accent);font-size:13px}
+  .rank .track{height:9px;background:rgba(150,195,240,.16);border-radius:5px;overflow:hidden;position:relative}
+  .rank .track i{display:block;height:100%;border-radius:5px}
+  .rank .name{font-size:13.5px;color:var(--cream);margin-bottom:6px;font-weight:500}
+  .rank .sc{font-family:"Roboto Mono",monospace;font-weight:700;font-size:15px;width:34px;text-align:right}
+  .hi i{background:linear-gradient(90deg,#4fb286,#7fd0a8)}
+  .hi .sc{color:#7fd0a8}
+  .lo i{background:linear-gradient(90deg,#d96a4a,#e89a6a)}
+  .lo .sc{color:#e89a6a}
+
+  /* ---- 適性テーブル ---- */
+  .fit{display:grid;gap:16px}
+  .fit-card{border:1px solid var(--hair);border-left:3px solid var(--accent);padding:20px 22px;background:rgba(20,55,90,.28)}
+  .fit-card.warn{border-left-color:var(--accent2)}
+  .fit-card.good{border-left-color:var(--good)}
+  .fit-card h4{font-size:16px;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+  .fit-card h4 .tag{font-family:"Roboto Mono",monospace;font-size:10px;letter-spacing:1px;padding:3px 8px;border-radius:3px;color:var(--ink);font-weight:700}
+  .tag.t-good{background:var(--good)}
+  .tag.t-mid{background:var(--accent)}
+  .tag.t-warn{background:var(--accent2)}
+  .fit-card p{font-size:14.5px;color:#dce8f6}
+  .fit-card .map{font-size:12.5px;color:var(--muted);margin-top:10px;font-family:"Roboto Mono",monospace;border-top:1px dashed var(--hair);padding-top:10px}
+
+  /* ---- スイートスポット帯 ---- */
+  .scale{position:relative;height:64px;margin:24px 0 8px;border:1px solid var(--hair);background:
+    linear-gradient(90deg,
+      rgba(217,106,74,.22) 0%,
+      rgba(232,176,75,.22) 33%,
+      rgba(79,178,134,.30) 50%,
+      rgba(232,176,75,.22) 67%,
+      rgba(217,106,74,.22) 100%)}
+  .scale .zone{position:absolute;top:0;bottom:0;width:30%;left:35%;border-left:1px dashed var(--good);border-right:1px dashed var(--good)}
+  .scale .you{position:absolute;top:50%;left:43%;transform:translate(-50%,-50%);text-align:center}
+  .scale .you .dot{width:14px;height:14px;background:var(--accent);border-radius:50%;margin:0 auto 4px;box-shadow:0 0 0 4px rgba(232,176,75,.25)}
+  .scale .you span{font-family:"Roboto Mono",monospace;font-size:11px;color:var(--accent);white-space:nowrap}
+  .scale-ends{display:flex;justify-content:space-between;font-family:"Roboto Mono",monospace;font-size:11px;color:var(--muted)}
+
+  /* ---- 結論 ---- */
+  .verdict{border:1px solid var(--accent);padding:30px 28px;background:rgba(232,176,75,.07);position:relative}
+  .verdict .q{font-family:"Roboto Mono",monospace;color:var(--accent);font-size:12px;letter-spacing:2px;margin-bottom:14px}
+  .verdict p{font-size:16px;color:#fff;margin-bottom:14px}
+  .verdict p:last-child{margin-bottom:0}
+  .verdict b{color:var(--accent)}
+
+  footer{padding:34px 0 50px;text-align:center;color:var(--muted);font-family:"Roboto Mono",monospace;font-size:11.5px;letter-spacing:1px}
+
+  @media(max-width:780px){
+    .specs{grid-template-columns:repeat(2,1fr)}
+    .grid2{grid-template-columns:1fr}
+    .stamp{top:auto;bottom:-12px;right:10px}
+  }
+  @media(max-width:430px){
+    .id-row{gap:8px 16px}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="sheet">
+  <header style="padding-left:24px;padding-right:24px">
+    <div class="stamp">CONFIDENTIAL</div>
+    <div class="eyebrow">PERSONALITY PROFILE / FIG.00</div>
+    <h1>心身ともに没頭する<br>研究者
+      <span class="sub">— Integrator-type Implementer / 統合し、実装する専門家</span>
+    </h1>
+    <div class="id-row mono">
+      <span>診断日 <b>2026.06.23</b></span>
+      <span>主タイプ <b>Researcher</b></span>
+      <span>志向 <b>専門性 × 貢献</b></span>
+      <span>軸 <b>3年 施工管理 → 12年 行政</b></span>
+    </div>
+  </header>
+  </div>
+
+  <!-- 01 概要 -->
+  <div class="sheet"><section style="padding-left:24px;padding-right:24px">
+    <div class="sec-head"><span class="sec-no">01</span><h2>人物像サマリー</h2></div>
+    <p class="lead">
+      全項目が <span class="hl">40〜57</span> に収まる「突出より総合バランス」型。
+      その中で輪郭をつくるのは <span class="hl2">統合して動かす志向（インテグレーター85%）</span>、
+      <span class="hl2">現実主義（63%）</span>、<span class="hl2">自分で手を動かすプレイヤー性（60%）</span>。
+      競争より協調、目立つより貢献。特定分野を深掘りし、専門家として頼られることに最も強くやりがいを感じる
+      ——「段取りして、決めて、自分で形にし、速く仕上げる」実装者のプロファイルです。
+    </p>
+
+    <div class="specs" style="margin-top:30px">
+      <div class="spec">
+        <div class="k">WORK STYLE A</div>
+        <div class="v">85<small>%</small></div>
+        <div class="lbl">インテグレーター</div>
+        <div class="bar"><i style="width:85%"></i></div>
+        <div class="opp">vs セグメンター 15%</div>
+      </div>
+      <div class="spec">
+        <div class="k">WORK STYLE B</div>
+        <div class="v">63<small>%</small></div>
+        <div class="lbl">現実主義</div>
+        <div class="bar"><i style="width:63%"></i></div>
+        <div class="opp">vs 理想主義 37%</div>
+      </div>
+      <div class="spec">
+        <div class="k">WORK STYLE C</div>
+        <div class="v">59<small>%</small></div>
+        <div class="lbl">柔軟性がある</div>
+        <div class="bar"><i style="width:59%"></i></div>
+        <div class="opp">vs こだわり 41%</div>
+      </div>
+      <div class="spec">
+        <div class="k">WORK STYLE D</div>
+        <div class="v">60<small>%</small></div>
+        <div class="lbl">プレイヤー</div>
+        <div class="bar"><i style="width:60%"></i></div>
+        <div class="opp">vs マネジメント 40%</div>
+      </div>
+    </div>
+  </section></div>
+
+  <!-- 02 行動特性レーダー -->
+  <div class="sheet"><section style="padding-left:24px;padding-right:24px">
+    <div class="sec-head"><span class="sec-no">02</span><h2>行動特性マップ</h2></div>
+    <div class="grid2">
+      <div class="card">
+        <h3>3カテゴリ総合</h3>
+        <p class="note">SUMMARY / 0–100</p>
+        <div class="chart-box"><canvas id="radarSummary"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>15項目フルプロファイル</h3>
+        <p class="note">DETAIL / 課題解決・対人・スタンス</p>
+        <div class="chart-box tall"><canvas id="radarDetail"></canvas></div>
+      </div>
+    </div>
+  </section></div>
+
+  <!-- 03 強み弱み -->
+  <div class="sheet"><section style="padding-left:24px;padding-right:24px">
+    <div class="sec-head"><span class="sec-no">03</span><h2>相対的な強み / 弱み</h2></div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="color:#7fd0a8">▲ 相対的に高い</h3>
+        <p class="note">RELATIVE STRENGTHS</p>
+        <div class="ranks" id="ranksHi"></div>
+      </div>
+      <div class="card">
+        <h3 style="color:#e89a6a">▼ 相対的に低い</h3>
+        <p class="note">AREAS TO WATCH</p>
+        <div class="ranks" id="ranksLo"></div>
+      </div>
+    </div>
+  </section></div>
+
+  <!-- 04 やりがい・環境 -->
+  <div class="sheet"><section style="padding-left:24px;padding-right:24px">
+    <div class="sec-head"><span class="sec-no">04</span><h2>価値観の構成</h2></div>
+    <p class="lead" style="margin-bottom:24px">
+      仕事選びの軸は <span class="hl">働きやすさ73% ＞ やりがい27%</span>。
+      「やりがい」の中身は専門性・独自性が突出。「環境」では一緒に働く人の質（人的魅力）が過半を占めます。
+    </p>
+    <div class="grid2">
+      <div class="card">
+        <h3>仕事内容で重視する軸</h3>
+        <p class="note">WHAT / 専門性・独自性が最大</p>
+        <div class="chart-box"><canvas id="doughWork"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>職場環境で重視する軸</h3>
+        <p class="note">WHERE / 人的魅力が過半</p>
+        <div class="chart-box"><canvas id="doughEnv"></canvas></div>
+      </div>
+    </div>
+  </section></div>
+
+  <!-- 05 適性 -->
+  <div class="sheet"><section style="padding-left:24px;padding-right:24px">
+    <div class="sec-head"><span class="sec-no">05</span><h2>公共コンサル適性の読み解き</h2></div>
+    <div class="fit">
+      <div class="fit-card good">
+        <h4>実装・実行文化との強い一致 <span class="tag t-good">FIT</span></h4>
+        <p>インテグレーター85%・現実主義63%・プレイヤー60%は、戦略を描いて去る系より「手を動かす総合系」に噛み合う。実装重視カルチャーのファームとは相性が良い。</p>
+        <div class="map">MAP: 統合志向 × 現実主義 × 速い遂行 → 実装ドリブンの案件</div>
+      </div>
+      <div class="fit-card good">
+        <h4>専門家ポジションでのやりがい <span class="tag t-good">FIT</span></h4>
+        <p>「特定分野を深掘りし、専門家として頼られたい」志向は、行政DXの実装専門家というキャリアと直結。学習・成長への投資意欲も高く、専門性を資産化しやすい。</p>
+        <div class="map">MAP: 専門性・独自性30% + 学習成長18% → 領域特化が武器</div>
+      </div>
+      <div class="fit-card warn">
+        <h4>昇進に伴う「得意→苦手」シフト <span class="tag t-warn">WATCH</span></h4>
+        <p>マネージャー以上に進むほど、手を動かす量が減り、最低スコア帯の<b>交渉・合意形成（47）</b>と<b>人脈・関係構築（48）</b>が主業務になる。昇進が得意ゾーンから苦手ゾーンへの移動になりうる構造。</p>
+        <div class="map">RISK: プレイヤー60% ↔ 純マネジメント職の要求がズレる</div>
+      </div>
+      <div class="fit-card warn">
+        <h4>方針転換の多い環境への耐性 <span class="tag t-warn">WATCH</span></h4>
+        <p>「計画的にコツコツ」を好むため、ピボットの激しいプロジェクトはストレス源。柔軟性59%があるので適応は可能だが、安定した工程の案件のほうが力を発揮しやすい。</p>
+        <div class="map">NOTE: 公共案件は工程が比較的安定 → 相性は悪くない</div>
+      </div>
+    </div>
+  </section></div>
+
+  <!-- 06 スイートスポット -->
+  <div class="sheet"><section style="padding-left:24px;padding-right:24px">
+    <div class="sec-head"><span class="sec-no">06</span><h2>適性のスイートスポット</h2></div>
+    <p class="lead">純粋プレイヤーと純粋マネジメントの間、<span class="hl">専門性を持って手も動かすプレイングスペシャリスト帯</span>が最も力の出るゾーン。</p>
+    <div class="scale">
+      <div class="zone"></div>
+      <div class="you"><div class="dot"></div><span>YOU ≈ ここ</span></div>
+    </div>
+    <div class="scale-ends">
+      <span>◀ 純プレイヤー（実装のみ）</span>
+      <span>純マネジメント（合意形成主） ▶</span>
+    </div>
+    <p class="lead" style="margin-top:22px;font-size:14.5px;color:var(--muted)">
+      左に寄りすぎると専門性は活きるが視座が上がりにくい。右に振り切ると最低スコア帯（合意形成・人脈構築）が前面化。
+      中央の <span class="hl">設計・方向づけ＋実装力</span> を打ち出すポジションが、診断とも実態とも整合する。
+    </p>
+  </section></div>
+
+  <!-- 07 結論 -->
+  <div class="sheet"><section style="padding-left:24px;padding-right:24px">
+    <div class="sec-head"><span class="sec-no">07</span><h2>結論</h2></div>
+    <div class="verdict">
+      <div class="q mono">// FINAL ASSESSMENT</div>
+      <p>致命的な不適性はない。むしろ<b>実装・現実主義・統合志向</b>は、手を動かす総合系コンサルの文化と強く噛み合う。</p>
+      <p>最大の武器は「行政12年 × 自走できる実装力 × 速い遂行」。打ち出すべき像は<b>“実装・設計に強みを持つ公共DXの専門人材”</b>——これが診断結果とも経歴とも一直線で繋がる。</p>
+      <p>留意点は一つ。純マネジメント職に振り切るほど苦手項目（合意形成・人脈構築）が前面に出る。アサイン希望や面接では<b>専門領域での価値提供</b>を主語に据えるのが最も説得力を持つ。</p>
+    </div>
+  </section></div>
+
+  <footer class="mono">
+    PERSONALITY PROFILE · DRAWN FROM BIZREACH 診断 2026.06.23 · SHEET 1 OF 1<br>
+    ※ 本図はスコアの相対関係を可視化したもの。絶対評価ではなく傾向の地図として参照のこと。
+  </footer>
+
+</div>
+
+<script>
+const ink="#eef4fb", grid="rgba(120,170,225,.18)", muted="#9fc0e0";
+Chart.defaults.color=muted;
+Chart.defaults.font.family="'Roboto Mono','Zen Kaku Gothic New',sans-serif";
+
+/* 02-A サマリーレーダー */
+new Chart(document.getElementById('radarSummary'),{
+  type:'radar',
+  data:{labels:['課題解決力','コミュニケーション力','スタンス'],
+    datasets:[{data:[52,50,53],fill:true,
+      backgroundColor:'rgba(232,176,75,.18)',borderColor:'#e8b04b',
+      pointBackgroundColor:'#e8b04b',borderWidth:2,pointRadius:4}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{r:{min:0,max:100,ticks:{stepSize:25,backdropColor:'transparent',color:muted,font:{size:10}},
+      grid:{color:grid},angleLines:{color:grid},
+      pointLabels:{color:ink,font:{size:13,family:"'Zen Kaku Gothic New'"}}}}}
+});
+
+/* 02-B 詳細レーダー 15項目 */
+new Chart(document.getElementById('radarDetail'),{
+  type:'radar',
+  data:{labels:['情報収集','情報分析','発想・想像','設計・計画','実行・執行',
+                '自己主張','傾聴','対人適応','交渉・合意','人脈構築',
+                '決断','責任感','柔軟','正確','迅速'],
+    datasets:[{data:[54,52,48,53,54, 51,53,50,47,48, 55,51,51,49,57],fill:true,
+      backgroundColor:'rgba(47,109,176,.22)',borderColor:'#4fb286',
+      pointBackgroundColor:'#4fb286',borderWidth:2,pointRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>' '+c.formattedValue}}},
+    scales:{r:{min:0,max:70,ticks:{stepSize:35,backdropColor:'transparent',color:muted,font:{size:9}},
+      grid:{color:grid},angleLines:{color:grid},
+      pointLabels:{color:ink,font:{size:10.5,family:"'Zen Kaku Gothic New'"}}}}}
+});
+
+/* 03 ランキング */
+const hi=[['迅速性',57],['決断力',55],['情報収集力',54],['実行・執行力',54],['設計・計画力',53],['傾聴力',53]];
+const lo=[['交渉・合意形成力',47],['人脈・関係構築力',48],['発想・想像力',48],['正確性',49],['対人適応力',50],['コミュニケーション総合',50]];
+function fill(el,arr,cls){
+  document.getElementById(el).innerHTML=arr.map((r,i)=>`
+   <div class="rank ${cls}">
+     <div class="n">${String(i+1).padStart(2,'0')}</div>
+     <div><div class="name">${r[0]}</div>
+       <div class="track"><i style="width:${r[1]}%"></i></div></div>
+     <div class="sc">${r[1]}</div>
+   </div>`).join('');
+}
+fill('ranksHi',hi,'hi');
+fill('ranksLo',lo,'lo');
+
+/* 04 ドーナツ共通 */
+const doughOpts=(t)=>({responsive:true,maintainAspectRatio:false,cutout:'58%',
+  plugins:{legend:{position:'bottom',labels:{boxWidth:11,padding:9,font:{size:11},color:ink}},
+    tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed}%`}}}});
+
+new Chart(document.getElementById('doughWork'),{
+  type:'doughnut',
+  data:{labels:['専門性・独自性 30%','学習・成長 18%','納得感 15%','顧客満足/裁量 等','支援・貢献 10%','保守・安定 10%'],
+    datasets:[{data:[30,18,15,17,10,10],
+      backgroundColor:['#1c4e80','#3a6ea5','#0d2438','#7d6a3a','#2f8f6f','#0e7a6a'],
+      borderColor:'#0b2238',borderWidth:2}]},
+  options:doughOpts()
+});
+
+new Chart(document.getElementById('doughEnv'),{
+  type:'doughnut',
+  data:{labels:['人的魅力 56%','雰囲気・居心地 25%','報酬・労働環境 11%','経営理念・方針 8%'],
+    datasets:[{data:[56,25,11,8],
+      backgroundColor:['#0e7a6a','#0d2438','#c0492f','#d9a441'],
+      borderColor:'#0b2238',borderWidth:2}]},
+  options:doughOpts()
+});
+</script>
+</body>
+</html>
