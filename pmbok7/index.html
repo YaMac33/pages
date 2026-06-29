@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMBOK 第7版｜12の原理・原則</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Serif+Display&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy:    #0f1e36;
+    --navy-2:  #1a2f4e;
+    --navy-3:  #243d63;
+    --amber:   #d97706;
+    --amber-l: #fbbf24;
+    --cream:   #faf7f2;
+    --slate:   #6b7b93;
+    --text:    #1c2b3a;
+    --text-s:  #4a5a6a;
+    --border:  #dde3ec;
+    --card-bg: #ffffff;
+    --radius:  12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    line-height: 1.75;
+    font-size: 15px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: var(--navy);
+    color: #fff;
+    padding: 72px 24px 56px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 60% 0%, rgba(217,119,6,.25) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--amber-l);
+    border: 1px solid rgba(251,191,36,.35);
+    border-radius: 999px;
+    padding: 4px 16px;
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -.01em;
+    margin-bottom: 16px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--amber-l);
+  }
+  .hero p {
+    color: rgba(255,255,255,.65);
+    font-size: 14px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .shift-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 32px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: rgba(255,255,255,.75);
+  }
+  .shift-badge span.arrow { color: var(--amber-l); font-weight: 700; }
+
+  /* ── Main ── */
+  .container { max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+  /* ── Section title ── */
+  .section-head {
+    padding: 56px 0 28px;
+  }
+  .section-head h2 {
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+  .section-head p {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.4;
+  }
+
+  /* ── Principle Cards ── */
+  .principles-grid {
+    display: grid;
+    gap: 16px;
+    padding-bottom: 16px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .card:hover {
+    box-shadow: 0 4px 24px rgba(15,30,54,.10);
+    border-color: rgba(217,119,6,.3);
+  }
+
+  .card-header {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .card-num {
+    background: var(--navy);
+    color: var(--amber-l);
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    flex-shrink: 0;
+    letter-spacing: -.02em;
+  }
+
+  .card-title-block {
+    padding: 18px 20px 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .card-keyword {
+    font-size: 10.5px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 4px;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.45;
+  }
+  .card-chevron {
+    margin-left: auto;
+    color: var(--slate);
+    font-size: 18px;
+    transition: transform .25s;
+    padding-left: 12px;
+    align-self: center;
+    flex-shrink: 0;
+  }
+  .card-header.open .card-chevron { transform: rotate(180deg); }
+
+  .card-body {
+    display: none;
+    padding: 0 20px 22px 76px;
+    border-top: 1px solid var(--border);
+  }
+  .card-body.open { display: block; }
+
+  .card-desc {
+    padding-top: 18px;
+    font-size: 14px;
+    color: var(--text-s);
+    line-height: 1.8;
+  }
+
+  .card-example {
+    margin-top: 14px;
+    background: #f0f5ff;
+    border-left: 3px solid var(--navy-3);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--navy-2);
+  }
+  .card-example::before {
+    content: '📌 例：';
+    font-weight: 700;
+    font-size: 12px;
+    display: block;
+    margin-bottom: 4px;
+    color: var(--navy);
+    letter-spacing: .04em;
+  }
+
+  /* ── Comparison Table ── */
+  .compare-section { padding: 48px 0 64px; }
+
+  .compare-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    box-shadow: 0 2px 12px rgba(15,30,54,.06);
+  }
+  .compare-table thead tr {
+    background: var(--navy);
+    color: #fff;
+  }
+  .compare-table th {
+    padding: 14px 20px;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: .04em;
+    text-align: left;
+  }
+  .compare-table th:first-child { width: 50%; }
+  .compare-table th.old { color: rgba(255,255,255,.55); }
+  .compare-table th.new { color: var(--amber-l); }
+
+  .compare-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  .compare-table tbody tr:last-child { border-bottom: none; }
+  .compare-table tbody tr:hover { background: #f6f9ff; }
+
+  .compare-table td {
+    padding: 13px 20px;
+    vertical-align: middle;
+    color: var(--text-s);
+  }
+  .compare-table td:first-child {
+    border-right: 1px solid var(--border);
+    color: var(--text-s);
+  }
+  .compare-table td.highlight {
+    color: var(--navy-2);
+    font-weight: 500;
+  }
+  .compare-table tbody tr:nth-child(odd) { background: #fafbfd; }
+  .compare-table tbody tr:nth-child(odd):hover { background: #f3f6ff; }
+
+  /* ── Footer ── */
+  .footer {
+    background: var(--navy);
+    color: rgba(255,255,255,.4);
+    text-align: center;
+    padding: 28px 20px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .08em;
+  }
+  .footer strong { color: var(--amber-l); font-weight: 400; }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .card-body { padding-left: 20px; }
+    .compare-table th, .compare-table td { padding: 10px 12px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-tag">PMBOK Guide 7th Edition</div>
+  <h1>12の<em>原理・原則</em></h1>
+  <p>プロセス遵守から価値・成果へ。第7版が示すプロジェクトマネジメントの思考様式。</p>
+  <div class="shift-badge">
+    第6版：プロセス群 <span class="arrow">→</span> 第7版：原則ベース
+  </div>
+</div>
+
+<!-- Principles -->
+<div class="container">
+  <div class="section-head">
+    <h2>12 Principles</h2>
+    <p>各原則をクリックして詳細を確認</p>
+  </div>
+
+  <div class="principles-grid">
+
+    <!-- 1 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">1</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Stewardship</div>
+          <div class="card-title">勤勉で、敬意を払い、面倒見の良いスチュワードであること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          スチュワードシップ（管理責任）とは、自分の利益より組織・社会・チームへの責任を優先する姿勢のこと。PMは「プロジェクトの所有者」ではなく「預かり人」として、リソースを誠実に扱う。
+        </div>
+        <div class="card-example">予算が余っても無駄遣いせず、次のプロジェクトに還元する</div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">2</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Team</div>
+          <div class="card-title">協働的なプロジェクト・チーム環境を構築すること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          心理的安全性があり、メンバーが意見を言いやすい環境を作る。指示命令型でなく、各人の強みを活かす設計。チームビルディングは「管理」ではなく「環境づくり」。
+        </div>
+        <div class="card-example">定期的な振り返り（レトロ）でチームの課題を共有する場を作る</div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">3</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Stakeholders</div>
+          <div class="card-title">ステークホルダーと効果的に関わること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          関係者を「管理する」のではなく「巻き込む」。誰が影響を受け、誰の協力が必要かを常に意識する。エンゲージメントが深いほど、プロジェクトの成功確率が上がる。
+        </div>
+        <div class="card-example">議会・市民・部署横断の調整を丁寧に行う（行政DXの現場そのもの）</div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">4</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Value</div>
+          <div class="card-title">価値に焦点を当てること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          成果物の完成ではなく、それで何が変わるかに注目する。途中で価値がなくなったなら計画を見直す勇気も必要。ビジネス価値の継続的評価がポイント。
+        </div>
+        <div class="card-example">システムを作ることが目的ではなく、業務時間が削減されることが目的</div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">5</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Systems Thinking</div>
+          <div class="card-title">システムの相互作用を認識し、評価し、対応すること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          プロジェクトは孤立して存在しない。組織・外部環境・他システムとの連鎖反応を読む。システム思考で全体像を捉えることで、見えないリスクを先取りできる。
+        </div>
+        <div class="card-example">kintone導入がGaroonや既存業務フローにどう波及するかを事前に検討する</div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">6</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Leadership</div>
+          <div class="card-title">リーダーシップを示すこと</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          PMだけがリーダーではない。状況に応じてチームの誰もがリーダーシップを発揮できる文化を作る。役職ではなく行動と影響力がリーダーシップの本質。
+        </div>
+        <div class="card-example">技術に詳しいメンバーが技術判断でリードする場面を意図的に設ける</div>
+      </div>
+    </div>
+
+    <!-- 7 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">7</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Tailoring</div>
+          <div class="card-title">状況に基づいてテーラリングすること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          PMBOK自体が「方法論を状況に合わせて調整せよ」と言っている。ウォーターフォール・アジャイル・ハイブリッドを文脈で選ぶ。正解は一つではない。
+        </div>
+        <div class="card-example">要件が固まっているシステム移行はウォーターフォール、新規DX施策はアジャイルで走る</div>
+      </div>
+    </div>
+
+    <!-- 8 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">8</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Quality</div>
+          <div class="card-title">プロセスと成果物に品質を組み込むこと</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          後から検査で品質を確保するのではなく、プロセスの中に品質を埋め込む。手戻りを減らす設計こそが品質マネジメントの本質。「後で直す」より「最初から作り込む」。
+        </div>
+        <div class="card-example">ドキュメントのレビュー工程を最初から計画に組み込んでおく</div>
+      </div>
+    </div>
+
+    <!-- 9 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">9</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Complexity</div>
+          <div class="card-title">複雑さに対処すること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          現代のプロジェクトは単純ではない。技術・人・政治・不確実性が絡み合う「複雑系」として捉え、柔軟に動く。複雑さを消そうとするのではなく、その中を泳ぐ能力が求められる。
+        </div>
+        <div class="card-example">行政内の調整は技術だけでなく、組織政治・予算サイクル・人事異動も変数になる</div>
+      </div>
+    </div>
+
+    <!-- 10 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">10</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Risk</div>
+          <div class="card-title">リスク対応を最適化すること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          リスクをゼロにするのではなく、脅威を最小化し、機会を最大化するバランスを取る。過剰対応もリスク。リスクには「ネガティブ（脅威）」と「ポジティブ（機会）」の両面がある。
+        </div>
+        <div class="card-example">「失敗したら批判される」を恐れすぎてDX推進で何もしないこと自体がリスク</div>
+      </div>
+    </div>
+
+    <!-- 11 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">11</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Agility & Resilience</div>
+          <div class="card-title">適応力と回復力を持つこと</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          計画通りにいかないのが前提。変化に素早く対応できる柔軟性（アジリティ）と、失敗から立て直す回復力（レジリエンス）の両方が必要。変化を恐れず、失敗を学びに変える。
+        </div>
+        <div class="card-example">転職活動の「待ち期間」を学習に充てる——変化の中でも前に進む動き方がまさにこれ</div>
+      </div>
+    </div>
+
+    <!-- 12 -->
+    <div class="card">
+      <div class="card-header" onclick="toggle(this)">
+        <div class="card-num">12</div>
+        <div class="card-title-block">
+          <div class="card-keyword">Change</div>
+          <div class="card-title">想定した将来の状態を達成するために変革できるようにすること</div>
+        </div>
+        <div class="card-chevron">▾</div>
+      </div>
+      <div class="card-body">
+        <div class="card-desc">
+          プロジェクトの目的は「成果物を作る」ことではなく「組織・社会を変える」こと。チェンジマネジメントとして、変革が定着するまでを射程に入れる。導入で終わりではなく、定着が本当のゴール。
+        </div>
+        <div class="card-example">kintoneを導入しても使われなければ意味がない。運用定着まで支援する</div>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+
+  <hr class="divider" style="margin: 48px 0 0;">
+
+  <!-- Compare -->
+  <div class="compare-section">
+    <div class="section-head" style="padding-top: 0;">
+      <h2>Edition Shift</h2>
+      <p>第6版 vs 第7版の発想の転換</p>
+    </div>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th class="old">旧版（第6版）の発想</th>
+          <th class="new">新版（第7版）の発想</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>プロセスを守る</td>
+          <td class="highlight">価値・成果にフォーカス</td>
+        </tr>
+        <tr>
+          <td>PMが管理する</td>
+          <td class="highlight">チーム全体がリード</td>
+        </tr>
+        <tr>
+          <td>計画通りに進める</td>
+          <td class="highlight">変化に適応する</td>
+        </tr>
+        <tr>
+          <td>ツール・技法が中心</td>
+          <td class="highlight">原則・思考様式が中心</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  PMBOK® Guide — Seventh Edition &nbsp;|&nbsp; <strong>Project Management Institute</strong>
+</div>
+
+<script>
+  function toggle(header) {
+    const body = header.nextElementSibling;
+    const isOpen = body.classList.contains('open');
+    // Close all
+    document.querySelectorAll('.card-body.open').forEach(b => b.classList.remove('open'));
+    document.querySelectorAll('.card-header.open').forEach(h => h.classList.remove('open'));
+    // Open clicked if it was closed
+    if (!isOpen) {
+      body.classList.add('open');
+      header.classList.add('open');
+    }
+  }
+</script>
+</body>
+</html>
