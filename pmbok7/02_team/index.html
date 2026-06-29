@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原則2：協働的チーム環境｜PMBOK 第7版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Serif+Display&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --navy:    #0f1e36;
+    --navy-2:  #1a2f4e;
+    --navy-3:  #243d63;
+    --amber:   #d97706;
+    --amber-l: #fbbf24;
+    --cream:   #faf7f2;
+    --slate:   #6b7b93;
+    --text:    #1c2b3a;
+    --text-s:  #4a5a6a;
+    --border:  #dde3ec;
+    --teal:    #0d9488;
+    --teal-l:  #ccfbf1;
+    --teal-2:  #0f766e;
+    --red:     #dc2626;
+    --red-l:   #fee2e2;
+    --radius:  12px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    line-height: 1.8;
+    font-size: 15px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: var(--navy);
+    color: #fff;
+    padding: 60px 24px 52px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 100%, rgba(13,148,136,.2) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 0%, rgba(217,119,6,.15) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hero-inner { max-width: 800px; margin: 0 auto; position: relative; }
+  .breadcrumb {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: rgba(255,255,255,.4);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+  .breadcrumb span { color: var(--amber-l); }
+  .hero-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 80px;
+    line-height: 1;
+    color: rgba(255,255,255,.06);
+    position: absolute;
+    right: 0;
+    top: -12px;
+    letter-spacing: -.04em;
+    user-select: none;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(24px, 5vw, 42px);
+    font-weight: 400;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .hero h1 em { font-style: normal; color: var(--amber-l); }
+  .hero-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: .1em;
+    color: rgba(255,255,255,.5);
+    margin-bottom: 22px;
+  }
+  .hero-def {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    border-left: 3px solid var(--teal);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    font-size: 13.5px;
+    color: rgba(255,255,255,.8);
+    max-width: 640px;
+    line-height: 1.75;
+  }
+  .hero-def strong { color: #5eead4; }
+
+  /* ── Layout ── */
+  .container { max-width: 800px; margin: 0 auto; padding: 0 20px; }
+  .section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  .section:last-of-type { border-bottom: none; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .lead {
+    font-size: 14px;
+    color: var(--text-s);
+    line-height: 1.85;
+    margin-bottom: 20px;
+  }
+
+  /* ── Contrast block（指示命令型 vs 協働型）── */
+  .contrast-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 12px rgba(15,30,54,.07);
+  }
+  @media (max-width: 560px) { .contrast-grid { grid-template-columns: 1fr; } }
+
+  .contrast-col { padding: 22px 20px; }
+  .contrast-col.bad  { background: #fafafa; border-right: 1px solid var(--border); }
+  .contrast-col.good { background: #f0fdf9; }
+  .contrast-col-head {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid;
+  }
+  .contrast-col.bad  .contrast-col-head { color: #9ca3af; border-color: #e5e7eb; }
+  .contrast-col.good .contrast-col-head { color: var(--teal-2); border-color: var(--teal); }
+  .contrast-col-head::before { margin-right: 6px; }
+  .contrast-col.bad  .contrast-col-head::before { content: '✗'; }
+  .contrast-col.good .contrast-col-head::before { content: '✓'; }
+
+  .contrast-list { list-style: none; padding: 0; }
+  .contrast-list li {
+    font-size: 13.5px;
+    padding: 7px 0 7px 18px;
+    border-bottom: 1px solid;
+    line-height: 1.55;
+    position: relative;
+  }
+  .contrast-list li:last-child { border-bottom: none; }
+  .contrast-col.bad  .contrast-list li { color: #6b7280; border-color: #f0f0f0; }
+  .contrast-col.good .contrast-list li { color: var(--navy-2); border-color: #d1fae5; font-weight: 500; }
+  .contrast-col.bad  .contrast-list li::before { content: '–'; position:absolute; left:0; color:#d1d5db; }
+  .contrast-col.good .contrast-list li::before { content: '▸'; position:absolute; left:0; color:var(--teal); }
+
+  /* ── 心理的安全性 ── */
+  .ps-box {
+    background: var(--navy);
+    border-radius: var(--radius);
+    padding: 28px 26px;
+    color: #fff;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ps-box::after {
+    content: '"';
+    font-family: 'DM Serif Display', serif;
+    font-size: 160px;
+    color: rgba(255,255,255,.04);
+    position: absolute;
+    right: 16px;
+    bottom: -30px;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .ps-box-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .14em;
+    color: #5eead4;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .ps-box-quote {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(16px, 3vw, 22px);
+    line-height: 1.5;
+    color: rgba(255,255,255,.9);
+    margin-bottom: 14px;
+  }
+  .ps-box-author {
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .08em;
+  }
+
+  .ps-4-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 560px) { .ps-4-grid { grid-template-columns: 1fr; } }
+
+  .ps-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--teal);
+    border-radius: var(--radius);
+    padding: 18px 18px 16px;
+  }
+  .ps-card-icon { font-size: 20px; margin-bottom: 8px; }
+  .ps-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+  .ps-card-body { font-size: 13px; color: var(--text-s); line-height: 1.7; }
+
+  /* ── 強みを活かす設計 ── */
+  .strength-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .strength-step {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 0;
+    position: relative;
+  }
+  .strength-step:not(:last-child) .step-line::after {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 48px;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--teal), rgba(13,148,136,.15));
+  }
+  .step-num-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+  }
+  .step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--teal);
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .step-line {
+    position: absolute;
+    top: 44px;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    background: linear-gradient(to bottom, var(--teal), rgba(13,148,136,.1));
+  }
+  .step-content {
+    padding: 4px 0 28px 16px;
+  }
+  .step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 6px;
+    padding-top: 6px;
+  }
+  .step-body { font-size: 13.5px; color: var(--text-s); line-height: 1.75; }
+  .step-tip {
+    display: inline-block;
+    background: var(--teal-l);
+    color: var(--teal-2);
+    font-size: 12px;
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+
+  /* ── チームの発達段階 ── */
+  .tuckman-wrap {
+    display: flex;
+    gap: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  @media (max-width: 620px) { .tuckman-wrap { flex-direction: column; } }
+
+  .tuckman-stage {
+    flex: 1;
+    padding: 16px 14px;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .tuckman-stage:last-child { border-right: none; }
+  .tuckman-stage:nth-child(1) { background: #fef9f0; }
+  .tuckman-stage:nth-child(2) { background: #fff1f0; }
+  .tuckman-stage:nth-child(3) { background: #f0fdf9; }
+  .tuckman-stage:nth-child(4) { background: #eff6ff; }
+
+  .tuckman-en {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 4px;
+  }
+  .tuckman-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+  .tuckman-desc { font-size: 12px; color: var(--text-s); line-height: 1.6; }
+  .tuckman-pm {
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--teal-2);
+    font-weight: 500;
+    padding-top: 8px;
+    border-top: 1px dashed #c4ede8;
+    line-height: 1.5;
+  }
+  .tuckman-stage:nth-child(2) .tuckman-pm { color: #b45309; border-color: #fde68a; }
+  .tuckman-stage:nth-child(4) .tuckman-pm { color: #1d4ed8; border-color: #bfdbfe; }
+
+  /* ── 心理的安全性の4段階 ── */
+  .edm-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-size: 13.5px;
+    box-shadow: 0 2px 8px rgba(15,30,54,.05);
+  }
+  .edm-table thead tr { background: var(--navy); }
+  .edm-table th {
+    padding: 12px 16px;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: .04em;
+    text-align: left;
+    color: rgba(255,255,255,.7);
+  }
+  .edm-table th:first-child { color: var(--amber-l); }
+  .edm-table tbody tr { transition: background .12s; }
+  .edm-table tbody tr:hover { background: #f0fdf9; }
+  .edm-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.6;
+    color: var(--text-s);
+  }
+  .edm-table tbody tr:last-child td { border-bottom: none; }
+  .edm-table td:first-child {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--teal-2);
+    font-weight: 500;
+    white-space: nowrap;
+    border-right: 1px solid var(--border);
+  }
+  .edm-table td:nth-child(2) { font-weight: 500; color: var(--navy-2); border-right: 1px solid var(--border); }
+
+  /* ── レトロスペクティブ ── */
+  .retro-box {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .retro-header {
+    background: var(--navy-2);
+    padding: 13px 20px;
+    color: rgba(255,255,255,.8);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .retro-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 560px) { .retro-cols { grid-template-columns: 1fr; } }
+  .retro-col {
+    padding: 18px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .retro-col:last-child { border-right: none; }
+  .retro-col-head {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rc-kept  .retro-col-head { color: var(--teal-2); border-color: var(--teal); }
+  .rc-drop  .retro-col-head { color: #b45309;       border-color: #fbbf24; }
+  .rc-try   .retro-col-head { color: #1d4ed8;       border-color: #93c5fd; }
+  .retro-items { list-style: none; }
+  .retro-items li {
+    font-size: 12.5px;
+    color: var(--text-s);
+    padding: 5px 0;
+    border-bottom: 1px solid #f3f4f6;
+    line-height: 1.5;
+  }
+  .retro-items li:last-child { border-bottom: none; }
+
+  /* ── 行政DX当てはめ ── */
+  .gov-box {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .gov-box-header {
+    background: var(--navy-2);
+    padding: 13px 20px;
+    color: rgba(255,255,255,.85);
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .gov-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+  }
+  .gov-item:last-child { border-bottom: none; }
+  .gov-item:hover { background: #f8faff; }
+  .gov-item-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .gov-item-text { font-size: 14px; color: var(--text-s); line-height: 1.7; }
+  .gov-item-text strong { color: var(--navy); display: block; margin-bottom: 2px; }
+
+  /* ── キーワード ── */
+  .kw-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 480px) { .kw-grid { grid-template-columns: 1fr; } }
+  .kw-card {
+    background: var(--navy);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    color: rgba(255,255,255,.85);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .kw-card .kw-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: #5eead4;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* ── Note callout ── */
+  .callout {
+    background: #fefce8;
+    border: 1px dashed #fbbf24;
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 13.5px;
+    color: #78350f;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 16px;
+    line-height: 1.7;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Footer ── */
+  .footer {
+    background: var(--navy);
+    color: rgba(255,255,255,.35);
+    text-align: center;
+    padding: 28px 20px;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: .08em;
+    margin-top: 60px;
+  }
+  .footer strong { color: var(--amber-l); font-weight: 400; }
+
+  /* ── Tag ── */
+  .tag {
+    display: inline-block;
+    background: var(--teal-l);
+    color: var(--teal-2);
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 2px 10px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    letter-spacing: .04em;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="breadcrumb">PMBOK 7th Ed. &nbsp;/&nbsp; <span>Principle 02</span></div>
+    <div class="hero-num">02</div>
+    <p class="hero-sub">Collaborative Team Environment</p>
+    <h1>協働的な<em>プロジェクト・チーム</em><br>環境を構築すること</h1>
+    <div class="hero-def">
+      <strong>チームビルディング</strong>の本質は「管理」ではなく「環境づくり」。<br>
+      心理的安全性があり、各人の強みが活きる場を設計することが、PMの重要な役割である。
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ── Section 1: 指示命令型 vs 協働型 ── -->
+  <div class="section">
+    <div class="section-label">Core Shift</div>
+    <div class="section-title">「指示命令型」から「協働型」へ</div>
+    <p class="lead">
+      従来のプロジェクト管理では、PMが計画を立て、メンバーはその指示に従う「指示命令型」が一般的だった。第7版が求めるのは、メンバー全員が主体的に関わる「協働型」チームへの転換。
+    </p>
+
+    <div class="contrast-grid">
+      <div class="contrast-col bad">
+        <div class="contrast-col-head">指示命令型（旧来型）</div>
+        <ul class="contrast-list">
+          <li>PMが全ての意思決定をする</li>
+          <li>メンバーはタスクをこなすだけ</li>
+          <li>失敗は個人の責任として追及</li>
+          <li>情報はPMが必要に応じて開示</li>
+          <li>役割は固定・縦割り</li>
+          <li>発言しにくい雰囲気がある</li>
+        </ul>
+      </div>
+      <div class="contrast-col good">
+        <div class="contrast-col-head">協働型（第7版が目指す姿）</div>
+        <ul class="contrast-list">
+          <li>意思決定にチームが参加できる</li>
+          <li>各自が目的・価値を理解して動く</li>
+          <li>失敗をチームの学びとして活用</li>
+          <li>情報が透明に共有されている</li>
+          <li>強みに応じて役割が柔軟</li>
+          <li>誰でも安心して発言できる</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 2: 心理的安全性 ── -->
+  <div class="section">
+    <div class="section-label">Psychological Safety</div>
+    <div class="section-title">心理的安全性とは何か</div>
+
+    <div class="ps-box">
+      <div class="ps-box-label">Amy Edmondson, Harvard Business School</div>
+      <div class="ps-box-quote">
+        「チームの中で対人リスクを取っても安全だという共有された信念」
+      </div>
+      <div class="ps-box-author">— Psychological Safety の提唱者 エイミー・エドモンドソン（1999）</div>
+    </div>
+
+    <p class="lead">
+      Googleが行った大規模調査「Project Aristotle」（2012〜2015）でも、高パフォーマンスチームの最大の要因は「心理的安全性」だったと報告されている。スキルや経験より、<strong style="color:var(--navy)">安心して発言できる環境</strong>の方が成果に直結する。
+    </p>
+
+    <div class="ps-4-grid">
+      <div class="ps-card">
+        <div class="ps-card-icon">🗣️</div>
+        <div class="ps-card-title">包括的な発言</div>
+        <div class="ps-card-body">異議・懸念・アイデアをためらわずに発言できる。「変なことを言ったら恥ずかしい」という不安がない状態。</div>
+      </div>
+      <div class="ps-card">
+        <div class="ps-card-icon">🙋</div>
+        <div class="ps-card-title">質問のしやすさ</div>
+        <div class="ps-card-body">「こんなことを聞いたら無能に見られる」という恐れなしに、わからないことを素直に聞ける環境。</div>
+      </div>
+      <div class="ps-card">
+        <div class="ps-card-icon">⚡</div>
+        <div class="ps-card-title">失敗の許容</div>
+        <div class="ps-card-body">小さな失敗が学びとして歓迎される。失敗を隠す文化では問題が膨らむ。早期発見・早期対処が可能になる。</div>
+      </div>
+      <div class="ps-card">
+        <div class="ps-card-icon">🔍</div>
+        <div class="ps-card-title">批判的思考の奨励</div>
+        <div class="ps-card-body">「PM（上司）の意見に反論してもいい」という空気。多様な視点がリスク発見と意思決定の質を高める。</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <span>心理的安全性が低いチームでは、メンバーは<strong>問題を報告しない</strong>・<strong>リスクを隠す</strong>・<strong>指示待ちになる</strong>傾向がある。これはプロジェクトにとって致命的な情報断絶を生む。</span>
+    </div>
+  </div>
+
+  <!-- ── Section 3: チームの発達段階 ── -->
+  <div class="section">
+    <div class="section-label">Team Development</div>
+    <div class="section-title">チームの発達段階：タックマンモデル</div>
+    <p class="lead">
+      心理学者ブルース・タックマンが提唱したチームの成長モデル。PMはチームが今どのフェーズにあるかを見極め、それに合ったリーダーシップを発揮する。
+    </p>
+
+    <div class="tuckman-wrap">
+      <div class="tuckman-stage">
+        <div class="tuckman-en">Forming</div>
+        <div class="tuckman-name">① 形成期</div>
+        <div class="tuckman-desc">メンバーが集まり、様子を見ている段階。遠慮と礼儀が支配し、本音が出にくい。</div>
+        <div class="tuckman-pm">PMは方向性と安心感を提供する</div>
+      </div>
+      <div class="tuckman-stage">
+        <div class="tuckman-en">Storming</div>
+        <div class="tuckman-name">② 混乱期</div>
+        <div class="tuckman-desc">意見の衝突が生まれる。最も心理的負荷が高い時期だが、チームの本音が出始める兆候。</div>
+        <div class="tuckman-pm">対立を恐れず、対話の場を設ける</div>
+      </div>
+      <div class="tuckman-stage">
+        <div class="tuckman-en">Norming</div>
+        <div class="tuckman-name">③ 統一期</div>
+        <div class="tuckman-desc">共通のルールや文化が生まれ、協力関係が確立される。心理的安全性が高まる時期。</div>
+        <div class="tuckman-pm">強みの分担を意識的に設計する</div>
+      </div>
+      <div class="tuckman-stage">
+        <div class="tuckman-en">Performing</div>
+        <div class="tuckman-name">④ 機能期</div>
+        <div class="tuckman-desc">チームが自律的に機能し、PMが指示しなくても成果が生まれる理想の状態。</div>
+        <div class="tuckman-pm">PMはサポートに徹し、委任を進める</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">📌</span>
+      <span>協働型チームの目標は<strong>④ Performing（機能期）</strong>に早く到達し、長く維持すること。PMの役割はチームをこのフェーズへ導く「環境設計者」である。</span>
+    </div>
+  </div>
+
+  <!-- ── Section 4: 強みを活かす設計 ── -->
+  <div class="section">
+    <div class="section-label">Strengths-Based Design</div>
+    <div class="section-title">各人の強みを活かす設計</div>
+    <p class="lead">
+      協働的チームは「全員が同じことをする」のではなく、「各人の得意を組み合わせる」設計で機能する。PMは強みのインベントリを持ち、適材適所を意図的に設計する。
+    </p>
+
+    <div class="strength-steps">
+
+      <div class="strength-step">
+        <div class="step-num-wrap">
+          <div class="step-num">1</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title">強みの把握（Inventory）</div>
+          <div class="step-body">
+            各メンバーの専門スキル・経験・志向性・コミュニケーションスタイルを把握する。1on1や簡易なストレングス診断が有効。「何が得意か」だけでなく「何をやっているとエネルギーが出るか」も重要な視点。
+          </div>
+          <span class="step-tip">ツール例：ストレングスファインダー、1on1面談</span>
+        </div>
+      </div>
+
+      <div class="strength-step">
+        <div class="step-num-wrap">
+          <div class="step-num">2</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title">役割の柔軟な設計（Role Design）</div>
+          <div class="step-body">
+            固定的な役職ではなく、強みに応じてリードする場面を変える。「技術判断はAさんが仕切る」「対外調整はBさんが窓口」のように、強みに合った場面で各自がリーダーになれる設計。
+          </div>
+          <span class="step-tip">目標：誰もが何らかの「リーダーシップの場面」を持つ</span>
+        </div>
+      </div>
+
+      <div class="strength-step">
+        <div class="step-num-wrap">
+          <div class="step-num">3</div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-content">
+          <div class="step-title">ナレッジの共有設計（Knowledge Sharing）</div>
+          <div class="step-body">
+            強みの属人化を防ぎ、チームの集合知を高める。「あの人だけが知っている」状態はリスクであり、共有の仕組みを意図的に作ることでチームとしての強みに変わる。
+          </div>
+          <span class="step-tip">ツール例：ドキュメント化・勉強会・ペアワーク</span>
+        </div>
+      </div>
+
+      <div class="strength-step">
+        <div class="step-num-wrap">
+          <div class="step-num">4</div>
+        </div>
+        <div class="step-content">
+          <div class="step-title">成長とウェルビーイングへの配慮（Well-being）</div>
+          <div class="step-body">
+            スチュワードシップ（原則1）とも連動。プロジェクトが終わった時、メンバーが「成長できた」と感じられるかがチームビルディングの最終評価基準。技術的成長だけでなく、人としての充実感も含む。
+          </div>
+          <span class="step-tip">→ 原則1「スチュワードシップ」とリンク</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Section 5: 振り返り（レトロ）── -->
+  <div class="section">
+    <div class="section-label">Retrospective</div>
+    <div class="section-title">振り返り（レトロスペクティブ）の実践</div>
+    <p class="lead">
+      協働的チームの維持に最も効果的な手法のひとつがレトロスペクティブ（振り返り）。アジャイル由来の手法だが、あらゆるプロジェクトに応用できる。チームの自己改善サイクルを生む。
+    </p>
+
+    <div class="retro-box">
+      <div class="retro-header">KPT フレームワーク（振り返りの定番手法）</div>
+      <div class="retro-cols">
+        <div class="retro-col rc-kept">
+          <div class="retro-col-head">✅ Keep<br><span style="font-size:11px;font-weight:400;color:var(--text-s)">続けること</span></div>
+          <ul class="retro-items">
+            <li>毎朝の10分スタンドアップ</li>
+            <li>議事録の即日共有</li>
+            <li>懸念点を早めに共有する習慣</li>
+            <li>タスクのステータス可視化</li>
+          </ul>
+        </div>
+        <div class="retro-col rc-drop">
+          <div class="retro-col-head">⛔ Problem<br><span style="font-size:11px;font-weight:400;color:var(--text-s)">やめること・課題</span></div>
+          <ul class="retro-items">
+            <li>会議が目的なく長い</li>
+            <li>報告が一方通行になっている</li>
+            <li>決定事項が残らない</li>
+            <li>特定の人に負荷が集中</li>
+          </ul>
+        </div>
+        <div class="retro-col rc-try">
+          <div class="retro-col-head">🔵 Try<br><span style="font-size:11px;font-weight:400;color:var(--text-s)">試すこと</span></div>
+          <ul class="retro-items">
+            <li>週1の軽い進捗共有を導入</li>
+            <li>役割ローテーションを試す</li>
+            <li>匿名で懸念を出せる場を作る</li>
+            <li>承認プロセスを1段階減らす</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <span>レトロは「批判の場」ではなく「改善の場」。PMが最初に自分の反省点を開示することで、心理的安全性を高める効果がある。<strong>PMが最初に弱みを見せる</strong>ことが、チームの発言を促す鍵。</span>
+    </div>
+  </div>
+
+  <!-- ── Section 6: 行政DX当てはめ ── -->
+  <div class="section">
+    <div class="section-label">Application</div>
+    <div class="section-title">行政DXへの当てはめ</div>
+
+    <div class="gov-box">
+      <div class="gov-box-header">Local Government DX × Collaborative Team</div>
+      <div class="gov-item">
+        <div class="gov-item-icon">🏢</div>
+        <div class="gov-item-text">
+          <strong>縦割り組織こそ「協働型設計」が刺さる</strong>
+          行政は部署間の壁が高く、横断的なDX推進は特に「誰がどこまで口を出せるか」が不明確になりがち。明示的に「この場では部署の壁を外す」と宣言するだけで心理的安全性が変わる。
+        </div>
+      </div>
+      <div class="gov-item">
+        <div class="gov-item-icon">👩‍💻</div>
+        <div class="gov-item-text">
+          <strong>技術格差がある混成チームの設計</strong>
+          DX推進では、ITリテラシーに大きな差がある職員が混在する。「詳しい人が全部やる」ではなく、「詳しい人が教える役割を担い、慣れた人が現場の知識を提供する」という強みの補完設計が有効。
+        </div>
+      </div>
+      <div class="gov-item">
+        <div class="gov-item-icon">📝</div>
+        <div class="gov-item-text">
+          <strong>「言ったら面倒なことになる」文化の変革</strong>
+          公務員組織では「問題を指摘すること＝空気を読まない」と見なされることがある。振り返りの場を公式に設けることで、問題提起を「義務」として正当化できる。
+        </div>
+      </div>
+      <div class="gov-item">
+        <div class="gov-item-icon">🚀</div>
+        <div class="gov-item-text">
+          <strong>コンサル転職後：クライアント側チームへの応用</strong>
+          支援先自治体の職員が「言われたからやる」ではなく「意味がわかって動く」チームになるよう設計することが、コンサルとしての真の付加価値。チームビルディング支援がプロジェクト成功の鍵になる。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 7: キーワード ── -->
+  <div class="section" style="border-bottom:none;">
+    <div class="section-label">Exam & Interview</div>
+    <div class="section-title">試験・面接で使えるキーワード</div>
+
+    <div style="margin-bottom:16px;">
+      <span class="tag">心理的安全性</span>
+      <span class="tag">Psychological Safety</span>
+      <span class="tag">タックマンモデル</span>
+      <span class="tag">KPT</span>
+      <span class="tag">レトロスペクティブ</span>
+      <span class="tag">強みベース設計</span>
+      <span class="tag">ウェルビーイング</span>
+      <span class="tag">チームビルディング</span>
+    </div>
+
+    <div class="kw-grid">
+      <div class="kw-card">
+        <div class="kw-label">Core Definition</div>
+        チームビルディング = <strong style="color:#5eead4">「管理」ではなく「環境づくり」</strong>
+      </div>
+      <div class="kw-card">
+        <div class="kw-label">Key Phrase</div>
+        「安心して発言できる場が、<strong style="color:#5eead4">成果を最大化する土台</strong>になる」
+      </div>
+      <div class="kw-card">
+        <div class="kw-label">Google Research</div>
+        Project Aristotle：高成果チームの最大要因は<strong style="color:#5eead4">心理的安全性</strong>
+      </div>
+      <div class="kw-card">
+        <div class="kw-label">PM's Role</div>
+        PMは「指示者」ではなく<strong style="color:#5eead4">「チームの環境設計者」</strong>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  PMBOK® Guide — Seventh Edition &nbsp;|&nbsp; Principle 02 &nbsp;|&nbsp; <strong>Collaborative Team Environment</strong>
+</div>
+
+</body>
+</html>
