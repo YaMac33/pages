@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -803,9 +804,12 @@ function submitForm(){
   btn.disabled = true; btn.textContent = '送信中...';
 
   // no-corsだとPIN不一致の応答を読めないため、まず通常のCORSで送信を試みる
+  // GASのウェブアプリはCORSプリフライト(OPTIONS)に対応していないため、
+  // プリフライトを発生させない text/plain で送る（本文はJSONのまま。GAS側は
+  // ヘッダーに関わらず e.postData.contents をJSON.parseするので問題ない）
   fetch(GAS_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(payload),
   })
   .then(r => r.json())
