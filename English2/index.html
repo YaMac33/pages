@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>英文変換ドリル｜話法・態・書き換え・関係詞</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E9EDF0;
+    --surface:#FFFFFF;
+    --ink:#1C2B3A;
+    --muted:#66788A;
+    --line:#D6DEE5;
+    --chip:#F1F5F8;
+    --chip-line:#CFD9E1;
+    --accent:#2F6F6A;
+    --accent-soft:#E3EFED;
+    --correct:#2E7D53;
+    --correct-soft:#E4F1E9;
+    --pen:#C43D2E;
+    --pen-soft:#F8E7E4;
+    --serif:'Newsreader', Georgia, 'Times New Roman', serif;
+    --sans:'Noto Sans JP', system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
+    --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    padding:0 16px calc(48px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:640px;margin:0 auto}
+
+  header{padding:32px 4px 20px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;font-weight:600}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,7vw,40px);line-height:1.1;letter-spacing:-.01em;margin:0 0 8px}
+  h1 .arrow{color:var(--accent);font-style:italic;padding:0 .12em}
+  .lede{margin:0;color:var(--muted);font-size:14px;max-width:48ch}
+
+  .tabs{display:flex;gap:5px;margin:22px 0 4px;background:var(--surface);padding:6px;border-radius:14px;border:1px solid var(--line)}
+  .tab{flex:1;border:0;background:transparent;cursor:pointer;font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--muted);padding:10px 4px;border-radius:9px;transition:background .15s,color .15s;line-height:1.3}
+  .tab .n{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;opacity:.7;margin-bottom:2px}
+  .tab[aria-selected="true"]{background:var(--accent);color:#fff}
+  .tab[aria-selected="true"] .n{opacity:.85}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .meta{display:flex;align-items:center;justify-content:space-between;margin:16px 2px 12px;font-size:13px;color:var(--muted)}
+  .progress{font-family:var(--mono);letter-spacing:.04em}
+  .progress b{color:var(--ink)}
+  .score{font-family:var(--mono);letter-spacing:.04em}
+  .score b{color:var(--correct)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 20px 24px;box-shadow:0 1px 0 rgba(28,43,58,.03),0 10px 24px -18px rgba(28,43,58,.25)}
+  .card-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;display:flex;justify-content:space-between}
+  .card-eyebrow .qno{color:var(--accent);font-weight:600}
+
+  .source{font-family:var(--serif);font-size:clamp(19px,4.6vw,23px);line-height:1.5;color:var(--ink);margin:0}
+  .source .q{color:var(--muted)}
+
+  .turn{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--accent)}
+  .turn .bar{height:1px;background:var(--line);flex:1}
+  .turn .glyph{font-family:var(--serif);font-size:20px;font-weight:600;line-height:1;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex:none;background:var(--accent-soft)}
+  .turn .label{font-family:var(--sans);font-size:12px;font-weight:500;letter-spacing:.02em;color:var(--accent);flex:none}
+
+  .target{font-family:var(--serif);font-size:clamp(19px,4.6vw,23px);line-height:2.1;margin:0}
+
+  .blank{display:inline-flex;align-items:baseline;gap:.3em;min-width:64px;justify-content:center;padding:2px 10px;margin:0 2px;border-radius:8px;border:1.5px dashed var(--chip-line);background:var(--chip);font-family:var(--serif);font-size:.94em;cursor:pointer;vertical-align:middle;transition:border-color .15s,background .15s}
+  .blank .idx{font-family:var(--mono);font-size:.62em;color:var(--muted)}
+  .blank.filled{border-style:solid;border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+  .blank.active{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+  .blank.correct{border-style:solid;border-color:var(--correct);background:var(--correct-soft);color:var(--correct);cursor:default}
+  .blank.wrong{border-style:solid;border-color:var(--pen);background:var(--pen-soft);cursor:default}
+  .blank.wrong .bad{color:var(--pen);text-decoration:line-through;text-decoration-thickness:1.5px}
+  .blank.wrong .fix{color:var(--correct);font-weight:500}
+  .blank.wrong .to{color:var(--muted);font-size:.7em}
+  .blank:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .bank-label{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+  .bank{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-family:var(--serif);font-size:17px;padding:8px 15px;border-radius:10px;border:1px solid var(--chip-line);background:var(--chip);color:var(--ink);cursor:pointer;transition:transform .1s,background .15s,opacity .15s}
+  .chip:hover{background:#fff;border-color:var(--accent)}
+  .chip:active{transform:translateY(1px)}
+  .chip.used{opacity:.28;pointer-events:none;text-decoration:line-through}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .actions{display:flex;gap:10px;margin-top:22px}
+  .btn{font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;padding:13px 18px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--ink);transition:background .15s,opacity .15s}
+  .btn:hover{background:#F5F8FA}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);flex:1}
+  .btn-primary:hover{background:#275c58}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;background:var(--accent)}
+  .btn-ghost{flex:none}
+
+  .feedback{margin-top:20px;border-top:1px solid var(--line);padding-top:18px;display:none}
+  .feedback.show{display:block}
+  .verdict{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;margin:0 0 10px}
+  .verdict.ok{color:var(--correct)}
+  .verdict.ng{color:var(--pen)}
+  .verdict .mark{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:13px;font-family:var(--mono)}
+  .verdict.ok .mark{background:var(--correct)}
+  .verdict.ng .mark{background:var(--pen)}
+  .answer-line{font-family:var(--serif);font-size:17px;color:var(--ink);margin:0 0 8px}
+  .answer-line .k{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:2px}
+  .answer-line .full b{color:var(--accent);font-weight:600}
+  .trans{font-size:13.5px;color:var(--muted);margin:0 0 12px}
+  .trans .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-right:6px}
+  .exp{background:#F5F8FA;border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:12px 14px;font-size:13.5px;color:#41525F;margin:0}
+  .exp .h{font-weight:700;color:var(--ink);display:block;margin-bottom:3px;font-size:12px;letter-spacing:.02em}
+
+  .done{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:34px 24px;text-align:center}
+  .done h2{font-family:var(--serif);font-size:26px;margin:0 0 6px}
+  .done .big{font-family:var(--mono);font-size:40px;color:var(--accent);margin:14px 0 4px;letter-spacing:-.02em}
+  .done p{color:var(--muted);margin:0 0 20px;font-size:14px}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;margin:26px 0 8px;font-family:var(--mono);letter-spacing:.04em}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Sentence Transformation Drills</p>
+    <h1>英文変換ドリル<span class="arrow">→</span></h1>
+    <p class="lede">頻出4タイプを語群タップで練習。話法・態・書き換え・関係詞を、和訳と解説つきで型から定着させます。全47問。</p>
+
+    <div class="tabs" role="tablist" aria-label="出題カテゴリー">
+      <button class="tab" role="tab" data-cat="reported" aria-selected="true"><span class="n">TYPE 1</span>話法転換</button>
+      <button class="tab" role="tab" data-cat="passive" aria-selected="false"><span class="n">TYPE 2</span>態の転換</button>
+      <button class="tab" role="tab" data-cat="rewrite" aria-selected="false"><span class="n">TYPE 3</span>書き換え</button>
+      <button class="tab" role="tab" data-cat="relative" aria-selected="false"><span class="n">TYPE 4</span>関係詞</button>
+    </div>
+  </header>
+
+  <div class="meta">
+    <span class="progress" id="progress"></span>
+    <span class="score" id="score"></span>
+  </div>
+
+  <main id="stage" aria-live="polite"></main>
+
+  <footer>型で覚える · タップで解答 · 和訳と解説つき</footer>
+</div>
+
+<script>
+const CATS = {
+  reported:{ name:'話法の転換', turn:'間接話法へ' },
+  passive :{ name:'態の転換',   turn:'受動態へ' },
+  rewrite :{ name:'書き換え',   turn:'同じ意味に' },
+  relative:{ name:'関係詞',     turn:'2文を1文に' },
+};
+
+const PROBLEMS = [
+  /* ---------- TYPE 1 : 話法の転換 ---------- */
+  { id:'r1', cat:'reported',
+    orig:'He said, <span class="q">"</span>I\'ll finish the report by tomorrow.<span class="q">"</span>',
+    ja:'彼は「明日までに報告書を終わらせます」と言った。',
+    tpl:'He said (that) he {0} finish the report by {1}.',
+    ans:['would','the next day'],
+    bank:['will','would','tomorrow','the next day'],
+    exp:'主節が過去（said）なので時制が後退。<b>will → would</b>、副詞も <b>tomorrow → the next day</b> に転換します。' },
+
+  { id:'r2', cat:'reported',
+    orig:'She said to me, <span class="q">"</span>I can help you with this.<span class="q">"</span>',
+    ja:'彼女は私に「これについてあなたを手伝えます」と言った。',
+    tpl:'She told me (that) she {0} help {1} with {2}.',
+    ans:['could','me','that'],
+    bank:['can','could','you','me','this','that'],
+    exp:'<b>say to 人 → tell 人</b>。<b>can → could</b>。相手を指す <b>you → me</b>（＝話し手の私）、<b>this → that</b> も忘れずに。' },
+
+  { id:'r3', cat:'reported',
+    orig:'<span class="q">"</span>Where do you live?<span class="q">"</span> he asked her.',
+    ja:'「どこに住んでいるの?」と彼は彼女に尋ねた。',
+    tpl:'He asked her where {0} {1}.',
+    ans:['she','lived'],
+    bank:['she','you','lives','lived','live'],
+    exp:'疑問詞つきの間接疑問は <b>疑問詞 + S + V</b> の語順（do は消える）。<b>you → she</b>、時制の一致で <b>live → lived</b>。' },
+
+  { id:'r4', cat:'reported',
+    orig:'She said, <span class="q">"</span>I am reading a book now.<span class="q">"</span>',
+    ja:'彼女は「今、本を読んでいます」と言った。',
+    tpl:'She said (that) she {0} reading a book {1}.',
+    ans:['was','then'],
+    bank:['is','was','now','then'],
+    exp:'進行形も時制の一致で <b>am → was</b>。時の副詞 <b>now → then</b> に転換します。' },
+
+  { id:'r5', cat:'reported',
+    orig:'He said to me, <span class="q">"</span>Did you see the news yesterday?<span class="q">"</span>',
+    ja:'彼は私に「昨日ニュースを見た?」と言った。',
+    tpl:'He asked me {0} I {1} seen the news {2}.',
+    ans:['if','had','the day before'],
+    bank:['if','that','have','had','yesterday','the day before'],
+    exp:'Yes/No疑問文の間接話法は <b>if / whether</b>（＝「〜かどうか」）。過去の疑問は <b>過去完了（had seen）</b> へ、<b>yesterday → the day before</b>。' },
+
+  { id:'r6', cat:'reported',
+    orig:'<span class="q">"</span>Don\'t touch it,<span class="q">"</span> she said to him.',
+    ja:'「それに触らないで」と彼女は彼に言った。',
+    tpl:'She told him {0} {1} touch it.',
+    ans:['not','to'],
+    bank:['not','to','don\'t','do'],
+    exp:'否定の命令文は <b>tell + 人 + not to do</b> の形。<b>Don\'t 〜 → not to 〜</b> と覚えます。' },
+
+  { id:'r7', cat:'reported',
+    orig:'Tom said, <span class="q">"</span>I bought this yesterday.<span class="q">"</span>',
+    ja:'トムは「これを昨日買った」と言った。',
+    tpl:'Tom said (that) he {0} {1} that the day before.',
+    ans:['had','bought'],
+    bank:['has','had','buys','bought'],
+    exp:'発話時より前の過去は <b>過去 → 過去完了（had bought）</b>。<b>this → that</b>、<b>yesterday → the day before</b> も同時に。' },
+
+  { id:'r8', cat:'reported',
+    orig:'She said, <span class="q">"</span>I have finished my homework.<span class="q">"</span>',
+    ja:'彼女は「宿題を終えました」と言った。',
+    tpl:'She said (that) she {0} {1} her homework.',
+    ans:['had','finished'],
+    bank:['has','had','finish','finished','finishing'],
+    exp:'現在完了（have finished）は時制の一致で <b>過去完了（had finished）</b> に後退。have → had、過去分詞 finished はそのまま。' },
+
+  { id:'r9', cat:'reported',
+    orig:'<span class="q">"</span>Close the door,<span class="q">"</span> she said to him.',
+    ja:'「ドアを閉めて」と彼女は彼に言った。',
+    tpl:'She {0} him {1} {2} the door.',
+    ans:['told','to','close'],
+    bank:['told','said','to','close','closed','closing'],
+    exp:'肯定の命令文は <b>tell + 人 + to do</b>。命令・依頼では say ではなく <b>tell / ask</b> を使います（r6の肯定版）。' },
+
+  { id:'r10', cat:'reported',
+    orig:'My teacher said, <span class="q">"</span>Water boils at 100°C.<span class="q">"</span>',
+    ja:'先生は「水は100度で沸騰する」と言った。',
+    tpl:'My teacher said (that) water {0} at 100°C.',
+    ans:['boils'],
+    bank:['boils','boiled','boil'],
+    exp:'科学的事実・不変の真理は、主節が過去でも <b>時制を後退させず現在形のまま</b>。boils を保ちます（重要な例外）。' },
+
+  { id:'r11', cat:'reported',
+    orig:'<span class="q">"</span>What time is it?<span class="q">"</span> he asked.',
+    ja:'「今何時?」と彼は尋ねた。',
+    tpl:'He asked what time {0} {1}.',
+    ans:['it','was'],
+    bank:['it','is','was','are'],
+    exp:'間接疑問は <b>疑問詞 + S + V</b> の語順。主語 it を置き、時制の一致で <b>is → was</b>。' },
+
+  { id:'r12', cat:'reported',
+    orig:'He said to us, <span class="q">"</span>You can use my car tomorrow.<span class="q">"</span>',
+    ja:'彼は私たちに「明日、僕の車を使っていいよ」と言った。',
+    tpl:'He told us (that) we {0} use {1} car {2}.',
+    ans:['could','his','the next day'],
+    bank:['can','could','my','his','tomorrow','the next day'],
+    exp:'視点の移動に注意。<b>you → we</b>、<b>can → could</b>、所有格 <b>my → his</b>、<b>tomorrow → the next day</b>。' },
+
+  { id:'r13', cat:'reported',
+    orig:'<span class="q">"</span>Please wait here,<span class="q">"</span> he said to me.',
+    ja:'「ここで待ってください」と彼は私に言った。',
+    tpl:'He asked me {0} {1} {2}.',
+    ans:['to','wait','there'],
+    bank:['to','wait','waited','here','there'],
+    exp:'「Please + 動詞」の依頼は <b>ask + 人 + to do</b>。場所の <b>here → there</b> にも転換（話し手がその場を離れた視点）。' },
+
+  /* ---------- TYPE 2 : 態の転換 ---------- */
+  { id:'p1', cat:'passive',
+    orig:'Everyone loves her.',
+    ja:'みんなが彼女を愛している。',
+    tpl:'{0} {1} loved {2} everyone.',
+    ans:['She','is','by'],
+    bank:['She','Her','is','are','by','with'],
+    exp:'目的語 <b>her</b> を主語 <b>She</b> に。動詞は <b>be + 過去分詞（is loved）</b>、行為者は <b>by</b> で示します。' },
+
+  { id:'p2', cat:'passive',
+    orig:'Someone stole my bike last night.',
+    ja:'昨夜、誰かが私の自転車を盗んだ。',
+    tpl:'My bike {0} {1} last night.',
+    ans:['was','stolen'],
+    bank:['is','was','stole','stolen'],
+    exp:'過去の受動態は <b>was/were + 過去分詞</b>。行為者が不特定（someone）のときは <b>by 〜 を省略</b>するのが自然です。' },
+
+  { id:'p3', cat:'passive',
+    orig:'They will build a new bridge here.',
+    ja:'彼らはここに新しい橋を建てるだろう。',
+    tpl:'A new bridge {0} {1} {2} here.',
+    ans:['will','be','built'],
+    bank:['will','be','is','build','built'],
+    exp:'助動詞 will の受動態は <b>will be + 過去分詞</b>。助動詞の後ろは必ず <b>be</b> の原形です。' },
+
+  { id:'p4', cat:'passive',
+    orig:'People speak English in many countries.',
+    ja:'多くの国で英語が話されている。',
+    tpl:'English {0} {1} in many countries.',
+    ans:['is','spoken'],
+    bank:['is','are','speak','speaks','spoken'],
+    exp:'主語 English は単数扱いなので <b>is</b>。<b>speak → spoken</b>（過去分詞）。一般の people は行為者に立てません。' },
+
+  { id:'p5', cat:'passive',
+    orig:'You must finish the work today.',
+    ja:'あなたは今日その仕事を終えなければならない。',
+    tpl:'The work {0} {1} {2} today.',
+    ans:['must','be','finished'],
+    bank:['must','be','is','finish','finished'],
+    exp:'助動詞 must の受動態は <b>must be + 過去分詞</b>。will と同じく助動詞の後は be の原形。' },
+
+  { id:'p6', cat:'passive',
+    orig:'They are cleaning the room now.',
+    ja:'彼らは今、部屋を掃除している。',
+    tpl:'The room {0} {1} {2} now.',
+    ans:['is','being','cleaned'],
+    bank:['is','are','being','been','cleaning','cleaned'],
+    exp:'進行形の受動態は <b>be + being + 過去分詞（is being cleaned）</b>。being を落とすと「進行中」の意味が消えるので注意。' },
+
+  { id:'p7', cat:'passive',
+    orig:'My mother made this cake.',
+    ja:'私の母がこのケーキを作った。',
+    tpl:'This cake {0} {1} {2} my mother.',
+    ans:['was','made','by'],
+    bank:['was','is','make','made','by','from'],
+    exp:'過去の受動態 <b>was made</b>。作り手（人）を示すのは <b>by</b>（材料なら from ですが、ここは人なので by）。' },
+
+  { id:'p8', cat:'passive',
+    orig:'A famous writer wrote this novel.',
+    ja:'有名な作家がこの小説を書いた。',
+    tpl:'This novel {0} {1} {2} a famous writer.',
+    ans:['was','written','by'],
+    bank:['was','is','wrote','written','by','from'],
+    exp:'過去の受動態 <b>was written</b>（write - wrote - <b>written</b>）。行為者は by。' },
+
+  { id:'p9', cat:'passive',
+    orig:'We can see many stars tonight.',
+    ja:'今夜はたくさんの星が見える。',
+    tpl:'Many stars {0} {1} {2} tonight.',
+    ans:['can','be','seen'],
+    bank:['can','be','is','see','seen'],
+    exp:'助動詞 can の受動態は <b>can be + 過去分詞</b>（see - saw - <b>seen</b>）。助動詞の後ろは be の原形。' },
+
+  { id:'p10', cat:'passive',
+    orig:'Someone has broken this window.',
+    ja:'誰かがこの窓を割った。',
+    tpl:'This window {0} {1} {2}.',
+    ans:['has','been','broken'],
+    bank:['has','have','been','being','broke','broken'],
+    exp:'現在完了の受動態は <b>has/have + been + 過去分詞</b>（break - broke - <b>broken</b>）。been を忘れずに。' },
+
+  { id:'p11', cat:'passive',
+    orig:'Did Tom paint this picture?',
+    ja:'トムがこの絵を描いたのですか?',
+    tpl:'{0} this picture {1} {2} Tom?',
+    ans:['Was','painted','by'],
+    bank:['Was','Did','paint','painted','by','with'],
+    exp:'疑問文の受動態は <b>be動詞を文頭</b>に。Did 〜 paint? → <b>Was 〜 painted by</b> …? 過去分詞 painted を使います。' },
+
+  { id:'p12', cat:'passive',
+    orig:'They didn\'t clean the room.',
+    ja:'彼らは部屋を掃除しなかった。',
+    tpl:'The room {0} {1} {2}.',
+    ans:['was','not','cleaned'],
+    bank:['was','were','not','clean','cleaned'],
+    exp:'否定文の受動態は <b>be + not + 過去分詞</b>（was not cleaned）。not は be動詞の直後に置きます。' },
+
+  { id:'p13', cat:'passive',
+    orig:'My grandmother gave me this watch.',
+    ja:'祖母が私にこの腕時計をくれた。',
+    tpl:'This watch {0} {1} {2} me by my grandmother.',
+    ans:['was','given','to'],
+    bank:['was','is','gave','given','to','for'],
+    exp:'give 人 物（第4文型）で「物」を主語にすると <b>was given to 人</b>。give は <b>to</b> をとります（give - gave - <b>given</b>）。' },
+
+  /* ---------- TYPE 3 : 同義文の書き換え ---------- */
+  { id:'w1', cat:'rewrite',
+    orig:'This book is so difficult that I can\'t read it.',
+    ja:'この本はとても難しいので私には読めない。',
+    tpl:'This book is {0} difficult {1} me {2} read.',
+    ans:['too','for','to'],
+    bank:['too','so','for','of','to'],
+    exp:'<b>so 〜 that S can\'t … = too 〜 to do</b>。to不定詞の意味上の主語は <b>for me</b> で表します。' },
+
+  { id:'w2', cat:'rewrite',
+    orig:'He is too young to drive a car.',
+    ja:'彼は車を運転するには若すぎる。',
+    tpl:'He is {0} young {1} he {2} drive a car.',
+    ans:['so','that','can\'t'],
+    bank:['so','too','that','to','can','can\'t'],
+    exp:'逆方向の書き換え。<b>too 〜 to do = so 〜 that S can\'t …</b>。主語 he を補い、can\'t を続けます。' },
+
+  { id:'w3', cat:'rewrite',
+    orig:'As soon as she arrived, it began to rain.',
+    ja:'彼女が到着するとすぐに雨が降り始めた。',
+    tpl:'{0} {1} she arrived, it began to rain.',
+    ans:['The','moment'],
+    bank:['The','A','moment','time'],
+    exp:'<b>as soon as = the moment（the minute / the instant）</b>「〜するとすぐに」。接続詞のかたまりとして覚えます。' },
+
+  { id:'w4', cat:'rewrite',
+    orig:'He is the tallest boy in his class.',
+    ja:'彼はクラスで一番背が高い男の子だ。',
+    tpl:'{0} {1} boy in his class is {2} than he.',
+    ans:['No','other','taller'],
+    bank:['No','Any','other','more','taller','tallest'],
+    exp:'最上級 → <b>No other + 単数名詞 … 比較級 + than</b>「他のどの…も〜ない」。tallest ではなく比較級 <b>taller</b>。' },
+
+  { id:'w5', cat:'rewrite',
+    orig:'I have never seen such a beautiful sunset.',
+    ja:'こんなに美しい夕日は見たことがない。',
+    tpl:'This is {0} {1} beautiful sunset {2} I have ever seen.',
+    ans:['the','most','that'],
+    bank:['the','a','most','more','that','what'],
+    exp:'「今まで見た中で一番〜」＝ <b>the + 最上級 … that S have ever + 過去分詞</b>。先行詞に最上級がつくと関係詞は that が好まれます。' },
+
+  { id:'w6', cat:'rewrite',
+    orig:'If you don\'t hurry, you will miss the train.',
+    ja:'急がないと電車に乗り遅れるよ。',
+    tpl:'{0} up, {1} you will miss the train.',
+    ans:['Hurry','or'],
+    bank:['Hurry','Run','or','and'],
+    exp:'<b>命令文, or …</b>「〜しなさい、さもないと…」。<b>If you don\'t 〜</b> の書き換え。and（そうすれば）と取り違えないこと。' },
+
+  { id:'w7', cat:'rewrite',
+    orig:'Tom is younger than John.',
+    ja:'トムはジョンより若い。',
+    tpl:'John is {0} {1} Tom.',
+    ans:['older','than'],
+    bank:['older','younger','than','then','as'],
+    exp:'主語を入れ替えると比較の向きが逆に。<b>younger ↔ older</b>。比較の <b>than</b> と then のスペル違いに注意。' },
+
+  { id:'w8', cat:'rewrite',
+    orig:'Mt. Fuji is higher than any other mountain in Japan.',
+    ja:'富士山は日本の他のどの山より高い。',
+    tpl:'Mt. Fuji is the {0} {1} in Japan.',
+    ans:['highest','mountain'],
+    bank:['highest','higher','high','mountain','mountains'],
+    exp:'<b>比較級 + than any other + 単数 → 最上級</b>。「他のどの山より高い」＝「一番高い山」。w4の逆方向。' },
+
+  { id:'w9', cat:'rewrite',
+    orig:'That question is not as easy as this one.',
+    ja:'あの問題はこの問題ほど簡単ではない。',
+    tpl:'This question is {0} {1} that one.',
+    ans:['easier','than'],
+    bank:['easier','easy','easiest','than','as','then'],
+    exp:'「B は A ほど〜でない」＝「A は B より〜だ」。<b>not as easy as → easier than</b>。主語が入れ替わります。' },
+
+  { id:'w10', cat:'rewrite',
+    orig:'We were not able to answer the question.',
+    ja:'私たちはその問題に答えられなかった。',
+    tpl:'We {0} answer the question.',
+    ans:['couldn\'t'],
+    bank:['can\'t','couldn\'t','weren\'t','didn\'t'],
+    exp:'<b>be able to = can</b>。過去の否定 were not able to ＝ <b>couldn\'t</b>。' },
+
+  { id:'w11', cat:'rewrite',
+    orig:'It started to rain.',
+    ja:'雨が降り始めた。',
+    tpl:'It started {0}.',
+    ans:['raining'],
+    bank:['raining','rain','rained','to raining'],
+    exp:'<b>start / begin は to不定詞・動名詞どちらも</b>取れ、意味はほぼ同じ。to rain ＝ raining。' },
+
+  { id:'w12', cat:'rewrite',
+    orig:'He is rich enough to buy the house.',
+    ja:'彼はその家を買えるほど裕福だ。',
+    tpl:'He is {0} rich {1} he {2} buy the house.',
+    ans:['so','that','can'],
+    bank:['so','too','that','to','can','can\'t'],
+    exp:'<b>… enough to do = so … that S can 〜</b>（肯定）。too（w2）が否定になるのと対照的に、enough は <b>肯定文</b>になります。' },
+
+  { id:'w13', cat:'rewrite',
+    orig:'He studied hard to pass the exam.',
+    ja:'彼は試験に受かるために一生懸命勉強した。',
+    tpl:'He studied hard {0} {1} he could pass the exam.',
+    ans:['so','that'],
+    bank:['so','to','that','for'],
+    exp:'目的を表す <b>to do（〜するために）= so that S can/could 〜</b>。副詞的用法の不定詞を so that 節に開く書き換え。' },
+
+  /* ---------- TYPE 4 : 関係詞（2文を1文に） ---------- */
+  { id:'rel1', cat:'relative',
+    orig:'I have a friend. <span class="q">＋</span> He lives in Canada.',
+    ja:'私にはカナダに住んでいる友人がいる。',
+    tpl:'I have a friend {0} {1} in Canada.',
+    ans:['who','lives'],
+    bank:['who','which','lives','live','lived'],
+    exp:'人が先行詞で、続く節の<b>主語</b>の働きをする関係代名詞は <b>who</b>。He lives → who lives。' },
+
+  { id:'rel2', cat:'relative',
+    orig:'This is the book. <span class="q">＋</span> I bought it yesterday.',
+    ja:'これは私が昨日買った本だ。',
+    tpl:'This is the book {0} I {1} yesterday.',
+    ans:['that','bought'],
+    bank:['that','who','bought','buy','it'],
+    exp:'物が先行詞で<b>目的語</b>の働きをする関係代名詞は <b>that / which</b>。元の目的語 it は関係代名詞に置き換わって消えます。' },
+
+  { id:'rel3', cat:'relative',
+    orig:'The girl is my sister. <span class="q">＋</span> She is playing the piano.',
+    ja:'ピアノを弾いている女の子は私の妹だ。',
+    tpl:'The girl {0} {1} playing the piano is my sister.',
+    ans:['who','is'],
+    bank:['who','which','is','are','she'],
+    exp:'主格の関係代名詞 <b>who</b>。She is playing → who is playing。関係詞節が主語 The girl を後ろから修飾します。' },
+
+  { id:'rel4', cat:'relative',
+    orig:'I visited a city. <span class="q">＋</span> It is famous for its castle.',
+    ja:'私は城で有名な街を訪れた。',
+    tpl:'I visited a city {0} {1} famous for its castle.',
+    ans:['which','is'],
+    bank:['which','who','is','are','it'],
+    exp:'物・場所が先行詞で主格なら <b>which</b>（that も可）。It is → which is。' },
+
+  { id:'rel5', cat:'relative',
+    orig:'That is the house. <span class="q">＋</span> He lives in it.',
+    ja:'あれは彼が住んでいる家だ。',
+    tpl:'That is the house {0} he lives.',
+    ans:['where'],
+    bank:['where','which','who','that'],
+    exp:'場所を表す先行詞 + <b>where</b>（関係副詞）。in it（前置詞+代名詞）のかたまりが where に置き換わります。' },
+
+  { id:'rel6', cat:'relative',
+    orig:'Do you know the man? <span class="q">＋</span> His car is red.',
+    ja:'あなたは車が赤いあの男性を知っていますか?',
+    tpl:'Do you know the man {0} car is red?',
+    ans:['whose'],
+    bank:['whose','who','which','that'],
+    exp:'所有格の関係代名詞は <b>whose</b>。His car → whose car。「その人の〜」という所有関係をつなぎます。' },
+
+  { id:'rel7', cat:'relative',
+    orig:'I remember the day. <span class="q">＋</span> We first met on that day.',
+    ja:'私は私たちが初めて会った日を覚えている。',
+    tpl:'I remember the day {0} we first met.',
+    ans:['when'],
+    bank:['when','where','which','that'],
+    exp:'時を表す先行詞 + <b>when</b>（関係副詞）。on that day が when に置き換わります。' },
+
+  { id:'rel8', cat:'relative',
+    orig:'The movie was boring. <span class="q">＋</span> We watched it last night.',
+    ja:'私たちが昨夜見た映画は退屈だった。',
+    tpl:'The movie {0} we watched last night was boring.',
+    ans:['that'],
+    bank:['that','who','whose','where'],
+    exp:'物が先行詞で目的格なら <b>that</b>（which も可）。目的語 it が関係代名詞に変わって節の先頭へ移動します。' },
+];
+
+/* --------------------------------------------------------- */
+const stage=document.getElementById('stage');
+const progressEl=document.getElementById('progress');
+const scoreEl=document.getElementById('score');
+const tabs=[...document.querySelectorAll('.tab')];
+const state={cat:'reported',index:0,rt:null};
+const results={};
+
+function deck(){ return PROBLEMS.filter(p=>p.cat===state.cat); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function parseTpl(tpl){
+  const parts=[];const re=/\{(\d+)\}/g;let last=0,m;
+  while((m=re.exec(tpl))){
+    if(m.index>last) parts.push({text:tpl.slice(last,m.index)});
+    parts.push({blank:+m[1]});last=re.lastIndex;
+  }
+  if(last<tpl.length) parts.push({text:tpl.slice(last)});
+  return parts;
+}
+
+function loadProblem(){
+  const p=deck()[state.index];
+  if(!p){ state.rt=null; renderDone(); return; }
+  state.rt={p,parts:parseTpl(p.tpl),nBlanks:p.ans.length,filled:Array(p.ans.length).fill(null),bankOrder:shuffle(p.bank.map((_,i)=>i)),checked:false};
+  render();
+}
+function firstEmpty(){ return state.rt.filled.indexOf(null); }
+
+function render(){
+  updateMeta();
+  const {p,parts,filled,bankOrder,checked}=state.rt;
+  const activeBlank=checked?-1:firstEmpty();
+
+  let target='';
+  parts.forEach(seg=>{
+    if(seg.text!==undefined){ target+=seg.text; return; }
+    const bi=filled[seg.blank];
+    if(checked){
+      const correct=bi!==null && p.bank[bi]===p.ans[seg.blank];
+      if(correct){ target+=`<span class="blank correct">${p.bank[bi]}</span>`; }
+      else{
+        const bad=bi!==null?`<span class="bad">${p.bank[bi]}</span> <span class="to">→</span> `:'';
+        target+=`<span class="blank wrong">${bad}<span class="fix">${p.ans[seg.blank]}</span></span>`;
+      }
+    }else{
+      if(bi===null){
+        const cls='blank'+(seg.blank===activeBlank?' active':'');
+        target+=`<button class="${cls}" data-blank="${seg.blank}"><span class="idx">${seg.blank+1}</span></button>`;
+      }else{
+        target+=`<button class="blank filled" data-blank="${seg.blank}">${p.bank[bi]}</button>`;
+      }
+    }
+  });
+
+  let bank='';
+  if(!checked){
+    bankOrder.forEach(bi=>{
+      const used=filled.includes(bi);
+      bank+=`<button class="chip${used?' used':''}" data-chip="${bi}">${p.bank[bi]}</button>`;
+    });
+  }
+  const allFilled=firstEmpty()===-1;
+
+  let html=`
+    <section class="card">
+      <p class="card-eyebrow"><span>${CATS[p.cat].name}</span><span class="qno">問題 ${String(state.index+1).padStart(2,'0')} / ${String(deck().length).padStart(2,'0')}</span></p>
+      <p class="source">${p.orig}</p>
+      <div class="turn"><span class="glyph">→</span><span class="label">${CATS[p.cat].turn}</span><span class="bar"></span></div>
+      <p class="target">${target}</p>`;
+  if(!checked){
+    html+=`
+      <p class="bank-label">語群 — タップで空所へ</p>
+      <div class="bank">${bank}</div>
+      <div class="actions">
+        <button class="btn btn-ghost" data-act="reset">クリア</button>
+        <button class="btn btn-primary" data-act="check" ${allFilled?'':'disabled'}>答え合わせ</button>
+      </div>`;
+  }
+  if(checked){
+    const ok=results[p.id];
+    const full=parts.map(seg=> seg.text!==undefined ? seg.text : `<b>${p.ans[seg.blank]}</b>`).join('');
+    html+=`
+      <div class="feedback show">
+        <p class="verdict ${ok?'ok':'ng'}"><span class="mark">${ok?'✓':'!'}</span>${ok?'正解！':'おしい！ここを直そう'}</p>
+        <p class="answer-line"><span class="k">Answer</span><span class="full">${full}</span></p>
+        <p class="trans"><span class="k">和訳</span>${p.ja}</p>
+        <p class="exp"><span class="h">ポイント</span>${p.exp}</p>
+        <div class="actions">
+          <button class="btn btn-ghost" data-act="retry">もう一度</button>
+          <button class="btn btn-primary" data-act="next">${state.index+1<deck().length?'次の問題 →':'結果を見る →'}</button>
+        </div>
+      </div>`;
+  }
+  html+=`</section>`;
+  stage.innerHTML=html;
+  bindCard();
+}
+
+function bindCard(){
+  stage.querySelectorAll('[data-chip]').forEach(el=>el.addEventListener('click',()=>{
+    const bi=+el.dataset.chip;const e=firstEmpty();
+    if(e===-1) return;
+    state.rt.filled[e]=bi;render();
+  }));
+  stage.querySelectorAll('[data-blank]').forEach(el=>el.addEventListener('click',()=>{
+    const b=+el.dataset.blank;
+    if(state.rt.filled[b]!==null){ state.rt.filled[b]=null; render(); }
+  }));
+  const act=a=>stage.querySelector(`[data-act="${a}"]`);
+  act('check')?.addEventListener('click',check);
+  act('reset')?.addEventListener('click',()=>{ state.rt.filled=Array(state.rt.nBlanks).fill(null); render(); });
+  act('retry')?.addEventListener('click',()=>{ state.rt.checked=false; state.rt.filled=Array(state.rt.nBlanks).fill(null); state.rt.bankOrder=shuffle(state.rt.p.bank.map((_,i)=>i)); render(); });
+  act('next')?.addEventListener('click',()=>{ state.index++; loadProblem(); });
+}
+
+function check(){
+  const {p,filled}=state.rt;
+  const ok=filled.every((bi,i)=> bi!==null && p.bank[bi]===p.ans[i]);
+  results[p.id]=ok;state.rt.checked=true;render();
+}
+
+function updateMeta(){
+  const d=deck();
+  progressEl.innerHTML=`<b>${Math.min(state.index+1,d.length)}</b> / ${d.length} 問`;
+  const attempted=d.filter(p=>p.id in results).length;
+  const correct=d.filter(p=>results[p.id]===true).length;
+  scoreEl.innerHTML=`正解 <b>${correct}</b> / ${attempted} 挑戦`;
+}
+
+function renderDone(){
+  updateMeta();
+  const d=deck();
+  const correct=d.filter(p=>results[p.id]===true).length;
+  const pct=Math.round(correct/d.length*100);
+  const msg=pct===100?'完璧です。型が身についています。':pct>=70?'いい調子。間違えた問題だけ見直しましょう。':'型を確認して、もう一周してみましょう。';
+  stage.innerHTML=`
+    <section class="done">
+      <p class="card-eyebrow" style="justify-content:center">${CATS[state.cat].name} — セット完了</p>
+      <h2>お疲れさまでした</h2>
+      <p class="big">${correct} / ${d.length}</p>
+      <p>${msg}</p>
+      <div class="actions" style="justify-content:center">
+        <button class="btn btn-primary" style="flex:none;padding-left:26px;padding-right:26px" data-act="restart">もう一周する</button>
+      </div>
+    </section>`;
+  stage.querySelector('[data-act="restart"]').addEventListener('click',()=>{
+    d.forEach(p=>delete results[p.id]);state.index=0;loadProblem();
+  });
+}
+
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(x=>x.setAttribute('aria-selected',x===t?'true':'false'));
+  state.cat=t.dataset.cat;state.index=0;loadProblem();
+}));
+
+loadProblem();
+</script>
+</body>
+</html>
