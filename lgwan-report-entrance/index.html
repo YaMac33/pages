@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>調査・レポート 入口ページ</title>
+<style>
+  :root{
+    --bg:#F5F6F8;
+    --surface:#FFFFFF;
+    --border:#DDE1E6;
+    --text:#1C2430;
+    --text-sub:#5B6472;
+    --accent:#2C5F8A;
+    --accent-hover:#23496B;
+    --accent-bg:#E9F0F6;
+    --danger:#8A2E2E;
+    --st-draft-bg:#FBF2DE;   --st-draft-fg:#8A6D3B;
+    --st-live-bg:#E3F3E8;    --st-live-fg:#256B3A;
+    --st-update-bg:#E1EEF6;  --st-update-fg:#1F5C8A;
+    --st-retired-bg:#F1F1F3; --st-retired-fg:#8A2E2E;
+    --radius:6px;
+    --shadow:0 1px 2px rgba(28,36,48,0.06), 0 1px 1px rgba(28,36,48,0.04);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:"Yu Gothic UI","Yu Gothic","Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+    font-size:14px;
+    line-height:1.6;
+  }
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+
+  header{
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:16px 24px;
+    position:sticky; top:0; z-index:10;
+  }
+  .header-row{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    max-width:1100px; margin:0 auto;
+  }
+  header h1{
+    font-size:18px; font-weight:700; margin:0; white-space:nowrap;
+    letter-spacing:.02em;
+  }
+  .search-box{
+    flex:1; min-width:200px;
+    position:relative;
+  }
+  .search-box input{
+    width:100%; padding:8px 12px 8px 32px;
+    border:1px solid var(--border); border-radius:var(--radius);
+    font-size:14px; background:var(--bg);
+  }
+  .search-box::before{
+    content:"検索";
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    font-size:11px; color:var(--text-sub); pointer-events:none;
+  }
+  .search-box input{padding-left:40px;}
+
+  .btn{
+    border:1px solid var(--border); background:var(--surface);
+    color:var(--text); padding:7px 14px; border-radius:var(--radius);
+    font-size:13px; cursor:pointer; white-space:nowrap;
+  }
+  .btn:hover{background:var(--bg);}
+  .btn-primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .btn-primary:hover{background:var(--accent-hover);}
+  .btn-danger{color:var(--danger); border-color:var(--danger);}
+  .btn-danger:hover{background:#FBEAEA;}
+  .btn-icon{padding:6px 9px;}
+
+  .editor-tag{
+    font-size:12px; color:var(--text-sub);
+  }
+  .editor-tag button{
+    border:none; background:none; color:var(--accent); cursor:pointer;
+    font-size:12px; padding:0; margin-left:4px; text-decoration:underline;
+  }
+
+  main{max-width:1100px; margin:0 auto; padding:20px 24px 80px;}
+
+  .toolbar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .chip-group{display:flex; gap:6px; flex-wrap:wrap;}
+  .chip{
+    border:1px solid var(--border); background:var(--surface);
+    padding:5px 11px; border-radius:999px; font-size:12px; cursor:pointer;
+    color:var(--text-sub);
+  }
+  .chip.active{background:var(--accent-bg); border-color:var(--accent); color:var(--accent);}
+  select.sort-select{
+    border:1px solid var(--border); border-radius:var(--radius);
+    padding:6px 10px; font-size:13px; background:var(--surface); color:var(--text);
+    margin-left:auto;
+  }
+
+  .status-badge{
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px;
+    font-weight:700; letter-spacing:.02em;
+  }
+  .st-作成中{background:var(--st-draft-bg); color:var(--st-draft-fg);}
+  .st-公開中{background:var(--st-live-bg); color:var(--st-live-fg);}
+  .st-更新中{background:var(--st-update-bg); color:var(--st-update-fg);}
+  .st-廃止{background:var(--st-retired-bg); color:var(--st-retired-fg);}
+
+  .item-list{display:flex; flex-direction:column; gap:8px;}
+  .item-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; box-shadow:var(--shadow);
+    display:flex; justify-content:space-between; gap:12px; align-items:flex-start;
+  }
+  .item-card.retired{opacity:.55;}
+  .item-main{flex:1; min-width:0;}
+  .item-title{font-size:15px; font-weight:700; margin:0 0 4px;}
+  .item-meta{color:var(--text-sub); font-size:12px; margin-bottom:6px;}
+  .item-meta span + span::before{content:"・"; margin:0 4px;}
+  .tag-pill{
+    display:inline-block; background:var(--bg); border:1px solid var(--border);
+    color:var(--text-sub); font-size:11px; padding:2px 8px; border-radius:999px;
+    margin:2px 4px 0 0;
+  }
+  .item-actions{display:flex; gap:6px; flex-shrink:0;}
+  .empty-state{
+    text-align:center; color:var(--text-sub); padding:60px 20px;
+    border:1px dashed var(--border); border-radius:var(--radius); background:var(--surface);
+  }
+
+  /* 編集モード用 新規追加バー */
+  .add-bar{margin-bottom:16px;}
+
+  /* モーダル */
+  .overlay{
+    position:fixed; inset:0; background:rgba(28,36,48,.35);
+    display:none; align-items:flex-start; justify-content:center; padding:40px 16px;
+    z-index:100; overflow-y:auto;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--surface); border-radius:8px; padding:24px;
+    width:100%; max-width:480px; box-shadow:0 8px 24px rgba(28,36,48,.2);
+  }
+  .modal h2{margin:0 0 16px; font-size:16px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12px; color:var(--text-sub); margin-bottom:4px;}
+  .field input, .field select, .field textarea{
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius);
+    font-size:14px; font-family:inherit; background:var(--bg);
+  }
+  .modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px;}
+
+  /* 更新履歴ドロワー */
+  .drawer{
+    position:fixed; top:0; right:-360px; width:340px; height:100%;
+    background:var(--surface); border-left:1px solid var(--border);
+    box-shadow:-4px 0 16px rgba(28,36,48,.1);
+    transition:right .2s ease; z-index:90; display:flex; flex-direction:column;
+  }
+  .drawer.open{right:0;}
+  .drawer-header{
+    padding:16px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .drawer-header h2{font-size:14px; margin:0;}
+  .drawer-body{padding:12px 16px; overflow-y:auto; flex:1;}
+  .log-entry{
+    padding:8px 0; border-bottom:1px solid var(--border); font-size:12px;
+  }
+  .log-entry:last-child{border-bottom:none;}
+  .log-entry .log-top{color:var(--text-sub); margin-bottom:2px;}
+  .log-entry .log-action{font-weight:700; color:var(--text);}
+
+  .status-strip{
+    position:fixed; bottom:0; left:0; right:0; background:var(--text); color:#fff;
+    font-size:12px; padding:8px 16px; display:none; align-items:center; justify-content:space-between;
+    z-index:80;
+  }
+  .status-strip.show{display:flex;}
+  .status-strip.error{background:var(--danger);}
+
+  .edit-mode-badge{
+    font-size:11px; background:var(--accent); color:#fff; padding:3px 9px; border-radius:999px;
+    font-weight:700;
+  }
+
+  @media (max-width:640px){
+    .item-card{flex-direction:column;}
+    .item-actions{align-self:flex-end;}
+    header, main{padding-left:14px; padding-right:14px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <h1>調査・レポート 入口ページ</h1>
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="タイトル・作成者で検索">
+    </div>
+    <span class="editor-tag" id="editorTag"></span>
+    <span class="edit-mode-badge" id="editModeBadge" style="display:none;">編集モード</span>
+    <button class="btn" id="logToggleBtn" title="更新履歴">更新履歴</button>
+    <button class="btn btn-primary" id="editModeBtn">編集モードを開始</button>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="chip-group" id="statusChips"></div>
+    <div class="chip-group" id="tagChips"></div>
+    <select class="sort-select" id="sortSelect">
+      <option value="createdDesc">作成日：新しい順</option>
+      <option value="createdAsc">作成日：古い順</option>
+      <option value="updatedDesc">更新日：新しい順</option>
+      <option value="titleAsc">タイトル順</option>
+    </select>
+  </div>
+
+  <div class="add-bar" id="addBar" style="display:none;">
+    <button class="btn btn-primary" id="addItemBtn">＋ 新規リンクを追加</button>
+  </div>
+
+  <div class="item-list" id="itemList"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">該当するリンクがありません</div>
+</main>
+
+<!-- 編集ドロワー -->
+<div class="drawer" id="logDrawer">
+  <div class="drawer-header">
+    <h2>更新履歴（直近100件）</h2>
+    <button class="btn btn-icon" id="logCloseBtn">×</button>
+  </div>
+  <div class="drawer-body" id="logBody"></div>
+</div>
+
+<!-- 追加・編集モーダル -->
+<div class="overlay" id="itemOverlay">
+  <div class="modal">
+    <h2 id="itemModalTitle">新規リンクを追加</h2>
+    <div class="field">
+      <label>タイトル *</label>
+      <input type="text" id="fTitle">
+    </div>
+    <div class="field">
+      <label>URL *</label>
+      <input type="text" id="fUrl" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label>作成者 *</label>
+      <input type="text" id="fAuthor">
+    </div>
+    <div class="field">
+      <label>ステータス</label>
+      <select id="fStatus">
+        <option>作成中</option>
+        <option selected>公開中</option>
+        <option>更新中</option>
+        <option>廃止</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>タグ（カンマ区切り）</label>
+      <input type="text" id="fTags" placeholder="例：総務課, 予算">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="itemCancelBtn">キャンセル</button>
+      <button class="btn btn-primary" id="itemSaveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編集者名モーダル -->
+<div class="overlay" id="nameOverlay">
+  <div class="modal">
+    <h2>お名前を入力してください</h2>
+    <p style="color:var(--text-sub); font-size:12px; margin-top:-8px;">更新履歴・作成者欄に使用します（このブラウザに保存されます）</p>
+    <div class="field">
+      <label>氏名</label>
+      <input type="text" id="fEditorName">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="nameCancelBtn">キャンセル</button>
+      <button class="btn btn-primary" id="nameSaveBtn">設定</button>
+    </div>
+  </div>
+</div>
+
+<!-- データファイル選択案内モーダル -->
+<div class="overlay" id="pickOverlay">
+  <div class="modal">
+    <h2>データファイルを選択してください</h2>
+    <p style="color:var(--text-sub);">
+      編集モードを使うには、このページと同じ場所にある <code>data.js</code> を一度だけ選択してください。
+      以降はこのブラウザが場所を記憶し、次回から選び直す必要はありません。
+    </p>
+    <div class="modal-actions">
+      <button class="btn" id="pickCancelBtn">キャンセル</button>
+      <button class="btn btn-primary" id="pickConfirmBtn">ファイルを選択</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-strip" id="statusStrip"></div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- 状態管理 ---------- */
+  let items = (window.PORTAL_DATA && window.PORTAL_DATA.items) ? window.PORTAL_DATA.items.slice() : [];
+  let logs  = (window.PORTAL_DATA && window.PORTAL_DATA.logs)  ? window.PORTAL_DATA.logs.slice()  : [];
+  let fileHandle = null;          // FileSystemFileHandle（書き込み対象）
+  let lastKnownModified = null;   // 直近に読み込んだ時点の data.js 更新日時（衝突検知用）
+  let editMode = false;
+  let editingItemId = null;       // モーダルで編集中の item.id（新規は null）
+  let filterStatus = null;
+  let filterTag = null;
+  let searchQuery = "";
+  let sortMode = "createdDesc";
+
+  const STATUS_LIST = ["作成中","公開中","更新中","廃止"];
+
+  /* ---------- IndexedDB: FileSystemFileHandle の永続化 ---------- */
+  const DB_NAME = "portal-entrance-db";
+  const STORE_NAME = "handles";
+  function idbOpen(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = ()=> req.result.createObjectStore(STORE_NAME);
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+  async function idbSet(key, value){
+    const db = await idbOpen();
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = ()=> resolve();
+      tx.onerror = ()=> reject(tx.error);
+    });
+  }
+  async function idbGet(key){
+    const db = await idbOpen();
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = ()=> resolve(req.result || null);
+      req.onerror = ()=> reject(req.error);
+    });
+  }
+
+  /* ---------- ユーティリティ ---------- */
+  function fmtDate(iso){
+    if(!iso) return "";
+    const d = new Date(iso);
+    if(isNaN(d)) return iso;
+    return d.getFullYear()+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+String(d.getDate()).padStart(2,"0");
+  }
+  function nowIso(){
+    return new Date().toISOString();
+  }
+  function uid(){
+    return "item-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,7);
+  }
+  function showStatus(msg, isError){
+    const el = document.getElementById("statusStrip");
+    el.textContent = msg;
+    el.className = "status-strip show" + (isError ? " error" : "");
+    clearTimeout(showStatus._t);
+    showStatus._t = setTimeout(()=>{ el.className = "status-strip"; }, 4500);
+  }
+  function getEditorName(){
+    return localStorage.getItem("portalEditorName") || "";
+  }
+  function allTags(){
+    const set = new Set();
+    items.forEach(it => (it.tags||[]).forEach(t => set.add(t)));
+    return Array.from(set).sort();
+  }
+
+  /* ---------- 描画：フィルタチップ ---------- */
+  function renderChips(){
+    const statusWrap = document.getElementById("statusChips");
+    statusWrap.innerHTML = "";
+    const allChip = document.createElement("span");
+    allChip.className = "chip" + (filterStatus===null ? " active" : "");
+    allChip.textContent = "すべて";
+    allChip.onclick = ()=>{ filterStatus = null; renderChips(); renderList(); };
+    statusWrap.appendChild(allChip);
+    STATUS_LIST.forEach(s=>{
+      const c = document.createElement("span");
+      c.className = "chip" + (filterStatus===s ? " active" : "");
+      c.textContent = s;
+      c.onclick = ()=>{ filterStatus = (filterStatus===s ? null : s); renderChips(); renderList(); };
+      statusWrap.appendChild(c);
+    });
+
+    const tagWrap = document.getElementById("tagChips");
+    tagWrap.innerHTML = "";
+    allTags().forEach(t=>{
+      const c = document.createElement("span");
+      c.className = "chip" + (filterTag===t ? " active" : "");
+      c.textContent = "#" + t;
+      c.onclick = ()=>{ filterTag = (filterTag===t ? null : t); renderChips(); renderList(); };
+      tagWrap.appendChild(c);
+    });
+  }
+
+  /* ---------- 描画：一覧 ---------- */
+  function getFilteredSorted(){
+    let list = items.slice();
+    if(filterStatus) list = list.filter(it => it.status === filterStatus);
+    if(filterTag) list = list.filter(it => (it.tags||[]).includes(filterTag));
+    if(searchQuery){
+      const q = searchQuery.toLowerCase();
+      list = list.filter(it =>
+        (it.title||"").toLowerCase().includes(q) ||
+        (it.author||"").toLowerCase().includes(q)
+      );
+    }
+    list.sort((a,b)=>{
+      switch(sortMode){
+        case "createdAsc": return new Date(a.createdAt) - new Date(b.createdAt);
+        case "updatedDesc": return new Date(b.updatedAt) - new Date(a.updatedAt);
+        case "titleAsc": return (a.title||"").localeCompare(b.title||"", "ja");
+        case "createdDesc":
+        default: return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+    });
+    return list;
+  }
+
+  function renderList(){
+    const wrap = document.getElementById("itemList");
+    const empty = document.getElementById("emptyState");
+    const list = getFilteredSorted();
+    wrap.innerHTML = "";
+    empty.style.display = list.length ? "none" : "block";
+
+    list.forEach(it=>{
+      const card = document.createElement("div");
+      card.className = "item-card" + (it.status === "廃止" ? " retired" : "");
+
+      const main = document.createElement("div");
+      main.className = "item-main";
+
+      const title = document.createElement("p");
+      title.className = "item-title";
+      const a = document.createElement("a");
+      a.href = it.url; a.target = "_blank"; a.rel = "noopener";
+      a.textContent = it.title;
+      title.appendChild(a);
+
+      const meta = document.createElement("div");
+      meta.className = "item-meta";
+      meta.innerHTML =
+        `<span>${escapeHtml(it.author||"")}</span>`+
+        `<span>作成 ${fmtDate(it.createdAt)}</span>`+
+        `<span>更新 ${fmtDate(it.updatedAt)}</span>`+
+        `<span><span class="status-badge st-${it.status}">${it.status}</span></span>`;
+
+      main.appendChild(title);
+      main.appendChild(meta);
+
+      if((it.tags||[]).length){
+        const tagsEl = document.createElement("div");
+        it.tags.forEach(t=>{
+          const p = document.createElement("span");
+          p.className = "tag-pill"; p.textContent = "#"+t;
+          tagsEl.appendChild(p);
+        });
+        main.appendChild(tagsEl);
+      }
+
+      card.appendChild(main);
+
+      if(editMode){
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn btn-icon"; editBtn.textContent = "編集";
+        editBtn.onclick = ()=> openItemModal(it.id);
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-icon btn-danger"; delBtn.textContent = "削除";
+        delBtn.onclick = ()=> deleteItem(it.id);
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        card.appendChild(actions);
+      }
+
+      wrap.appendChild(card);
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  /* ---------- 更新履歴ドロワー ---------- */
+  function renderLogs(){
+    const body = document.getElementById("logBody");
+    body.innerHTML = "";
+    if(!logs.length){
+      body.innerHTML = '<p style="color:var(--text-sub); font-size:12px;">履歴はまだありません</p>';
+      return;
+    }
+    logs.slice().reverse().forEach(l=>{
+      const el = document.createElement("div");
+      el.className = "log-entry";
+      const d = new Date(l.timestamp);
+      const dstr = isNaN(d) ? l.timestamp : d.toLocaleString("ja-JP");
+      el.innerHTML =
+        `<div class="log-top">${dstr}　${escapeHtml(l.user||"")}</div>`+
+        `<div><span class="log-action">${escapeHtml(l.action||"")}</span> ${escapeHtml(l.target||"")}</div>`+
+        (l.detail ? `<div style="color:var(--text-sub);">${escapeHtml(l.detail)}</div>` : "");
+      body.appendChild(el);
+    });
+  }
+
+  function pushLog(action, target, detail){
+    logs.push({ timestamp: nowIso(), user: getEditorName() || "不明", action, target, detail: detail||"" });
+    if(logs.length > 100) logs = logs.slice(logs.length - 100);
+  }
+
+  /* ---------- 編集者名 ---------- */
+  function ensureEditorName(cb){
+    const name = getEditorName();
+    if(name){ cb(name); return; }
+    const overlay = document.getElementById("nameOverlay");
+    overlay.classList.add("open");
+    document.getElementById("fEditorName").value = "";
+    document.getElementById("nameSaveBtn").onclick = ()=>{
+      const v = document.getElementById("fEditorName").value.trim();
+      if(!v){ return; }
+      localStorage.setItem("portalEditorName", v);
+      overlay.classList.remove("open");
+      renderEditorTag();
+      cb(v);
+    };
+    document.getElementById("nameCancelBtn").onclick = ()=> overlay.classList.remove("open");
+  }
+  function renderEditorTag(){
+    const name = getEditorName();
+    const el = document.getElementById("editorTag");
+    el.innerHTML = "";
+    if(name){
+      el.append(document.createTextNode(name + " として編集"));
+      const btn = document.createElement("button");
+      btn.textContent = "変更";
+      btn.onclick = ()=>{
+        localStorage.removeItem("portalEditorName");
+        renderEditorTag();
+      };
+      el.appendChild(btn);
+    }
+  }
+
+  /* ---------- ファイルアクセス ---------- */
+  async function getOrPickHandle(){
+    if(fileHandle) return fileHandle;
+    let stored = await idbGet("dataFileHandle");
+    if(stored){
+      const perm = await stored.queryPermission({mode:"readwrite"});
+      if(perm === "granted"){
+        fileHandle = stored;
+        return fileHandle;
+      }
+      if(perm === "prompt"){
+        const req = await stored.requestPermission({mode:"readwrite"});
+        if(req === "granted"){
+          fileHandle = stored;
+          return fileHandle;
+        }
+      }
+      // 権限が拒否された場合は選び直す
+    }
+    return await pickNewHandle();
+  }
+
+  async function pickNewHandle(){
+    return new Promise((resolve, reject)=>{
+      const overlay = document.getElementById("pickOverlay");
+      overlay.classList.add("open");
+      document.getElementById("pickCancelBtn").onclick = ()=>{
+        overlay.classList.remove("open");
+        reject(new Error("cancelled"));
+      };
+      document.getElementById("pickConfirmBtn").onclick = async ()=>{
+        overlay.classList.remove("open");
+        try{
+          const [handle] = await window.showOpenFilePicker({
+            types: [{ description: "データファイル", accept: {"text/javascript": [".js"]} }],
+            excludeAcceptAllOption: false,
+            multiple: false
+          });
+          const perm = await handle.requestPermission({mode:"readwrite"});
+          if(perm !== "granted") throw new Error("権限が許可されませんでした");
+          await idbSet("dataFileHandle", handle);
+          fileHandle = handle;
+          resolve(handle);
+        }catch(err){
+          reject(err);
+        }
+      };
+    });
+  }
+
+  function parseDataJs(text){
+    const m = text.match(/const\s+PORTAL_DATA\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+    if(!m) throw new Error("data.js の形式を読み取れませんでした");
+    return JSON.parse(m[1]);
+  }
+
+  function serializeDataJs(data){
+    const header =
+`/*
+ * 庁内レポート・調査結果 リンク集 データファイル
+ *
+ * このファイルは「入口ページ」から script タグで読み込まれます。
+ * 編集はページ上の「編集モード」から行ってください。手動で直接編集する場合は
+ * JavaScript の構文（カンマ・引用符・波括弧の対応）を崩さないよう注意してください。
+ *
+ * items: 各人が作成したレポート・調査結果へのリンク一覧
+ * logs : 書き込み履歴（直近100件を保持、古いものは自動的に削除されます）
+ */
+`;
+    return header + "const PORTAL_DATA = " + JSON.stringify(data, null, 2) + ";\n";
+  }
+
+  async function readCurrentFile(){
+    const handle = await getOrPickHandle();
+    const file = await handle.getFile();
+    const text = await file.text();
+    lastKnownModified = file.lastModified;
+    return parseDataJs(text);
+  }
+
+  async function writeCurrentFile(data){
+    const handle = await getOrPickHandle();
+    // 競合チェック：保存直前にもう一度ファイルの更新日時を確認
+    const fresh = await handle.getFile();
+    if(lastKnownModified !== null && fresh.lastModified !== lastKnownModified){
+      const proceed = confirm(
+        "この data.js は、あなたがこのページを開いた後に他の人（または他の端末）によって更新された可能性があります。\n\n"+
+        "「OK」を押すと最新の内容を読み込み直します（今回の変更内容は失われます。もう一度操作をやり直してください）。\n"+
+        "「キャンセル」を押すと保存を中止します。"
+      );
+      if(proceed){
+        await reloadFromFile();
+      }
+      throw new Error("conflict");
+    }
+    const writable = await handle.createWritable();
+    await writable.write(serializeDataJs(data));
+    await writable.close();
+    const after = await handle.getFile();
+    lastKnownModified = after.lastModified;
+  }
+
+  async function reloadFromFile(){
+    const data = await readCurrentFile();
+    items = data.items || [];
+    logs = data.logs || [];
+    renderChips(); renderList(); renderLogs();
+  }
+
+  /* ---------- 保存フロー（追加・編集・削除共通） ---------- */
+  async function persist(action, target, detail){
+    try{
+      await getOrPickHandle();
+      pushLog(action, target, detail);
+      await writeCurrentFile({ items, logs });
+      renderChips(); renderList(); renderLogs();
+      showStatus("data.js に保存しました（" + action + "：" + target + "）");
+    }catch(err){
+      if(err && err.message === "conflict"){
+        showStatus("最新のデータを読み込み直しました。もう一度操作をやり直してください。", true);
+      } else if(err && err.message === "cancelled"){
+        showStatus("ファイル選択がキャンセルされました", true);
+      } else {
+        console.error(err);
+        showStatus("保存に失敗しました：" + (err && err.message ? err.message : err), true);
+      }
+    }
+  }
+
+  /* ---------- アイテム追加・編集モーダル ---------- */
+  function openItemModal(id){
+    editingItemId = id || null;
+    const it = id ? items.find(x=>x.id===id) : null;
+    document.getElementById("itemModalTitle").textContent = it ? "リンクを編集" : "新規リンクを追加";
+    document.getElementById("fTitle").value = it ? it.title : "";
+    document.getElementById("fUrl").value = it ? it.url : "";
+    document.getElementById("fAuthor").value = it ? it.author : getEditorName();
+    document.getElementById("fStatus").value = it ? it.status : "公開中";
+    document.getElementById("fTags").value = it ? (it.tags||[]).join(", ") : "";
+    document.getElementById("itemOverlay").classList.add("open");
+  }
+  function closeItemModal(){
+    document.getElementById("itemOverlay").classList.remove("open");
+    editingItemId = null;
+  }
+  async function saveItemModal(){
+    const title = document.getElementById("fTitle").value.trim();
+    const url = document.getElementById("fUrl").value.trim();
+    const author = document.getElementById("fAuthor").value.trim();
+    const status = document.getElementById("fStatus").value;
+    const tags = document.getElementById("fTags").value.split(",").map(s=>s.trim()).filter(Boolean);
+
+    if(!title || !url || !author){
+      alert("タイトル・URL・作成者は必須です");
+      return;
+    }
+
+    closeItemModal();
+
+    if(editingItemId){
+      const it = items.find(x=>x.id===editingItemId);
+      it.title = title; it.url = url; it.author = author;
+      it.status = status; it.tags = tags; it.updatedAt = nowIso();
+      await persist("編集", title);
+    }else{
+      const newItem = {
+        id: uid(), title, url, author, status, tags,
+        createdAt: nowIso(), updatedAt: nowIso()
+      };
+      items.push(newItem);
+      await persist("追加", title);
+    }
+  }
+  async function deleteItem(id){
+    const it = items.find(x=>x.id===id);
+    if(!it) return;
+    if(!confirm(`「${it.title}」を削除します。よろしいですか？`)) return;
+    items = items.filter(x=>x.id!==id);
+    await persist("削除", it.title);
+  }
+
+  /* ---------- 編集モード切替 ---------- */
+  async function enterEditMode(){
+    ensureEditorName(async ()=>{
+      try{
+        await getOrPickHandle();
+        await reloadFromFile();
+        editMode = true;
+        document.getElementById("editModeBadge").style.display = "inline-block";
+        document.getElementById("editModeBtn").textContent = "編集モードを終了";
+        document.getElementById("addBar").style.display = "block";
+        renderList();
+        showStatus("編集モードになりました");
+      }catch(err){
+        if(err.message !== "cancelled"){
+          showStatus("ファイルへのアクセスに失敗しました：" + err.message, true);
+        }
+      }
+    });
+  }
+  function exitEditMode(){
+    editMode = false;
+    document.getElementById("editModeBadge").style.display = "none";
+    document.getElementById("editModeBtn").textContent = "編集モードを開始";
+    document.getElementById("addBar").style.display = "none";
+    renderList();
+  }
+
+  /* ---------- イベント登録 ---------- */
+  document.getElementById("editModeBtn").onclick = ()=>{
+    if(editMode) exitEditMode(); else enterEditMode();
+  };
+  document.getElementById("addItemBtn").onclick = ()=> openItemModal(null);
+  document.getElementById("itemCancelBtn").onclick = closeItemModal;
+  document.getElementById("itemSaveBtn").onclick = saveItemModal;
+  document.getElementById("searchInput").oninput = (e)=>{
+    searchQuery = e.target.value; renderList();
+  };
+  document.getElementById("sortSelect").onchange = (e)=>{
+    sortMode = e.target.value; renderList();
+  };
+  document.getElementById("logToggleBtn").onclick = ()=>{
+    document.getElementById("logDrawer").classList.toggle("open");
+  };
+  document.getElementById("logCloseBtn").onclick = ()=>{
+    document.getElementById("logDrawer").classList.remove("open");
+  };
+
+  /* File System Access API 非対応ブラウザへの案内 */
+  if(!window.showOpenFilePicker){
+    document.getElementById("editModeBtn").disabled = true;
+    document.getElementById("editModeBtn").title = "このブラウザは編集機能に対応していません（Chrome/Edge推奨）";
+  }
+
+  /* ---------- 初期描画 ---------- */
+  renderEditorTag();
+  renderChips();
+  renderList();
+  renderLogs();
+})();
+</script>
+</body>
+</html>
