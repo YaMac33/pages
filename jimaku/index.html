@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>字幕メーカー</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --text: #1d2330;
+    --muted: #6b7385;
+    --line: #dde1e8;
+    --accent: #2f6fde;
+    --accent-weak: #e8f0fd;
+    --danger: #c9372c;
+    --danger-weak: #fdecea;
+    --ok: #1f8a4c;
+    --active: #fff4cc;
+    --sub-bg: #10141c;
+    --sub-text: #ffffff;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b;
+      --panel: #1b2029;
+      --text: #e6e9ef;
+      --muted: #9aa3b5;
+      --line: #2e3542;
+      --accent: #6a9cff;
+      --accent-weak: #22304a;
+      --danger: #ff7a6e;
+      --danger-weak: #3a2220;
+      --ok: #5fd08f;
+      --active: #3a3420;
+      --sub-bg: #05070a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 12px; }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  [hidden] { display: none !important; }
+
+  /* ステップ表示 */
+  .steps { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .steps span { flex: 1; min-width: 90px; text-align: center; padding: 6px 4px; font-size: 13px;
+    border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); }
+  .steps span.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .steps span.done { color: var(--accent); border-color: var(--accent); }
+
+  /* ボタン */
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); padding: 8px 14px; }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.danger { color: var(--danger); }
+  button.small { padding: 3px 8px; font-size: 13px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .spacer { flex: 1; }
+
+  /* アップロード */
+  .drop { border: 2px dashed var(--line); border-radius: var(--radius); padding: 40px 16px; text-align: center;
+    cursor: pointer; transition: .15s; }
+  .drop.over { border-color: var(--accent); background: var(--accent-weak); }
+  .drop strong { display: block; font-size: 16px; margin-bottom: 4px; }
+  .fileinfo { margin: 14px 0; padding: 12px; border-radius: 8px; background: var(--accent-weak); }
+  .msg { margin: 12px 0; padding: 10px 12px; border-radius: 8px; font-size: 14px; white-space: pre-wrap; }
+  .msg.error { background: var(--danger-weak); color: var(--danger); }
+  .msg.warn { background: var(--active); }
+
+  /* 進捗 */
+  .progress { text-align: center; padding: 40px 16px; }
+  .spinner { width: 48px; height: 48px; margin: 0 auto 16px; border: 5px solid var(--line);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .plist { list-style: none; padding: 0; margin: 16px auto 0; max-width: 340px; text-align: left; }
+  .plist li { padding: 4px 0; color: var(--muted); }
+  .plist li.now { color: var(--text); font-weight: 600; }
+  .plist li.done { color: var(--ok); }
+
+  /* 編集 */
+  details.opts { margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+  details.opts summary { cursor: pointer; font-weight: 600; }
+  .optgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 16px; margin: 10px 0; }
+  .optgrid label { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+  .optgrid input[type=number] { width: 72px; }
+  input[type=text], input[type=number], textarea {
+    font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 7px; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .mini { position: sticky; top: 0; z-index: 5; background: var(--panel); padding: 10px 0; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .mini .time { font-variant-numeric: tabular-nums; font-size: 14px; }
+  .mini input[type=range] { flex: 1; min-width: 120px; }
+
+  .cues { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .cue, .cue-head { display: grid; grid-template-columns: 44px 128px 128px 1fr 120px; gap: 8px; align-items: start; padding: 8px; }
+  .cue-head { background: var(--bg); font-size: 13px; color: var(--muted); font-weight: 600; }
+  .cue { border-top: 1px solid var(--line); }
+  .cue.active { background: var(--active); }
+  .cue .no { font-variant-numeric: tabular-nums; color: var(--muted); padding-top: 6px; text-align: right; }
+  .cue input.t { width: 100%; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .cue input.t.bad { border-color: var(--danger); background: var(--danger-weak); }
+  .cue textarea { width: 100%; min-height: 38px; resize: vertical; }
+  .cue .ops { display: flex; gap: 4px; flex-wrap: wrap; }
+  .cue .lbl { display: none; }
+  @media (max-width: 680px) {
+    .cue-head { display: none; }
+    .cue { grid-template-columns: 1fr 1fr; }
+    .cue .no { grid-column: 1 / -1; text-align: left; padding-top: 0; }
+    .cue .txt, .cue .ops { grid-column: 1 / -1; }
+    .cue .lbl { display: block; font-size: 12px; color: var(--muted); }
+  }
+
+  /* プレイヤー */
+  .stage { background: var(--sub-bg); border-radius: var(--radius); padding: 24px 16px; min-height: 260px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+  .bigplay { width: 84px; height: 84px; border-radius: 50%; border: none; background: var(--accent); color: #fff;
+    font-size: 32px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+  .subtitle { color: var(--sub-text); font-size: clamp(22px, 4.5vw, 36px); font-weight: 600; text-align: center;
+    line-height: 1.45; min-height: 3em; white-space: pre-line; text-shadow: 0 2px 6px rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center; max-width: 900px; }
+  .controls { margin-top: 14px; }
+  .seek { width: 100%; margin: 10px 0 6px; }
+  .ptime { font-variant-numeric: tabular-nums; }
+  .vol { display: flex; align-items: center; gap: 6px; }
+  .vol input { width: 110px; }
+
+  dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); width: min(640px, 92vw); }
+  dialog textarea { width: 100%; height: 50vh; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+
+  /* 字幕の用意のしかた */
+  .sec-title { font-size: 15px; font-weight: 700; margin: 18px 0 8px; }
+  .sec-title:first-of-type { margin-top: 0; }
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+  .mode { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; cursor: pointer; }
+  .mode:has(input:checked) { border-color: var(--accent); background: var(--accent-weak); }
+  .mode input { margin-top: 5px; }
+  .mode b { display: block; }
+  .mode small { color: var(--muted); }
+  .subpanel { margin-top: 10px; }
+  .drop.small { padding: 18px 12px; }
+  .mono { width: 100%; font-family: ui-monospace, Menlo, Consolas, "MS Gothic", monospace; font-size: 14px; line-height: 1.5; }
+  #pasteText { min-height: 200px; }
+  #srtEditor { min-height: 60vh; }
+
+  /* 表／テキスト切替 */
+  .tabs { display: flex; gap: 4px; margin: 12px 0 0; border-bottom: 1px solid var(--line); }
+  .tabs button { border-radius: 8px 8px 0 0; border-bottom: none; background: var(--bg); color: var(--muted); }
+  .tabs button.on { background: var(--panel); color: var(--text); font-weight: 700; border-color: var(--line);
+    position: relative; top: 1px; }
+  .errlist { margin: 6px 0 0; padding-left: 1.2em; }
+  .errlist li { margin: 2px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>字幕メーカー</h1>
+
+  <div class="steps" id="steps">
+    <span data-step="upload">1 アップロード</span>
+    <span data-step="progress">2 字幕生成</span>
+    <span data-step="edit">3 確認・修正</span>
+    <span data-step="player">4 再生</span>
+  </div>
+
+  <!-- 1. アップロード -->
+  <section id="screen-upload" class="panel">
+    <div class="sec-title">① 音声（MP3）</div>
+    <div id="drop" class="drop" tabindex="0" role="button" aria-label="MP3 ファイルを選択">
+      <strong>ここにドラッグ＆ドロップ</strong>
+      <span class="muted">またはクリックしてファイルを選択（MP3 と字幕ファイルを一緒にドロップしても OK）</span>
+    </div>
+    <input type="file" id="fileInput" accept=".mp3,audio/mpeg,audio/mp3,.srt,.vtt,.txt" multiple hidden>
+    <div id="fileInfo" class="fileinfo" hidden></div>
+
+    <div class="sec-title">② 字幕の用意のしかた</div>
+    <div class="modes">
+      <label class="mode"><input type="radio" name="srcMode" value="ai" checked>
+        <span><b>AI で自動生成</b><small>Gemini で文字起こし（25MB・30分まで）</small></span></label>
+      <label class="mode"><input type="radio" name="srcMode" value="file">
+        <span><b>字幕ファイルを読み込む</b><small>.srt / .vtt / .txt</small></span></label>
+      <label class="mode"><input type="radio" name="srcMode" value="paste">
+        <span><b>テキストを貼り付ける</b><small>SRT 形式のテキスト</small></span></label>
+    </div>
+
+    <div id="srcFile" class="subpanel" hidden>
+      <div id="subDrop" class="drop small" tabindex="0" role="button" aria-label="字幕ファイルを選択">
+        <strong>字幕ファイルをドラッグ＆ドロップ</strong>
+        <span class="muted">またはクリックして選択（.srt / .vtt / .txt、UTF-8・Shift_JIS 対応）</span>
+      </div>
+      <input type="file" id="subInput" accept=".srt,.vtt,.txt,text/plain" hidden>
+      <div id="subInfo" class="fileinfo" hidden></div>
+    </div>
+
+    <div id="srcPaste" class="subpanel" hidden>
+      <textarea id="pasteText" class="mono" spellcheck="false" placeholder="1
+00:00:00,100 --> 00:00:01,500
+これはテスト音声です
+
+2
+00:00:02,000 --> 00:00:05,000
+字幕表示アプリを試すために作成しています"></textarea>
+    </div>
+
+    <div id="checkMsg" class="msg warn" hidden></div>
+    <div id="uploadMsg" class="msg" hidden></div>
+    <div class="row">
+      <span class="spacer"></span>
+      <button id="btnStart" class="primary" disabled>生成開始</button>
+    </div>
+  </section>
+
+  <!-- 2. 生成中 -->
+  <section id="screen-progress" class="panel" hidden>
+    <div class="progress">
+      <div class="spinner" aria-hidden="true"></div>
+      <div id="progressText"><strong>字幕を生成しています…</strong></div>
+      <div class="muted">経過時間 <span id="elapsed">0</span> 秒（この画面のまま、お待ちください）</div>
+      <ul class="plist" id="plist">
+        <li data-p="read">音声ファイルを読み込み</li>
+        <li data-p="upload">音声を送信</li>
+        <li data-p="transcribe">文字起こし（単語ごとの時刻つき）</li>
+        <li data-p="segment">字幕に分割</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3. 編集 -->
+  <section id="screen-edit" class="panel" hidden>
+    <div class="row">
+      <h2 style="margin:0">字幕の確認・修正</h2>
+      <span class="spacer"></span>
+      <button id="btnDownload1">SRT をダウンロード</button>
+      <button id="btnDone" class="primary">編集完了 → 再生へ</button>
+    </div>
+    <div id="editMsg" class="msg warn" hidden></div>
+
+    <details class="opts">
+      <summary>自動分割の設定・一括調整</summary>
+      <div id="resegBox">
+      <div class="optgrid">
+        <label>1字幕の最大文字数 <input type="number" id="optMax" min="8" max="80" value="30"></label>
+        <label>区切る無音の長さ <input type="number" id="optPause" min="0.1" max="5" step="0.1" value="0.6">秒</label>
+        <label>1字幕の最大表示 <input type="number" id="optDur" min="1" max="20" step="0.5" value="7">秒</label>
+        <label><input type="checkbox" id="optFiller" checked> 「えー」「あのー」等を除く</label>
+        <label><input type="checkbox" id="optTrim" checked> 字幕末尾の「、」「。」を省く</label>
+      </div>
+      <div class="row">
+        <button id="btnResegment">この設定で分割し直す</button>
+        <span class="muted">（手で直した内容は消えます）</span>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:12px 0">
+      </div>
+      <div class="row">
+        <label>全体のタイミングを <input type="number" id="shiftSec" step="0.1" value="0" style="width:80px"> 秒ずらす</label>
+        <button id="btnShift">適用</button>
+        <span class="muted">（＋で遅く、−で早く）</span>
+      </div>
+    </details>
+
+    <div class="mini" id="miniPlayer">
+      <div class="row">
+        <button id="miniToggle" class="small">▶ 再生</button>
+        <input type="range" id="miniSeek" min="0" max="0" step="0.01" value="0" aria-label="再生位置">
+        <span class="time" id="miniTime">00:00 / 00:00</span>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button id="tabTable" class="on" role="tab">表で編集</button>
+      <button id="tabText" role="tab">テキストで編集</button>
+    </div>
+
+    <div id="viewTable">
+      <p class="muted" style="margin:8px 0">時刻は「時:分:秒,ミリ秒」（例 00:01:23,450）。各行の ▶ でその字幕の区間だけ再生できます。</p>
+      <div class="cues" id="cueList"></div>
+      <div class="row" style="margin-top:10px">
+        <button id="btnAddEnd">＋ 末尾に字幕を追加</button>
+        <span class="spacer"></span>
+        <span class="muted" id="cueCount"></span>
+      </div>
+    </div>
+
+    <div id="viewText" hidden>
+      <p class="muted" style="margin:8px 0">SRT 形式のまま直接書き換えたり、別に用意した SRT テキストを丸ごと貼り付けたりできます。番号は振り直すので、ずれていても構いません。書き換えたら「反映」を押してください。</p>
+      <textarea id="srtEditor" class="mono" spellcheck="false"></textarea>
+      <div id="textMsg" class="msg" hidden></div>
+      <div class="row" style="margin-top:8px">
+        <button id="btnApplyText" class="primary">反映</button>
+        <button id="btnLoadSub">ファイルから読み込む</button>
+        <input type="file" id="subInput2" accept=".srt,.vtt,.txt,text/plain" hidden>
+        <span class="spacer"></span>
+        <button id="btnCopyText">テキストをコピー</button>
+        <button id="btnCopyPrompt" title="原稿に合わせて直してもらうための依頼文">AI への依頼文をコピー</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 再生 -->
+  <section id="screen-player" hidden>
+    <div class="stage">
+      <button id="bigPlay" class="bigplay" aria-label="再生">▶</button>
+      <div id="subtitle" class="subtitle" aria-live="polite"></div>
+    </div>
+    <div class="panel controls">
+      <input type="range" id="seek" class="seek" min="0" max="0" step="0.01" value="0" aria-label="再生位置">
+      <div class="row">
+        <button id="btnPlay">▶ 再生</button>
+        <button id="btnPause">❚❚ 一時停止</button>
+        <button id="btnStop">■ 停止</button>
+        <span class="ptime" id="ptime">00:00 / 00:00</span>
+        <span class="spacer"></span>
+        <label class="vol">音量 <input type="range" id="volume" min="0" max="1" step="0.01" value="1"></label>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button id="btnBackEdit">← 字幕を修正する</button>
+        <button id="btnDownload2">SRT をダウンロード</button>
+        <button id="btnShowSrt" title="ダウンロードできないときに使います">SRT を表示（コピー用）</button>
+        <span class="spacer"></span>
+        <button id="btnNew" class="danger">別のファイルで始める</button>
+      </div>
+    </div>
+  </section>
+
+  <audio id="audio" preload="auto"></audio>
+
+  <dialog id="srtDialog">
+    <p id="srtDialogMsg"></p>
+    <textarea id="srtText" readonly></textarea>
+    <div class="row" style="margin-top:8px">
+      <span class="spacer"></span>
+      <button id="srtClose">閉じる</button>
+    </div>
+  </dialog>
+</div>
+
+<script>
+'use strict';
+
+/* ==== core ==== （画面に依存しない処理） */
+
+const MAX_BYTES = 25 * 1024 * 1024;   // 送れるファイルサイズの上限
+const MAX_MINUTES = 30;               // 単語時刻つき文字起こしの上限
+const PUNCT = '。、，．,？！?!…‥';
+const FILLERS = new Set(['えー', 'えーと', 'えーっと', 'えっと', 'えと', 'あー', 'あのー', 'あのぉ',
+  'うーん', 'うー', 'んー', 'そのー', 'まー', 'えーー']);
+
+/** 秒 → "HH:MM:SS,mmm" */
+function fmtSrt(t) {
+  let ms = Math.max(0, Math.round((Number(t) || 0) * 1000));
+  const h = Math.floor(ms / 3600000); ms -= h * 3600000;
+  const m = Math.floor(ms / 60000); ms -= m * 60000;
+  const s = Math.floor(ms / 1000); ms -= s * 1000;
+  return pad(h, 2) + ':' + pad(m, 2) + ':' + pad(s, 2) + ',' + pad(ms, 3);
+}
+/** "HH:MM:SS,mmm"（時は省略可、"." 区切りも可）→ 秒（不正なら null） */
+function parseSrtTime(str) {
+  const m = /^\s*(?:(\d{1,2}):)?(\d{1,2}):(\d{1,2})(?:[,.](\d{1,3}))?\s*$/.exec(toHalfWidth(String(str)));
+  if (!m) return null;
+  const mm = Number(m[2]), ss = Number(m[3]);
+  if (mm > 59 || ss > 59) return null;
+  const ms = m[4] ? Number(m[4].padEnd(3, '0')) : 0;
+  return Number(m[1] || 0) * 3600 + mm * 60 + ss + ms / 1000;
+}
+
+/** 全角の数字・記号を半角にし、矢印のゆれを "-->" にそろえる（AI が出したテキスト対策） */
+function toHalfWidth(s) {
+  return s
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/：/g, ':').replace(/，/g, ',').replace(/．/g, '.')
+    .replace(/\s*(?:[-‐－—―−]+[>＞]|→)\s*/g, ' --> ');
+}
+
+const TS = '(?:\\d{1,2}:)?\\d{1,2}:\\d{1,2}(?:[,.]\\d{1,3})?';
+const CUE_RE = new RegExp('^\\s*(' + TS + ')\\s*-->\\s*(' + TS + ')(?:\\s.*)?$');
+
+/** 字幕テキストから書式タグ（<i> や {\an8} など）を取り除く */
+function stripTags(s) {
+  return s.replace(/<[^>]*>/g, '').replace(/\{\\[^}]*\}/g, '');
+}
+
+/**
+ * SRT / VTT のテキストを読み取る
+ * 番号の有無・ずれ、空行の不足、全角数字、コードブロック記号（```）などは許容する
+ * @return {{cues:Array, errors:Array<{line:number,msg:string}>, warnings:Array<{line:number,msg:string}>}}
+ */
+function parseSubtitles(input) {
+  const lines = String(input || '').replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
+  const cues = [], errors = [], warnings = [];
+  const norm = l => toHalfWidth(l);
+  const isTime = l => CUE_RE.test(norm(l));
+  const looksTime = l => /-->/.test(norm(l));
+  const isIndexBeforeTime = i => /^\s*\d+\s*$/.test(norm(lines[i])) && i + 1 < lines.length && looksTime(lines[i + 1]);
+
+  /** 時刻行の次から字幕テキストを集める */
+  const readText = i => {
+    const out = [];
+    while (i < lines.length) {
+      const l = lines[i];
+      if (!l.trim() || looksTime(l) || isIndexBeforeTime(i) || /^\s*```/.test(l)) break;
+      out.push(l.trim());
+      i++;
+    }
+    return { text: stripTags(out.join('\n')).trim(), next: i };
+  };
+
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i];
+    const line = norm(raw).trim();
+    const lineNo = i + 1;
+
+    if (isTime(raw)) {
+      const m = CUE_RE.exec(norm(raw));
+      const s = parseSrtTime(m[1]), e = parseSrtTime(m[2]);
+      const r = readText(i + 1);
+      if (s === null || e === null) errors.push({ line: lineNo, msg: '時刻の値が正しくありません（分・秒は 59 まで）：' + raw.trim() });
+      else if (e <= s) errors.push({ line: lineNo, msg: '終了時刻が開始時刻と同じか、それより前です：' + raw.trim() });
+      else if (!r.text) warnings.push({ line: lineNo, msg: '字幕の文字が空のため読み飛ばしました' });
+      else cues.push({ start: s, end: e, text: r.text });
+      i = r.next;
+      continue;
+    }
+    if (looksTime(raw)) {
+      errors.push({ line: lineNo, msg: '時刻の書き方が正しくありません（例 00:01:23,450 --> 00:01:25,000）：' + raw.trim() });
+      i = readText(i + 1).next;
+      continue;
+    }
+    if (/^(NOTE|STYLE|REGION)\b/.test(line)) {  // VTT のメモ・スタイルは読み飛ばす
+      while (i < lines.length && lines[i].trim()) i++;
+      continue;
+    }
+    if (line && !/^\d+$/.test(line) && !/^WEBVTT/.test(line) && !/^```/.test(line)) {
+      warnings.push({ line: lineNo, msg: '時刻の行がないため無視しました：' + raw.trim().slice(0, 30) });
+    }
+    i++;
+  }
+  cues.sort((a, b) => a.start - b.start);
+  if (!cues.length && !errors.length) {
+    errors.push({ line: 0, msg: '字幕が見つかりませんでした。「00:00:01,000 --> 00:00:03,000」のような時刻の行があるか確認してください。' });
+  }
+  return { cues, errors, warnings };
+}
+
+/** 問題の一覧を表示用の文字にする */
+function formatIssues(list, max) {
+  max = max || 10;
+  const lines = list.slice(0, max).map(x => (x.line ? x.line + ' 行目：' : '') + x.msg);
+  if (list.length > max) lines.push('…ほか ' + (list.length - max) + ' 件');
+  return lines.join('\n');
+}
+
+/** 原稿に合わせて字幕を直してもらうための AI への依頼文 */
+function aiPrompt(srt) {
+  return [
+    '次の「SRT字幕」は音声認識で作ったもので、誤りが含まれています。',
+    '「原稿」の文言に合わせて、各字幕のテキストを直してください。',
+    '',
+    '条件：',
+    '・字幕の番号と時刻（「-->」の行）は変えない',
+    '・字幕の数を増やしたり減らしたりしない',
+    '・各字幕のテキストは、その時刻に話している部分の原稿の文言にする',
+    '・出力は SRT 形式のテキストだけにする（説明文やコードブロックは付けない）',
+    '',
+    '【SRT字幕】',
+    srt.trim(),
+    '',
+    '【原稿】',
+    '（ここに原稿を貼り付けてください）'
+  ].join('\n');
+}
+/** 秒 → "MM:SS"（1時間以上は H:MM:SS） */
+function fmtClock(t) {
+  t = Math.max(0, Math.floor(Number(t) || 0));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return (h ? h + ':' + pad(m, 2) : pad(m, 2)) + ':' + pad(s, 2);
+}
+function pad(n, w) { return String(n).padStart(w, '0'); }
+
+/** 字幕の文字を SRT に入れられる形に整える（空行は SRT の区切りになるため除く） */
+function cleanText(s) {
+  return String(s || '').replace(/\r/g, '').replace(/\n\s*\n+/g, '\n').trim();
+}
+
+/** 字幕配列 → SRT 文字列 */
+function toSrt(cues) {
+  return cues
+    .filter(c => cleanText(c.text))
+    .map((c, i) => (i + 1) + '\n' + fmtSrt(c.start) + ' --> ' + fmtSrt(c.end) + '\n' + cleanText(c.text) + '\n')
+    .join('\n');
+}
+
+/**
+ * 単語の時刻の欠けを補い、全文テキストから句読点を単語に付け直す
+ * @param {Array<{w:string,s:?number,e:?number}>} raw
+ * @param {string} text  全文
+ */
+function normalizeWords(raw, text) {
+  const words = [];
+  let last = 0;
+  for (const r of raw || []) {
+    const w = String(r.w || '').trim();
+    if (!w) continue;
+    let s = (typeof r.s === 'number' && isFinite(r.s)) ? r.s : last;
+    let e = (typeof r.e === 'number' && isFinite(r.e)) ? r.e : s + 0.2;
+    if (s < last) s = last;
+    if (e < s) e = s;
+    words.push({ w, s, e });
+    last = e;
+  }
+  attachPunct(words, text || '');
+  return words;
+}
+
+/** 全文テキストを先頭からたどり、単語の直後にある句読点を単語に付ける */
+function attachPunct(words, text) {
+  let pos = 0;
+  for (const w of words) {
+    const idx = text.indexOf(w.w, pos);
+    if (idx === -1 || idx - pos > 30) continue; // 見つからない・離れすぎは飛ばす
+    pos = idx + w.w.length;
+    let p = '';
+    while (pos < text.length && (PUNCT.includes(text[pos]) || /\s/.test(text[pos]))) {
+      if (PUNCT.includes(text[pos])) p += text[pos];
+      pos++;
+    }
+    if (p && !PUNCT.includes(w.w[w.w.length - 1])) w.w += p;
+  }
+  return words;
+}
+
+function stripPunct(s) { return String(s).replace(/[。、，．,.？！?!…‥\s]/g, ''); }
+function isFiller(w) { return FILLERS.has(stripPunct(w)); }
+
+/** 単語をつなげる（英数字どうしの間だけ空白を入れる） */
+function joinWords(ws) {
+  let s = '';
+  for (const w of ws) {
+    const t = w.w;
+    if (s && /[A-Za-z0-9]$/.test(s) && /^[A-Za-z0-9]/.test(t)) s += ' ';
+    s += t;
+  }
+  return s;
+}
+
+function makeCue(ws, o) {
+  let text = joinWords(ws);
+  if (o.trimPunct) text = text.replace(/[、，,。．]+$/, '');
+  return { start: ws[0].s, end: ws[ws.length - 1].e, text };
+}
+
+/**
+ * 単語の列を字幕に分割する
+ * 区切る条件：文末の句点 / 一定以上の無音 / 最大文字数 / 最大表示時間
+ * 文字数オーバー時は、できれば直前の読点で区切る
+ */
+function segmentWords(words, o) {
+  const list = o.dropFiller ? words.filter(w => !isFiller(w.w)) : words.slice();
+  const cues = [];
+  let cur = [];
+  const flush = () => { if (cur.length) { cues.push(makeCue(cur, o)); cur = []; } };
+
+  for (const w of list) {
+    if (cur.length) {
+      const prev = cur[cur.length - 1];
+      const gap = w.s - prev.e;
+      const dur = w.e - cur[0].s;
+      if (gap >= o.pause || dur > o.maxDur) {
+        flush();
+      } else if (joinWords(cur.concat([w])).length > o.maxChars) {
+        let k = -1;
+        for (let j = cur.length - 2; j >= 0; j--) {
+          if (/[、，,]$/.test(cur[j].w)) { k = j; break; }
+        }
+        if (k >= 0) {
+          cues.push(makeCue(cur.slice(0, k + 1), o));
+          cur = cur.slice(k + 1);
+        } else {
+          flush();
+        }
+      }
+    }
+    cur.push(w);
+    if (/[。？！?!]$/.test(w.w)) flush();
+  }
+  flush();
+  return fixDurations(cues.filter(c => c.text));
+}
+
+/** 表示時間が短すぎる字幕を、次の字幕にかからない範囲で延ばす */
+function fixDurations(cues) {
+  const MIN = 1.0;
+  for (let i = 0; i < cues.length; i++) {
+    const c = cues[i], next = cues[i + 1];
+    if (c.end - c.start < MIN) c.end = next ? Math.max(c.end, Math.min(c.start + MIN, next.start)) : c.start + MIN;
+    if (c.end <= c.start) c.end = c.start + 0.3;
+  }
+  return cues;
+}
+
+/** 再生位置 t に表示する字幕の番号（なければ -1） */
+function findCueIndex(cues, t) {
+  for (let i = 0; i < cues.length; i++) {
+    const c = cues[i];
+    if (t >= c.start && t < c.end) return i;
+  }
+  return -1;
+}
+
+/* ==== ui ==== （画面の処理） */
+
+const $ = id => document.getElementById(id);
+const audio = $('audio');
+const state = {
+  file: null, url: null, duration: 0,
+  words: [], text: '', cues: [],
+  subText: '', subName: '',
+  dirty: false, saved: true, stopAt: null, screen: 'upload', activeIdx: -2,
+  view: 'table', textDirty: false
+};
+
+/** 手で修正した（dirty）＋未保存（saved=false）にする */
+function markDirty() { state.dirty = true; state.saved = false; }
+
+function opts() {
+  const num = (id, d) => { const v = parseFloat($(id).value); return isFinite(v) && v > 0 ? v : d; };
+  return {
+    maxChars: num('optMax', 30),
+    pause: num('optPause', 0.6),
+    maxDur: num('optDur', 7),
+    dropFiller: $('optFiller').checked,
+    trimPunct: $('optTrim').checked
+  };
+}
+
+function show(screen) {
+  state.screen = screen;
+  ['upload', 'progress', 'edit', 'player'].forEach(s => { $('screen-' + s).hidden = s !== screen; });
+  const order = ['upload', 'progress', 'edit', 'player'];
+  const idx = order.indexOf(screen);
+  document.querySelectorAll('#steps span').forEach(el => {
+    const i = order.indexOf(el.dataset.step);
+    el.className = i === idx ? 'on' : (i < idx ? 'done' : '');
+  });
+  if (screen !== 'edit' && screen !== 'player') audio.pause();
+  state.activeIdx = -2;
+  tick();
+  window.scrollTo(0, 0);
+}
+
+function showMsg(el, text, kind) {
+  el.textContent = text;
+  el.className = 'msg ' + (kind || '');
+  el.hidden = !text;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function fmtSize(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.ceil(b / 1024) + ' KB'; }
+
+/* ---------- 1. アップロード ---------- */
+
+const isAudioFile = f => /\.mp3$/i.test(f.name) || /audio\/(mpeg|mp3)/.test(f.type);
+const isSubFile = f => /\.(srt|vtt|txt)$/i.test(f.name);
+
+function srcMode() { return document.querySelector('input[name=srcMode]:checked').value; }
+function setSrcMode(v) {
+  document.querySelector('input[name=srcMode][value="' + v + '"]').checked = true;
+  onSrcModeChange();
+}
+function onSrcModeChange() {
+  const m = srcMode();
+  $('srcFile').hidden = m !== 'file';
+  $('srcPaste').hidden = m !== 'paste';
+  $('btnStart').textContent = m === 'ai' ? '生成開始' : '読み込んで編集へ';
+  showMsg($('uploadMsg'), '');
+  updateStart();
+}
+document.querySelectorAll('input[name=srcMode]').forEach(r => r.addEventListener('change', onSrcModeChange));
+$('pasteText').addEventListener('input', updateStart);
+
+/** 生成開始ボタンを押せるか判定し、制限に引っかかる理由を表示する */
+function updateStart() {
+  const m = srcMode();
+  let ok = !!state.file, why = '';
+  if (state.file && m === 'ai') {
+    if (state.file.size > MAX_BYTES) {
+      ok = false; why = 'AI で自動生成できるのは 25MB までです（このファイルは ' + fmtSize(state.file.size) + '）。字幕ファイルの読み込み・貼り付けなら使えます。';
+    } else if (state.duration > MAX_MINUTES * 60) {
+      ok = false; why = 'AI で自動生成できるのは ' + MAX_MINUTES + ' 分までです。字幕ファイルの読み込み・貼り付けなら使えます。';
+    }
+  }
+  if (m === 'file' && !state.subText) ok = false;
+  if (m === 'paste' && !$('pasteText').value.trim()) ok = false;
+  showMsg($('checkMsg'), why, 'warn');
+  $('btnStart').disabled = !ok;
+}
+
+function pickAudio(file) {
+  showMsg($('uploadMsg'), '');
+  if (!file) return;
+  if (!isAudioFile(file)) return showMsg($('uploadMsg'), 'MP3 ファイルを選んでください。', 'error');
+  if (file.size === 0) return showMsg($('uploadMsg'), 'ファイルが空です。', 'error');
+
+  if (state.url) URL.revokeObjectURL(state.url);
+  state.file = file;
+  state.url = URL.createObjectURL(file);
+  state.duration = 0;
+  audio.src = state.url;
+
+  $('fileInfo').innerHTML = '<div><strong>' + escapeHtml(file.name) + '</strong></div>' +
+    '<div class="muted">サイズ ' + fmtSize(file.size) + ' ／ 長さ <span id="durText">確認中…</span></div>';
+  $('fileInfo').hidden = false;
+  updateStart();
+}
+
+/** 文字コードを判定して読む（UTF-8 で読めなければ Shift_JIS） */
+async function readTextFile(file) {
+  const buf = await file.arrayBuffer();
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch (e) {
+    try { return new TextDecoder('shift_jis').decode(buf); }
+    catch (e2) { return new TextDecoder('utf-8').decode(buf); }
+  }
+}
+
+async function pickSub(file) {
+  showMsg($('uploadMsg'), '');
+  if (!file) return;
+  if (!isSubFile(file)) return showMsg($('uploadMsg'), '字幕ファイルは .srt / .vtt / .txt を選んでください。', 'error');
+  try {
+    state.subText = await readTextFile(file);
+    state.subName = file.name;
+    const n = parseSubtitles(state.subText).cues.length;
+    $('subInfo').innerHTML = '<div><strong>' + escapeHtml(file.name) + '</strong></div>' +
+      '<div class="muted">字幕 ' + n + ' 件を確認</div>';
+    $('subInfo').hidden = false;
+  } catch (e) {
+    state.subText = '';
+    showMsg($('uploadMsg'), '字幕ファイルを読み込めませんでした。', 'error');
+  }
+  updateStart();
+}
+
+/** ドロップ・選択されたファイルを、音声と字幕に振り分ける */
+function handleFiles(files) {
+  Array.from(files || []).forEach(f => {
+    if (isAudioFile(f)) pickAudio(f);
+    else if (isSubFile(f)) { setSrcMode('file'); pickSub(f); }
+    else showMsg($('uploadMsg'), '対応していないファイルです：' + f.name, 'error');
+  });
+}
+
+audio.addEventListener('loadedmetadata', () => {
+  state.duration = isFinite(audio.duration) ? audio.duration : 0;
+  const dt = $('durText');
+  if (dt) dt.textContent = state.duration ? fmtClock(state.duration) : '不明';
+  if (state.screen === 'upload') updateStart();
+  updateTimes();
+});
+audio.addEventListener('error', () => {
+  if (state.screen === 'upload' && state.file) {
+    const dt = $('durText');
+    if (dt) dt.textContent = '不明（このブラウザで再生できない可能性があります）';
+  }
+});
+
+/** ドラッグ＆ドロップ枠の共通設定 */
+function setupDrop(zone, input, onFiles) {
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('over');
+    onFiles(e.dataTransfer.files);
+  });
+  input.addEventListener('change', e => { onFiles(e.target.files); e.target.value = ''; });
+}
+setupDrop($('drop'), $('fileInput'), handleFiles);
+setupDrop($('subDrop'), $('subInput'), files => pickSub(files[0]));
+
+/** 字幕ファイル・貼り付けテキストから編集画面へ */
+function startFromText() {
+  const text = srcMode() === 'file' ? state.subText : $('pasteText').value;
+  const r = parseSubtitles(text);
+  if (r.errors.length) {
+    showMsg($('uploadMsg'), '字幕を読み取れない箇所があります。直してからもう一度お試しください。\n' + formatIssues(r.errors), 'error');
+    return;
+  }
+  state.words = [];
+  state.text = '';
+  state.cues = r.cues;
+  state.dirty = false;
+  state.saved = false;
+  setView('table', true);
+  renderCues();
+  show('edit');
+  reportImport(r);
+}
+
+/** 読み込み結果の注意点を編集画面に出す */
+function reportImport(r) {
+  const notes = [];
+  if (r.warnings.length) notes.push('読み込み時の注意（' + r.warnings.length + ' 件）\n' + formatIssues(r.warnings, 5));
+  const d = state.duration;
+  if (d) {
+    const over = state.cues.filter(c => c.start >= d).length;
+    if (over) notes.push('音声の長さ（' + fmtClock(d) + '）より後に始まる字幕が ' + over + ' 件あります。');
+  }
+  showMsg($('editMsg'), notes.join('\n\n'), 'warn');
+}
+
+/* ---------- 2. 生成 ---------- */
+
+function run(fn) {
+  const args = Array.prototype.slice.call(arguments, 1);
+  return new Promise((resolve, reject) => {
+    if (!(window.google && google.script && google.script.run)) {
+      reject(new Error('この画面は GAS のウェブアプリとして開いてください。'));
+      return;
+    }
+    const runner = google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(err => reject(err instanceof Error ? err : new Error(String((err && err.message) || err))));
+    runner[fn].apply(runner, args);
+  });
+}
+
+function readBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1] || '');
+    r.onerror = () => reject(new Error('ファイルを読み込めませんでした。'));
+    r.readAsDataURL(file);
+  });
+}
+
+function setPhase(key) {
+  let passed = true;
+  document.querySelectorAll('#plist li').forEach(li => {
+    if (li.dataset.p === key) { li.className = 'now'; passed = false; }
+    else li.className = passed ? 'done' : '';
+  });
+}
+
+let timer = null;
+async function startGenerate() {
+  if (!state.file) return;
+  show('progress');
+  const t0 = Date.now();
+  $('elapsed').textContent = '0';
+  timer = setInterval(() => { $('elapsed').textContent = Math.floor((Date.now() - t0) / 1000); }, 1000);
+  try {
+    setPhase('read');
+    const b64 = await readBase64(state.file);
+    setPhase('upload');
+    const info = await run('uploadAudio', b64, 'audio/mp3');
+    setPhase('transcribe');
+    const res = await run('transcribe', info);
+    setPhase('segment');
+    state.text = res.text || '';
+    state.words = normalizeWords(res.words, state.text);
+    if (!state.words.length) throw new Error('文字起こし結果に単語が含まれていませんでした。');
+    state.cues = segmentWords(state.words, opts());
+    state.dirty = false;
+    state.saved = false;
+    setView('table', true);
+    renderCues();
+    show('edit');
+    showMsg($('editMsg'), '');
+  } catch (err) {
+    show('upload');
+    let m = (err && err.message) || String(err);
+    if (/timed? ?out|タイムアウト|exceeded maximum execution time/i.test(m)) {
+      m += '\n処理が時間内に終わりませんでした。音声を短く分けて試してください。';
+    }
+    showMsg($('uploadMsg'), '字幕を生成できませんでした。\n' + m, 'error');
+  } finally {
+    clearInterval(timer);
+  }
+}
+$('btnStart').addEventListener('click', () => { srcMode() === 'ai' ? startGenerate() : startFromText(); });
+
+/* ---------- 3. 編集 ---------- */
+
+function renderCues() {
+  const head = '<div class="cue-head"><div>番号</div><div>開始</div><div>終了</div><div>字幕テキスト</div><div>操作</div></div>';
+  const rows = state.cues.map((c, i) =>
+    '<div class="cue" data-i="' + i + '">' +
+      '<div class="no">' + (i + 1) + '</div>' +
+      '<div><span class="lbl">開始</span><input type="text" class="t" data-k="start" value="' + fmtSrt(c.start) + '" inputmode="numeric" aria-label="開始時間"></div>' +
+      '<div><span class="lbl">終了</span><input type="text" class="t" data-k="end" value="' + fmtSrt(c.end) + '" inputmode="numeric" aria-label="終了時間"></div>' +
+      '<div class="txt"><textarea data-k="text" rows="1" aria-label="字幕テキスト">' + escapeHtml(c.text) + '</textarea></div>' +
+      '<div class="ops">' +
+        '<button class="small" data-a="play" title="この字幕の区間を再生">▶</button>' +
+        '<button class="small" data-a="add" title="この下に字幕を追加">＋</button>' +
+        '<button class="small danger" data-a="del" title="この字幕を削除">✕</button>' +
+      '</div>' +
+    '</div>').join('');
+  $('cueList').innerHTML = head + rows;
+  $('cueCount').textContent = '字幕 ' + state.cues.length + ' 件';
+  $('resegBox').hidden = !state.words.length;  // AI で生成したときだけ分割し直せる
+  state.activeIdx = -2;
+  validateAll();
+}
+
+function validateRow(row) {
+  const i = Number(row.dataset.i);
+  const c = state.cues[i];
+  const s = row.querySelector('[data-k=start]'), e = row.querySelector('[data-k=end]');
+  const sv = parseSrtTime(s.value), ev = parseSrtTime(e.value);
+  s.classList.toggle('bad', sv === null);
+  e.classList.toggle('bad', ev === null || (sv !== null && ev <= sv));
+  if (sv !== null) c.start = sv;
+  if (ev !== null) c.end = ev;
+  return sv !== null && ev !== null && ev > sv;
+}
+function validateAll() {
+  let ok = true;
+  document.querySelectorAll('#cueList .cue').forEach(r => { if (!validateRow(r)) ok = false; });
+  return ok;
+}
+
+$('cueList').addEventListener('input', e => {
+  const row = e.target.closest('.cue');
+  if (!row) return;
+  markDirty();
+  const k = e.target.dataset.k;
+  if (k === 'text') state.cues[Number(row.dataset.i)].text = e.target.value;
+  else validateRow(row);
+});
+$('cueList').addEventListener('change', e => {
+  // 時刻欄は入力が終わったら表記を整える
+  if (e.target.classList.contains('t')) {
+    const v = parseSrtTime(e.target.value);
+    if (v !== null) e.target.value = fmtSrt(v);
+  }
+});
+$('cueList').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-a]');
+  if (!btn) return;
+  const i = Number(btn.closest('.cue').dataset.i);
+  const c = state.cues[i];
+  if (btn.dataset.a === 'play') {
+    audio.currentTime = c.start;
+    state.stopAt = c.end;
+    audio.play();
+  } else if (btn.dataset.a === 'add') {
+    const next = state.cues[i + 1];
+    const start = c.end;
+    const end = next ? Math.max(start + 0.1, next.start) : start + 2;
+    state.cues.splice(i + 1, 0, { start, end, text: '' });
+    markDirty();
+    renderCues();
+    const ta = document.querySelector('.cue[data-i="' + (i + 1) + '"] textarea');
+    if (ta) ta.focus();
+  } else if (btn.dataset.a === 'del') {
+    if (!confirm((i + 1) + ' 番の字幕を削除しますか？')) return;
+    state.cues.splice(i, 1);
+    markDirty();
+    renderCues();
+  }
+});
+
+$('btnAddEnd').addEventListener('click', () => {
+  const last = state.cues[state.cues.length - 1];
+  const start = last ? last.end : 0;
+  state.cues.push({ start, end: start + 2, text: '' });
+  markDirty();
+  renderCues();
+  const ta = document.querySelector('.cue[data-i="' + (state.cues.length - 1) + '"] textarea');
+  if (ta) ta.focus();
+});
+
+$('btnResegment').addEventListener('click', () => {
+  if (state.dirty && !confirm('手で修正した内容は消えます。分割し直しますか？')) return;
+  state.cues = segmentWords(state.words, opts());
+  state.dirty = false;
+  renderCues();
+});
+
+$('btnShift').addEventListener('click', () => {
+  const d = parseFloat($('shiftSec').value);
+  if (!isFinite(d) || d === 0) return;
+  if (!syncFromText()) return;
+  if (!validateAll()) return alert('時刻が正しくない行があります（赤枠）。先に直してください。');
+  state.cues.forEach(c => { c.start = Math.max(0, c.start + d); c.end = Math.max(c.start + 0.1, c.end + d); });
+  state.words.forEach(w => { w.s = Math.max(0, w.s + d); w.e = Math.max(w.s, w.e + d); });
+  markDirty();
+  $('shiftSec').value = 0;
+  renderCues();
+  if (state.view === 'text') { $('srtEditor').value = toSrt(state.cues); state.textDirty = false; }
+});
+
+/* ---------- 3-2. テキストで編集 ---------- */
+
+/** 表／テキストの切り替え（force=true なら確認なしで切り替える） */
+function setView(v, force) {
+  if (!force && v === state.view) return;
+  if (!force && v === 'text') {
+    if (!validateAll()) return alert('時刻が正しくない行があります（赤枠）。先に直してください。');
+    $('srtEditor').value = toSrt(state.cues);
+    state.textDirty = false;
+    showMsg($('textMsg'), '');
+  }
+  if (!force && v === 'table' && state.textDirty) {
+    if (confirm('テキストの変更がまだ反映されていません。反映してから表に切り替えますか？\n（キャンセルすると変更を破棄します）')) {
+      if (!applyText()) return;
+    }
+    state.textDirty = false;
+  }
+  state.view = v;
+  $('viewTable').hidden = v !== 'table';
+  $('viewText').hidden = v !== 'text';
+  $('tabTable').classList.toggle('on', v === 'table');
+  $('tabText').classList.toggle('on', v === 'text');
+  if (v === 'table') renderCues();
+}
+$('tabTable').addEventListener('click', () => setView('table'));
+$('tabText').addEventListener('click', () => setView('text'));
+$('srtEditor').addEventListener('input', () => { state.textDirty = true; state.saved = false; });
+
+/** テキストを読み取って字幕に反映する（読めない箇所があれば反映しない） */
+function applyText() {
+  const r = parseSubtitles($('srtEditor').value);
+  if (r.errors.length) {
+    showMsg($('textMsg'), '読み取れない箇所があるため、反映していません。\n' + formatIssues(r.errors), 'error');
+    return false;
+  }
+  state.cues = r.cues;
+  markDirty();
+  state.textDirty = false;
+  $('srtEditor').value = toSrt(state.cues);  // 番号を振り直した形に整える
+  renderCues();
+  let msg = '字幕 ' + r.cues.length + ' 件を反映しました。';
+  if (r.warnings.length) msg += '\n注意（' + r.warnings.length + ' 件）\n' + formatIssues(r.warnings, 5);
+  showMsg($('textMsg'), msg, 'warn');
+  return true;
+}
+/** テキスト編集中なら、未反映の変更を反映してから先へ進む */
+function syncFromText() {
+  if (state.view === 'text' && state.textDirty) return applyText();
+  return true;
+}
+$('btnApplyText').addEventListener('click', applyText);
+$('btnCopyText').addEventListener('click', () => copyText($('srtEditor').value, 'テキスト'));
+$('btnCopyPrompt').addEventListener('click', () => copyText(aiPrompt($('srtEditor').value), 'AI への依頼文'));
+$('btnLoadSub').addEventListener('click', () => $('subInput2').click());
+$('subInput2').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  if (state.textDirty && !confirm('今のテキストを、ファイルの内容で置き換えますか？')) return;
+  $('srtEditor').value = await readTextFile(f);
+  state.textDirty = true;
+  showMsg($('textMsg'), 'ファイルを読み込みました。内容を確認して「反映」を押してください。', 'warn');
+});
+
+/** 時刻順に並べ替え、空の字幕を除いて確定する */
+function finalizeCues() {
+  if (!validateAll()) {
+    alert('時刻が正しくない行があります（赤枠）。\n「00:01:23,450」の形で、終了が開始より後になるように直してください。');
+    const bad = document.querySelector('#cueList .bad');
+    if (bad) bad.focus();
+    return false;
+  }
+  state.cues = state.cues
+    .map(c => ({ start: c.start, end: c.end, text: cleanText(c.text) }))
+    .filter(c => c.text)
+    .sort((a, b) => a.start - b.start);
+  renderCues();
+  return true;
+}
+
+$('btnDone').addEventListener('click', () => {
+  if (!syncFromText()) return;
+  if (!finalizeCues()) return;
+  if (!state.cues.length) return alert('字幕が 1 件もありません。');
+  state.stopAt = null;
+  audio.pause();
+  audio.currentTime = 0;
+  show('player');
+});
+
+/* ---------- 4. 再生 ---------- */
+
+function togglePlay() { audio.paused ? audio.play() : audio.pause(); }
+
+$('bigPlay').addEventListener('click', togglePlay);
+$('btnPlay').addEventListener('click', () => audio.play());
+$('btnPause').addEventListener('click', () => audio.pause());
+$('btnStop').addEventListener('click', () => { audio.pause(); audio.currentTime = 0; state.stopAt = null; tick(); });
+$('volume').addEventListener('input', e => { audio.volume = Number(e.target.value); });
+$('miniToggle').addEventListener('click', () => { state.stopAt = null; togglePlay(); });
+
+let seeking = false;
+['seek', 'miniSeek'].forEach(id => {
+  const el = $(id);
+  el.addEventListener('input', () => { seeking = true; audio.currentTime = Number(el.value); state.stopAt = null; tick(); });
+  el.addEventListener('change', () => { seeking = false; });
+});
+
+$('btnBackEdit').addEventListener('click', () => { audio.pause(); show('edit'); });
+$('btnNew').addEventListener('click', () => {
+  if (!confirm('今の字幕は消えます。SRT をダウンロード済みでなければ、先に保存してください。\n別のファイルで始めますか？')) return;
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  if (state.url) URL.revokeObjectURL(state.url);
+  Object.assign(state, { file: null, url: null, duration: 0, words: [], text: '', cues: [], subText: '', subName: '', dirty: false, saved: true, stopAt: null });
+  $('subInfo').hidden = true;
+  $('pasteText').value = '';
+  showMsg($('editMsg'), '');
+  setView('table', true);
+  onSrcModeChange();
+  $('fileInfo').hidden = true;
+  showMsg($('uploadMsg'), '');
+  updateStart();
+  show('upload');
+});
+
+document.addEventListener('keydown', e => {
+  if (state.screen !== 'player') return;
+  if (/^(INPUT|TEXTAREA|BUTTON)$/.test(e.target.tagName) && e.target.type !== 'range') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+});
+
+function updateTimes() {
+  const d = state.duration || (isFinite(audio.duration) ? audio.duration : 0);
+  const t = audio.currentTime || 0;
+  const label = fmtClock(t) + ' / ' + fmtClock(d);
+  $('ptime').textContent = label;
+  $('miniTime').textContent = label;
+  ['seek', 'miniSeek'].forEach(id => {
+    const el = $(id);
+    el.max = d || 0;
+    if (!seeking) el.value = t;
+  });
+}
+
+/** 再生位置に合わせて字幕・時間表示を更新 */
+function tick() {
+  const t = audio.currentTime || 0;
+  if (state.stopAt !== null && t >= state.stopAt) {
+    audio.pause();
+    state.stopAt = null;
+  }
+  const idx = findCueIndex(state.cues, t);
+  if (idx !== state.activeIdx) {
+    state.activeIdx = idx;
+    $('subtitle').textContent = idx >= 0 ? state.cues[idx].text : '';
+    if (state.screen === 'edit') {
+      const prev = document.querySelector('#cueList .cue.active');
+      if (prev) prev.classList.remove('active');
+      const row = document.querySelector('#cueList .cue[data-i="' + idx + '"]');
+      if (row) row.classList.add('active');
+    }
+  }
+  updateTimes();
+}
+
+function loop() {
+  tick();
+  if (!audio.paused) requestAnimationFrame(loop);
+}
+audio.addEventListener('play', () => { setPlayingUI(true); requestAnimationFrame(loop); });
+audio.addEventListener('pause', () => { setPlayingUI(false); tick(); });
+audio.addEventListener('ended', () => { setPlayingUI(false); tick(); });
+audio.addEventListener('seeked', tick);
+audio.addEventListener('timeupdate', () => { if (audio.paused) tick(); });
+
+function setPlayingUI(playing) {
+  $('bigPlay').textContent = playing ? '❚❚' : '▶';
+  $('bigPlay').setAttribute('aria-label', playing ? '一時停止' : '再生');
+  $('miniToggle').textContent = playing ? '❚❚ 一時停止' : '▶ 再生';
+}
+
+/* ---------- SRT 出力 ---------- */
+
+function srtFileName() {
+  const base = state.file ? state.file.name.replace(/\.[^.]+$/, '') : 'subtitles';
+  return base + '.srt';
+}
+
+function downloadSrt() {
+  if (state.screen === 'edit' && (!syncFromText() || !finalizeCues())) return;
+  const srt = toSrt(state.cues);
+  try {
+    const blob = new Blob(['\ufeff' + srt], { type: 'application/x-subrip;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = srtFileName();
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    state.saved = true;
+  } catch (e) {
+    openSrtDialog(srt);
+  }
+}
+function openSrtDialog(srt, msg) {
+  $('srtDialogMsg').textContent = msg || 'ダウンロードできない場合は、下の内容をコピーしてテキストファイル（拡張子 .srt）として保存してください。';
+  $('srtText').value = srt;
+  $('srtDialog').showModal();
+  $('srtText').select();
+}
+
+/** クリップボードにコピー（できない環境ではコピー用の画面を出す） */
+async function copyText(text, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return toast(label + 'をコピーしました。');
+  } catch (e) { /* 次の方法へ */ }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  if (ok) toast(label + 'をコピーしました。');
+  else openSrtDialog(text, '自動でコピーできませんでした。下の内容を全選択してコピーしてください。');
+}
+function toast(text) { showMsg($('textMsg'), text, 'warn'); setTimeout(() => { if ($('textMsg').textContent === text) showMsg($('textMsg'), ''); }, 2500); }
+$('srtClose').addEventListener('click', () => $('srtDialog').close());
+$('btnDownload1').addEventListener('click', downloadSrt);
+$('btnDownload2').addEventListener('click', downloadSrt);
+$('btnShowSrt').addEventListener('click', () => openSrtDialog(toSrt(state.cues)));
+
+window.addEventListener('beforeunload', e => {
+  if (state.cues.length && !state.saved) { e.preventDefault(); e.returnValue = ''; }
+});
+
+onSrcModeChange();
+show('upload');
+</script>
+</body>
+</html>
+
+
+

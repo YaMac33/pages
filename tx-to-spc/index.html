@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#fff; --text:#1f2328; --muted:#66707a; --line:#d8dde3;
+    --accent:#2563eb; --accent-weak:#e8efff; --ok:#15803d; --ng:#b91c1c;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#16181c; --panel:#1f2227; --text:#e6e8eb; --muted:#9aa3ad; --line:#353a41;
+      --accent:#6b9bff; --accent-weak:#24314d; --ok:#4ade80; --ng:#f87171; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Segoe UI","Hiragino Sans","Meiryo",sans-serif;font-size:14px;line-height:1.6}
+  .wrap{max-width:820px;margin:0 auto;padding:24px 16px 48px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 20px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+  label.cap{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+  select,input[type=text],textarea{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--line);
+    border-radius:6px;background:var(--panel);color:var(--text);width:100%}
+  textarea{min-height:120px;resize:vertical;line-height:1.7}
+  .grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} }
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .val{font-variant-numeric:tabular-nums;color:var(--text);font-weight:600}
+  button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--panel);color:var(--text);
+    border-radius:6px;padding:7px 14px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .bar .sp{flex:1}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  .status{font-size:13px;margin-top:10px;min-height:1.6em}
+  .ok{color:var(--ok)} .ng{color:var(--ng)}
+  audio{width:100%;margin-top:10px}
+  a.dl{display:inline-block;text-decoration:none;color:#fff;background:var(--ok);border-radius:6px;padding:7px 14px;font-weight:600}
+  code{background:var(--accent-weak);padding:0 4px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ナレーション音声作成</h1>
+  <p class="sub">入力した文章を Google の音声合成で読み上げ、MP3 で保存します（最小版）。</p>
+
+  <div class="panel">
+    <div class="grid">
+      <div>
+        <label class="cap" for="voice">声</label>
+        <select id="voice"><option>読み込み中…</option></select>
+      </div>
+      <div>
+        <label class="cap" for="rate">速さ <span class="val" id="rateV">1.00</span></label>
+        <input type="range" id="rate" min="0.5" max="2" step="0.05" value="1">
+      </div>
+      <div>
+        <label class="cap" for="pitch">高さ <span class="val" id="pitchV">0</span></label>
+        <input type="range" id="pitch" min="-10" max="10" step="1" value="0">
+      </div>
+    </div>
+    <div class="hint" id="voiceNote"></div>
+  </div>
+
+  <div class="panel">
+    <label class="cap" for="text">読み上げる文章</label>
+    <textarea id="text" placeholder="例：こんにちは。[1秒]これから〇〇の手続きについて説明します。"></textarea>
+    <div class="hint">
+      <code>[1秒]</code> <code>[0.5秒]</code> のように書くと、その位置に間（無音）が入ります。　文字数：<span id="count">0</span>
+    </div>
+    <div class="bar">
+      <button class="primary" id="bGen">▶ 生成して再生</button>
+      <span class="sp"></span>
+      <input type="text" id="fname" value="narration" style="width:180px" spellcheck="false" title="保存するファイル名">
+      <span class="small">.mp3</span>
+      <span id="dlWrap"></span>
+    </div>
+    <div class="status" id="status"></div>
+    <audio id="player" controls hidden></audio>
+  </div>
+
+  <p class="hint">この画面で生成した文字数（今回）：<span id="used">0</span> 文字。料金は Google Cloud の無料枠（月ごと）から差し引かれます。</p>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const voiceSel = $('#voice'), rate = $('#rate'), pitch = $('#pitch'), text = $('#text');
+  const statusEl = $('#status'), player = $('#player'), dlWrap = $('#dlWrap'), bGen = $('#bGen');
+  let used = 0, lastKey = '', lastUrl = null;
+
+  // google.script.run を Promise で使えるようにする
+  const gas = (fn, ...args) => new Promise((resolve, reject) =>
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args));
+
+  // 設定の保存・復元（ブラウザに保存）
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('tts.' + k); return v === null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('tts.' + k, v); } catch (e) {} },
+  };
+  rate.value = store.get('rate', '1'); pitch.value = store.get('pitch', '0');
+  text.value = store.get('text', '');
+
+  function setStatus(msg, cls = '') { statusEl.className = 'status ' + cls; statusEl.textContent = msg; }
+  function refreshLabels() {
+    $('#rateV').textContent = (+rate.value).toFixed(2);
+    $('#pitchV').textContent = (pitch.value > 0 ? '+' : '') + pitch.value;
+    $('#count').textContent = text.value.length;
+    const chirp = /Chirp/i.test(voiceSel.value);
+    pitch.disabled = chirp;
+    $('#voiceNote').textContent = chirp ? 'この声は「高さ」の調整に対応していません。' : '';
+  }
+  rate.addEventListener('input', () => { store.set('rate', rate.value); refreshLabels(); });
+  pitch.addEventListener('input', () => { store.set('pitch', pitch.value); refreshLabels(); });
+  text.addEventListener('input', () => { store.set('text', text.value); refreshLabels(); });
+  voiceSel.addEventListener('change', () => { store.set('voice', voiceSel.value); refreshLabels(); });
+
+  // 声の一覧を取得
+  (async () => {
+    try {
+      const voices = await gas('listVoices');
+      const groups = {};
+      voices.forEach(v => (groups[v.type.label] = groups[v.type.label] || []).push(v));
+      voiceSel.innerHTML = Object.entries(groups).map(([label, list]) =>
+        `<optgroup label="${label}">` + list.map(v =>
+          `<option value="${v.name}">${v.name.replace('ja-JP-', '')}（${v.gender === 'FEMALE' ? '女性' : v.gender === 'MALE' ? '男性' : '—'}）</option>`
+        ).join('') + '</optgroup>').join('');
+      const saved = store.get('voice', '');
+      if (saved && voices.some(v => v.name === saved)) voiceSel.value = saved;
+      refreshLabels();
+    } catch (err) {
+      voiceSel.innerHTML = '<option>取得できませんでした</option>';
+      setStatus('声の一覧を取得できませんでした：' + (err.message || err), 'ng');
+    }
+  })();
+
+  // [1秒] などの記号を SSML に変換
+  function toRequestText(src) {
+    const pause = /\[\s*(\d+(?:\.\d+)?)\s*秒\s*\]/g;
+    if (!pause.test(src)) return { text: src, ssml: false };
+    const escXml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const body = escXml(src).replace(pause, (_, sec) => `<break time="${Math.min(10, +sec)}s"/>`);
+    return { text: '<speak>' + body + '</speak>', ssml: true };
+  }
+
+  function b64ToBlob(b64, type) {
+    const bin = atob(b64), arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type });
+  }
+
+  bGen.addEventListener('click', async () => {
+    const src = text.value.trim();
+    if (!src) { setStatus('文章を入力してください', 'ng'); return; }
+    const req = { ...toRequestText(src), voice: voiceSel.value, rate: +rate.value, pitch: +pitch.value };
+    const key = JSON.stringify(req);
+    if (key === lastKey && lastUrl) { player.currentTime = 0; player.play(); return; } // 同じ内容なら再生成しない
+
+    bGen.disabled = true;
+    setStatus('音声を生成中…');
+    try {
+      const res = await gas('synthesize', req);
+      used += res.chars; $('#used').textContent = used.toLocaleString();
+      if (lastUrl) URL.revokeObjectURL(lastUrl);
+      lastUrl = URL.createObjectURL(b64ToBlob(res.audio, 'audio/mpeg'));
+      lastKey = key;
+      player.src = lastUrl; player.hidden = false; player.play().catch(() => {});
+      renderDownload();
+      setStatus('生成しました' + (req.ssml ? '（間の指定あり）' : ''), 'ok');
+    } catch (err) {
+      setStatus('生成できませんでした：' + (err.message || err), 'ng');
+    } finally {
+      bGen.disabled = false;
+    }
+  });
+
+  function renderDownload() {
+    if (!lastUrl) { dlWrap.innerHTML = ''; return; }
+    const name = (($('#fname').value.trim()) || 'narration').replace(/[\\/:*?"<>|]/g, '_') + '.mp3';
+    dlWrap.innerHTML = '';
+    const a = document.createElement('a');
+    a.className = 'dl'; a.href = lastUrl; a.download = name; a.textContent = '保存';
+    dlWrap.appendChild(a);
+  }
+  $('#fname').addEventListener('input', renderDownload);
+
+  refreshLabels();
+})();
+</script>
+</body>
+</html>
+
