@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MD → HTML 保存ツール</title>
+<!-- 表示用ライブラリ（CDN） -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+<style>
+:root{--bg:#f6f8fa;--panel:#fff;--line:#d0d7de;--text:#1f2328;--muted:#656d76;--accent:#0969da;--accent-text:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#010409;--panel:#0d1117;--line:#30363d;--text:#e6edf3;--muted:#8d96a0;--accent:#2f81f7}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Hiragino Sans","Meiryo",sans-serif;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:15px;margin:0 8px 0 0;white-space:nowrap}
+#title{flex:1 1 220px;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:14px}
+.btn{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+main{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
+.pane{display:flex;flex-direction:column;min-height:0;min-width:0}
+.pane+.pane{border-left:1px solid var(--line)}
+.pane-head{font-size:12px;color:var(--muted);padding:6px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;background:var(--panel)}
+#editor{flex:1;width:100%;border:0;resize:none;padding:16px;background:var(--panel);color:var(--text);font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;outline:none;tab-size:2}
+#editor.drag{outline:2px dashed var(--accent);outline-offset:-8px}
+#preview-wrap{flex:1;overflow:auto;background:var(--panel)}
+#preview{padding:24px 28px;max-width:900px;margin:0 auto}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--panel);padding:8px 16px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+@media (max-width:800px){main{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.pane+.pane{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>MD → HTML</h1>
+  <input id="title" type="text" placeholder="タイトル（空欄なら最初の # 見出し）">
+  <button class="btn" id="open">ファイルを開く</button>
+  <button class="btn" id="clear">クリア</button>
+  <button class="btn primary" id="save">HTMLで保存</button>
+  <input type="file" id="file" accept=".md,.markdown,.txt,.html,.htm" hidden>
+</header>
+<main>
+  <section class="pane">
+    <div class="pane-head"><span>Markdown（貼り付け・ドラッグ＆ドロップ可）</span><span id="status"></span></div>
+    <textarea id="editor" spellcheck="false" placeholder="ここにMarkdownを貼り付け"></textarea>
+  </section>
+  <section class="pane">
+    <div class="pane-head"><span>プレビュー</span><span>Ctrl+S で保存</span></div>
+    <div id="preview-wrap"><article id="preview" class="markdown-body"></article></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ===== 保存されるHTMLのひな形 =====
+  // {{TITLE}} {{SAVED}} {{MD}} が差し込まれる。MDは<textarea>の中に原文のまま埋め込むので、
+  // 保存後のファイルをこのツールで再度開けば編集を続けられる。
+  const VIEWER = `<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="generator" content="md2html">
+<meta name="saved-at" content="{{SAVED}}">
+<title>{{TITLE}}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+<style>
+[hidden]{display:none!important}
+body{margin:0;background:#fff}
+@media (prefers-color-scheme:dark){body{background:#0d1117}}
+.wrap{max-width:900px;margin:0 auto;padding:48px 24px 64px}
+#raw{white-space:pre-wrap;word-break:break-word;font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}
+.bar{position:fixed;top:10px;right:10px;display:flex;gap:6px;z-index:10}
+.bar button{padding:5px 10px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;color:#1f2328;font-size:12px;cursor:pointer;opacity:.85}
+.bar button:hover{opacity:1}
+@media (prefers-color-scheme:dark){.bar button{background:#21262d;color:#e6edf3;border-color:#30363d}}
+#note{background:#fff8c5;color:#1f2328;padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:16px}
+@media print{.bar{display:none}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="bar"><button id="toggle">MD原文</button><button id="copy">MDをコピー</button></div>
+<div class="wrap">
+<div id="note" hidden>表示用ライブラリを読み込めなかったため、Markdown原文を表示しています。</div>
+<article id="out" class="markdown-body"></article>
+<pre id="raw" class="markdown-body" hidden></pre>
+</div>
+<textarea id="md-source" hidden>
+{{MD}}</textarea>
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"><\/script>
+<script>
+(function(){
+  var md = document.getElementById('md-source').value;
+  var out = document.getElementById('out');
+  var raw = document.getElementById('raw');
+  var toggle = document.getElementById('toggle');
+  raw.textContent = md;
+  if (window.marked && window.DOMPurify) {
+    out.innerHTML = DOMPurify.sanitize(marked.parse(md));
+    if (window.hljs) {
+      var codes = out.querySelectorAll('pre code');
+      for (var i = 0; i < codes.length; i++) hljs.highlightElement(codes[i]);
+    }
+  } else {
+    out.hidden = true; raw.hidden = false; toggle.hidden = true;
+    document.getElementById('note').hidden = false;
+  }
+  toggle.onclick = function(){
+    var showRaw = raw.hidden;
+    raw.hidden = !showRaw; out.hidden = showRaw;
+    toggle.textContent = showRaw ? '整形表示' : 'MD原文';
+  };
+  document.getElementById('copy').onclick = function(){
+    var btn = this;
+    function done(){ btn.textContent = 'コピーしました'; setTimeout(function(){ btn.textContent = 'MDをコピー'; }, 1500); }
+    function fallback(){
+      var t = document.createElement('textarea'); t.value = md; document.body.appendChild(t);
+      t.select(); document.execCommand('copy'); t.remove(); done();
+    }
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(md).then(done, fallback);
+    else fallback();
+  };
+})();
+<\/script>
+</body>
+</html>
+`;
+
+  // ===== 要素 =====
+  const $ = (id) => document.getElementById(id);
+  const editor = $('editor'), preview = $('preview'), titleIn = $('title');
+  const statusEl = $('status'), fileIn = $('file'), toastEl = $('toast');
+  const DRAFT_KEY = 'md2html-draft';
+
+  const SAMPLE = [
+    '# サンプルドキュメント',
+    '',
+    'ここに **Markdown** を貼り付けると、右側にプレビューが表示されます。',
+    '「HTMLで保存」を押すと、ブラウザで開くだけで整形表示されるHTMLファイルがダウンロードされます。',
+    '',
+    '## 使えるもの',
+    '',
+    '- 見出し・リスト・**太字**・*斜体*・[リンク](https://example.com)',
+    '- 表、チェックリスト、コードブロック（色付け）',
+    '',
+    '| 項目 | 内容 |',
+    '|---|---|',
+    '| 担当 | 〇〇課 |',
+    '| 期限 | 〇月〇日 |',
+    '',
+    '- [x] 下書き',
+    '- [ ] 確認',
+    '',
+    '```js',
+    'console.log("Hello");',
+    '```',
+    '',
+    '> 保存したHTMLは「ファイルを開く」で読み込むと、再編集できます。'
+  ].join('\n');
+
+  // ===== ユーティリティ =====
+  const esc = (s) => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  const guessTitle = (md) => {
+    const m = md.match(/^#\s+(.+?)\s*#*\s*$/m);
+    return m ? m[1].trim() : '';
+  };
+  const currentTitle = () => titleIn.value.trim() || guessTitle(editor.value) || '無題のドキュメント';
+  const safeName = (s) => s.replace(/[\\/:*?"<>|\r\n\t]/g, '_').trim().slice(0, 80) || 'document';
+
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  }
+
+  // ===== プレビュー =====
+  function render() {
+    const md = editor.value;
+    if (window.marked && window.DOMPurify) {
+      preview.innerHTML = DOMPurify.sanitize(marked.parse(md));
+      if (window.hljs) preview.querySelectorAll('pre code').forEach((el) => hljs.highlightElement(el));
+    } else {
+      preview.textContent = 'ライブラリ（CDN）を読み込めませんでした。ネット接続を確認してください。保存は可能です。';
+    }
+    statusEl.textContent = md.length.toLocaleString() + ' 文字';
+    titleIn.placeholder = guessTitle(md) || 'タイトル（空欄なら最初の # 見出し）';
+    try { localStorage.setItem(DRAFT_KEY, md); } catch (e) { /* 保存できない環境は無視 */ }
+  }
+
+  let renderTimer;
+  editor.addEventListener('input', () => {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(render, 150);
+  });
+
+  // Tabキーでインデント（フォーカスが外れないように）
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      editor.setRangeText('  ', editor.selectionStart, editor.selectionEnd, 'end');
+      editor.dispatchEvent(new Event('input'));
+    }
+  });
+
+  // ===== 保存 =====
+  function buildHtml(md, title) {
+    const vals = {
+      TITLE: esc(title),
+      SAVED: esc(new Date().toLocaleString('ja-JP')),
+      MD: esc(md)
+    };
+    // 1回の置換で差し込む（本文中の {{...}} を誤って置換しないため）
+    return VIEWER.replace(/\{\{(TITLE|SAVED|MD)\}\}/g, (_, k) => vals[k]);
+  }
+
+  function save() {
+    const md = editor.value;
+    if (!md.trim()) { toast('Markdownが空です'); return; }
+    const title = currentTitle();
+    const blob = new Blob([buildHtml(md, title)], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = safeName(title) + '.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('保存しました：' + a.download);
+  }
+
+  $('save').addEventListener('click', save);
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
+  });
+
+  // ===== 読み込み（.md / .txt / このツールで保存した .html） =====
+  async function loadFile(file) {
+    const text = await file.text();
+    if (/\.html?$/i.test(file.name)) {
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      const src = doc.getElementById('md-source');
+      if (!src) { toast('このツールで保存したHTMLではありません'); return; }
+      editor.value = src.textContent;
+      titleIn.value = doc.title || '';
+    } else {
+      editor.value = text;
+      titleIn.value = '';
+    }
+    render();
+    toast('読み込みました：' + file.name);
+  }
+
+  $('open').addEventListener('click', () => fileIn.click());
+  fileIn.addEventListener('change', () => {
+    if (fileIn.files[0]) loadFile(fileIn.files[0]);
+    fileIn.value = '';
+  });
+
+  editor.addEventListener('dragover', (e) => {
+    if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); editor.classList.add('drag'); }
+  });
+  editor.addEventListener('dragleave', () => editor.classList.remove('drag'));
+  editor.addEventListener('drop', (e) => {
+    editor.classList.remove('drag');
+    if (e.dataTransfer.files.length) { e.preventDefault(); loadFile(e.dataTransfer.files[0]); }
+  });
+
+  // ===== クリア =====
+  $('clear').addEventListener('click', () => {
+    if (editor.value && !confirm('入力内容を消去しますか？')) return;
+    editor.value = '';
+    titleIn.value = '';
+    render();
+    editor.focus();
+  });
+
+  // ===== 初期表示（前回の下書きがあれば復元） =====
+  let draft = null;
+  try { draft = localStorage.getItem(DRAFT_KEY); } catch (e) { /* 無視 */ }
+  editor.value = draft !== null ? draft : SAMPLE;
+  render();
+})();
+</script>
+</body>
+</html>
+
