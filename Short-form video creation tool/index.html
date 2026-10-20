@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ショート動画メーカー</title>
+<!-- MP4 にまとめる部品（mp4-muxer）。動画の書き出しにだけ使う -->
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1c2230; --muted: #687083; --line: #dde1e8;
+    --accent: #2f6fde; --accent-weak: #e8f0fd; --danger: #c9372c; --danger-weak: #fdecea;
+    --ok: #1f8a4c; --hl: #fff1bf; --warn: #fff6d6; --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b5; --line: #2e3542;
+      --accent: #6a9cff; --accent-weak: #22304a; --danger: #ff7a6e; --danger-weak: #3a2220;
+      --ok: #5fd08f; --hl: #3a3420; --warn: #3a3420;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+    font-size: 15px; line-height: 1.6;
+  }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 12px; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  h3 { font-size: 14px; margin: 14px 0 6px; color: var(--muted); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .spacer { flex: 1; }
+  button {
+    font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--panel); color: var(--text); padding: 7px 14px; white-space: nowrap;
+  }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  button.small { padding: 3px 8px; font-size: 13px; }
+  button.danger { color: var(--danger); }
+  input[type=text], input[type=number], textarea, select {
+    font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 7px;
+  }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  input[type=range] { accent-color: var(--accent); }
+  input[type=color] { width: 44px; height: 30px; padding: 0 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+  label { cursor: pointer; }
+  .msg { margin: 12px 0; padding: 10px 12px; border-radius: 8px; font-size: 14px; white-space: pre-wrap; }
+  .msg.error { background: var(--danger-weak); color: var(--danger); }
+  .msg.warn { background: var(--warn); }
+
+  .steps { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .steps span { flex: 1; min-width: 100px; text-align: center; padding: 6px 4px; font-size: 13px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--muted); }
+  .steps span.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .steps span.done { color: var(--accent); border-color: var(--accent); }
+
+  /* 入口 */
+  .entries { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .entry { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; background: var(--panel); }
+  .entry:has(input:checked) { border-color: var(--accent); background: var(--accent-weak); }
+  .entry input { margin-top: 5px; }
+  .entry b { display: block; }
+  .entry small { color: var(--muted); }
+  .field { margin: 12px 0; }
+  .field > .lab { display: block; font-weight: 700; margin-bottom: 4px; }
+  .field textarea { width: 100%; }
+  #scriptText, #ownScript { min-height: 180px; }
+  .drop { border: 2px dashed var(--line); border-radius: var(--radius); padding: 22px 16px; text-align: center; cursor: pointer; }
+  .drop.over { border-color: var(--accent); background: var(--accent-weak); }
+  .drop strong { display: block; }
+  .fileinfo { margin: 8px 0; padding: 8px 12px; border-radius: 8px; background: var(--accent-weak); font-size: 14px; }
+
+  /* 処理中 */
+  .busy { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50; display: flex; align-items: center; justify-content: center; }
+  .busy .box { background: var(--panel); border-radius: 12px; padding: 28px 32px; text-align: center; min-width: 300px; max-width: 90vw; }
+  .spinner { width: 44px; height: 44px; margin: 0 auto 14px; border: 5px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .bar { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 12px 0 6px; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .1s; }
+
+  /* 編集 */
+  .editor { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; }
+  .previewCol { position: sticky; top: 10px; }
+  #preview { display: block; height: min(72vh, 720px); aspect-ratio: 9 / 16; border-radius: 10px; border: 1px solid var(--line); background: #000; }
+  .pctl { margin-top: 8px; }
+  .pctl input[type=range] { flex: 1; min-width: 120px; }
+  .time { font-variant-numeric: tabular-nums; font-size: 14px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+  .tabs button { border-radius: 8px 8px 0 0; border-bottom: none; background: var(--bg); color: var(--muted); }
+  .tabs button.on { background: var(--panel); color: var(--text); font-weight: 700; position: relative; top: 1px; }
+  .subtabs { display: flex; gap: 4px; margin: 6px 0 8px; }
+  .subtabs button { padding: 4px 12px; font-size: 14px; }
+  .subtabs button.on { background: var(--accent-weak); border-color: var(--accent); font-weight: 700; }
+  details.opts { margin: 8px 0; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; }
+  details.opts summary { cursor: pointer; font-weight: 600; }
+
+  .cues { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .cue, .cue-head { display: grid; grid-template-columns: 34px 118px 118px 1fr 104px; gap: 6px; align-items: start; padding: 6px 8px; }
+  .cue-head { background: var(--bg); font-size: 13px; color: var(--muted); font-weight: 600; }
+  .cue { border-top: 1px solid var(--line); }
+  .cue.active { background: var(--hl); }
+  .cue .no { font-variant-numeric: tabular-nums; color: var(--muted); padding-top: 6px; text-align: right; }
+  .cue input.t { width: 100%; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .cue input.t.bad { border-color: var(--danger); background: var(--danger-weak); }
+  .cue textarea { width: 100%; min-height: 36px; resize: vertical; }
+  .cue .ops { display: flex; gap: 4px; flex-wrap: wrap; }
+  .cue .lbl { display: none; }
+  .mono { width: 100%; font-family: ui-monospace, Menlo, Consolas, "MS Gothic", monospace; font-size: 14px; line-height: 1.5; }
+  #srtEditor { min-height: 55vh; }
+
+  .dgrid { display: grid; grid-template-columns: 9em 1fr; gap: 8px 10px; align-items: center; }
+  .dgrid input[type=range] { width: 100%; }
+  .dgrid .val { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); margin-left: 6px; }
+  .inl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .inl input[type=range] { flex: 1; min-width: 120px; }
+
+  @media (max-width: 900px) {
+    .editor { grid-template-columns: 1fr; }
+    .previewCol { position: static; }
+    #preview { height: 60vh; margin: 0 auto; }
+  }
+  @media (max-width: 640px) {
+    .cue-head { display: none; }
+    .cue { grid-template-columns: 1fr 1fr; }
+    .cue .no { grid-column: 1 / -1; text-align: left; padding-top: 0; }
+    .cue .txt, .cue .ops { grid-column: 1 / -1; }
+    .cue .lbl { display: block; font-size: 12px; color: var(--muted); }
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); z-index: 60;
+    background: rgba(20,24,32,.92); color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 14px;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .toast.show { opacity: 1; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); width: min(560px, 92vw); padding: 18px 20px; }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  #copyText { width: 100%; height: 40vh; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ショート動画メーカー</h1>
+  <div class="steps" id="steps">
+    <span data-step="start">1 原稿・音声</span>
+    <span data-step="audio">2 音声の確認</span>
+    <span data-step="edit">3 テロップ編集・書き出し</span>
+  </div>
+
+  <!-- ===================== 1. 入口 ===================== -->
+  <section id="screen-start" class="panel">
+    <div class="entries">
+      <label class="entry"><input type="radio" name="entry" value="tts" checked>
+        <span><b>原稿から作る</b><small>AI が原稿を読み上げて音声を作ります</small></span></label>
+      <label class="entry"><input type="radio" name="entry" value="own">
+        <span><b>手持ちの音声から作る</b><small>録音した音声にテロップを付けます</small></span></label>
+      <label class="entry"><input type="radio" name="entry" value="resume">
+        <span><b>続きから編集する</b><small>保存した音声と字幕（SRT / VTT）を読み込みます</small></span></label>
+    </div>
+
+    <div class="field">
+      <label class="lab" for="titleInput">動画の題名（画面上部に表示。空なら表示しません）</label>
+      <input type="text" id="titleInput" style="width:100%" placeholder="例：〇〇を3つのポイントで解説">
+    </div>
+
+    <!-- 原稿から -->
+    <div id="entry-tts">
+      <div class="field">
+        <label class="lab" for="scriptText">原稿</label>
+        <textarea id="scriptText" placeholder="ここに読み上げる原稿を入力します。1分以内の動画なら、300文字前後が目安です。"></textarea>
+        <div class="muted" id="scriptCount">0 文字</div>
+      </div>
+      <div class="row">
+        <label>声 <select id="voiceSel"></select></label>
+        <button id="btnSample" title="短い文で声を試します（API を1回使います）">声を試す</button>
+        <audio id="sampleAudio" hidden></audio>
+      </div>
+      <div class="field">
+        <label class="lab" for="styleText">話し方の指示（任意）</label>
+        <input type="text" id="styleText" style="width:100%" value="明るく、聞き取りやすく、やや速めに">
+      </div>
+      <div class="row"><span class="spacer"></span><button id="btnTts" class="primary">音声を作る</button></div>
+    </div>
+
+    <!-- 手持ちの音声から -->
+    <div id="entry-own" hidden>
+      <div id="ownDrop" class="drop" tabindex="0" role="button">
+        <strong>音声ファイルをドラッグ＆ドロップ</strong>
+        <span class="muted">またはクリックして選択（MP3 / WAV / M4A など・20MB まで）</span>
+      </div>
+      <input type="file" id="ownInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg" hidden>
+      <div id="ownInfo" class="fileinfo" hidden></div>
+      <div class="field">
+        <label class="lab" for="ownScript">原稿（任意）</label>
+        <textarea id="ownScript" placeholder="原稿があれば貼り付けてください。テロップの文字に使います（時刻は音声から取ります）。空なら、文字起こしの文字をそのままテロップにします。"></textarea>
+      </div>
+      <div class="row"><span class="spacer"></span><button id="btnOwn" class="primary" disabled>テロップを作る</button></div>
+    </div>
+
+    <!-- 続きから -->
+    <div id="entry-resume" hidden>
+      <div id="resDrop" class="drop" tabindex="0" role="button">
+        <strong>音声ファイルと字幕ファイル（.srt / .vtt）をまとめてドラッグ＆ドロップ</strong>
+        <span class="muted">またはクリックして2つ同時に選択</span>
+      </div>
+      <input type="file" id="resInput" multiple accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.srt,.vtt,.txt" hidden>
+      <div id="resInfo" class="fileinfo" hidden></div>
+      <div class="row"><span class="spacer"></span><button id="btnResume" class="primary" disabled>編集へ</button></div>
+    </div>
+
+    <div id="startMsg" class="msg" hidden></div>
+  </section>
+
+  <!-- ===================== 2. 音声の確認 ===================== -->
+  <section id="screen-audio" class="panel" hidden>
+    <h2>音声の確認</h2>
+    <audio id="ttsAudio" controls style="width:100%"></audio>
+    <div class="muted" id="ttsInfo"></div>
+    <div id="audioMsg" class="msg" hidden></div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnBackStart">← 原稿に戻る</button>
+      <button id="btnRegen">同じ原稿で作り直す</button>
+      <span class="spacer"></span>
+      <button id="btnToTelop" class="primary">この音声でテロップを作る</button>
+    </div>
+  </section>
+
+  <!-- ===================== 3. 編集 ===================== -->
+  <section id="screen-edit" hidden>
+    <div class="panel" style="margin-bottom:12px">
+      <div class="row">
+        <button id="btnRestart">最初からやり直す</button>
+        <span class="spacer"></span>
+        <button id="btnSaveSrt">SRT を保存</button>
+        <button id="btnSaveVtt">VTT を保存</button>
+        <button id="btnSaveAudio">音声を保存</button>
+        <button id="btnExport" class="primary">▶ 動画（MP4）を書き出す</button>
+      </div>
+      <div id="editMsg" class="msg warn" hidden></div>
+    </div>
+
+    <div class="editor">
+      <div class="previewCol">
+        <canvas id="preview" width="1080" height="1920"></canvas>
+        <div class="row pctl">
+          <button id="pvToggle">▶ 再生</button>
+          <input type="range" id="pvSeek" min="0" max="0" step="0.01" value="0" aria-label="再生位置">
+        </div>
+        <div class="row">
+          <span class="time" id="pvTime">0:00.0 / 0:00.0</span>
+          <span class="spacer"></span>
+          <label class="muted"><input type="checkbox" id="pvSafe" checked> 重なる範囲を表示</label>
+        </div>
+        <audio id="audio" preload="auto"></audio>
+      </div>
+
+      <div class="panel">
+        <div class="tabs">
+          <button id="tabTelop" class="on">テロップ</button>
+          <button id="tabDesign">デザイン</button>
+        </div>
+
+        <!-- テロップ -->
+        <div id="paneTelop">
+          <details class="opts" id="resegBox">
+            <summary>テロップの分け方を変えて作り直す</summary>
+            <div class="row" style="margin:8px 0">
+              <label>1行の最大文字数 <input type="number" id="optLine" min="6" max="30" value="13" style="width:64px"></label>
+              <label><input type="checkbox" id="optTrim" checked> 末尾の「、」「。」を省く</label>
+              <button id="btnReseg">この設定で作り直す</button>
+              <span class="muted">（手で直した内容は消えます）</span>
+            </div>
+          </details>
+          <details class="opts">
+            <summary>全体のタイミング調整</summary>
+            <div class="row" style="margin:8px 0">
+              <label>すべてのテロップを <input type="number" id="shiftSec" step="0.1" value="0" style="width:72px"> 秒ずらす</label>
+              <button id="btnShift">適用</button>
+              <span class="muted">（＋で遅く、−で早く）</span>
+            </div>
+          </details>
+
+          <div class="subtabs">
+            <button id="viewTableBtn" class="on">表で編集</button>
+            <button id="viewTextBtn">テキストで編集</button>
+          </div>
+
+          <div id="viewTable">
+            <p class="muted" style="margin:4px 0 8px">
+              時刻は「時:分:秒,ミリ秒」。各行の ▶ でその区間だけ再生できます。
+              テキストの中で <b>Enter</b> でその位置で2つに分け、行の先頭で <b>Backspace</b> で上とくっつけます。テロップ内の改行は <b>Shift＋Enter</b>（改行しなければ自動で折り返します）。
+            </p>
+            <div id="splitMsg" class="msg warn" hidden></div>
+            <div class="cues" id="editList"></div>
+            <div class="row" style="margin-top:8px">
+              <button id="btnAddEnd">＋ 末尾に追加</button>
+              <span class="spacer"></span>
+              <span class="muted" id="editCount"></span>
+            </div>
+          </div>
+
+          <div id="viewText" hidden>
+            <p class="muted" style="margin:4px 0 8px">SRT 形式のまま書き換えたり、丸ごと貼り付けたりできます。番号は振り直します。書き換えたら「反映」を押してください。</p>
+            <textarea id="srtEditor" class="mono" spellcheck="false"></textarea>
+            <div id="textMsg" class="msg" hidden></div>
+            <div class="row" style="margin-top:8px">
+              <button id="btnApplyText" class="primary">反映</button>
+              <span class="spacer"></span>
+              <button id="btnCopyText">テキストをコピー</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- デザイン -->
+        <div id="paneDesign" hidden>
+          <h3>背景・書体</h3>
+          <div class="dgrid">
+            <span>背景色</span><span><input type="color" id="dBg"></span>
+            <span>書体</span><span>
+              <select id="dFont">
+                <option value="yu">游ゴシック</option>
+                <option value="meiryo">メイリオ</option>
+                <option value="bizud">BIZ UDPゴシック</option>
+                <option value="hiragino">ヒラギノ角ゴ（Mac）</option>
+                <option value="noto">Noto Sans JP</option>
+              </select></span>
+          </div>
+
+          <h3>固定タイトル（画面上部）</h3>
+          <div class="dgrid">
+            <span>題名</span><span><input type="text" id="dTitleText" style="width:100%" placeholder="空なら表示しません"></span>
+            <span>文字の大きさ</span><span class="inl"><input type="range" id="dTitleSize" min="32" max="120" step="2"><span class="val" id="dTitleSizeV"></span></span>
+            <span>文字色</span><span><input type="color" id="dTitleColor"></span>
+            <span>縁取り</span><span class="inl"><input type="color" id="dTitleStroke"><input type="range" id="dTitleStrokeW" min="0" max="20" step="1"><span class="val" id="dTitleStrokeWV"></span></span>
+            <span>背景の帯</span><span class="inl"><label><input type="checkbox" id="dTitleBand"> 表示</label><input type="color" id="dTitleBandColor"><input type="range" id="dTitleBandAlpha" min="0" max="1" step="0.05"><span class="val" id="dTitleBandAlphaV"></span></span>
+            <span>位置（上から）</span><span class="inl"><input type="range" id="dTitleY" min="3" max="40" step="1"><span class="val" id="dTitleYV"></span></span>
+          </div>
+
+          <h3>テロップ</h3>
+          <div class="dgrid">
+            <span>文字の大きさ</span><span class="inl"><input type="range" id="dTelSize" min="36" max="140" step="2"><span class="val" id="dTelSizeV"></span></span>
+            <span>文字色</span><span><input type="color" id="dTelColor"></span>
+            <span>縁取り</span><span class="inl"><input type="color" id="dTelStroke"><input type="range" id="dTelStrokeW" min="0" max="24" step="1"><span class="val" id="dTelStrokeWV"></span></span>
+            <span>背景の帯</span><span class="inl"><label><input type="checkbox" id="dTelBand"> 表示</label><input type="color" id="dTelBandColor"><input type="range" id="dTelBandAlpha" min="0" max="1" step="0.05"><span class="val" id="dTelBandAlphaV"></span></span>
+            <span>位置（上から）</span><span class="inl"><input type="range" id="dTelY" min="20" max="95" step="1"><span class="val" id="dTelYV"></span></span>
+            <span>1行の文字数</span><span class="inl"><input type="range" id="dTelLine" min="6" max="24" step="1"><span class="val" id="dTelLineV"></span></span>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button id="dReset">デザインを初期値に戻す</button>
+            <span class="muted">デザインはこのブラウザに保存されます（題名を除く）。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 処理中の表示 -->
+<div class="busy" id="busy" hidden>
+  <div class="box">
+    <div class="spinner" id="busySpin"></div>
+    <div id="busyText"><strong>処理中…</strong></div>
+    <div class="bar" id="busyBarWrap" hidden><div id="busyBar"></div></div>
+    <div class="muted" id="busySub"></div>
+    <div class="row" style="justify-content:center;margin-top:12px">
+      <button id="busyCancel" hidden>中止</button>
+      <button id="busySave" class="primary" hidden>MP4 を保存</button>
+      <button id="busyClose" hidden>閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<dialog id="dlgCopy">
+  <p class="muted" id="copyMsg"></p>
+  <textarea id="copyText" class="mono" readonly></textarea>
+  <div class="row" style="margin-top:8px"><span class="spacer"></span><button id="copyClose" class="primary">閉じる</button></div>
+</dialog>
+
+<script>
+'use strict';
+
+/* ===================== 共通の小道具 ===================== */
+
+const $ = id => document.getElementById(id);
+const pad = (n, w) => String(n).padStart(w, '0');
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function fmtSize(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.ceil(b / 1024) + ' KB'; }
+
+/** 秒 → "HH:MM:SS,mmm"（sep で区切り文字を変える。VTT は "."） */
+function fmtSrt(t, sep) {
+  let ms = Math.max(0, Math.round((Number(t) || 0) * 1000));
+  const h = Math.floor(ms / 3600000); ms -= h * 3600000;
+  const m = Math.floor(ms / 60000); ms -= m * 60000;
+  const s = Math.floor(ms / 1000); ms -= s * 1000;
+  return pad(h, 2) + ':' + pad(m, 2) + ':' + pad(s, 2) + (sep || ',') + pad(ms, 3);
+}
+/** 秒 → "M:SS.s" */
+function fmtClock(t) {
+  t = Math.max(0, Number(t) || 0);
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+}
+
+function showMsg(el, text, kind) {
+  el.textContent = text || '';
+  el.className = 'msg ' + (kind || '');
+  el.hidden = !text;
+}
+let toastTimer = null;
+function toast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ===================== 字幕ファイルの読み書き ===================== */
+
+function toHalfWidth(s) {
+  return s
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/：/g, ':').replace(/，/g, ',').replace(/．/g, '.')
+    .replace(/\s*(?:[-‐－—―−]+[>＞]|→)\s*/g, ' --> ');
+}
+function parseSrtTime(str) {
+  const m = /^\s*(?:(\d{1,2}):)?(\d{1,2}):(\d{1,2})(?:[,.](\d{1,3}))?\s*$/.exec(toHalfWidth(String(str)));
+  if (!m) return null;
+  const mm = Number(m[2]), ss = Number(m[3]);
+  if (mm > 59 || ss > 59) return null;
+  return Number(m[1] || 0) * 3600 + mm * 60 + ss + (m[4] ? Number(m[4].padEnd(3, '0')) : 0) / 1000;
+}
+const TS = '(?:\\d{1,2}:)?\\d{1,2}:\\d{1,2}(?:[,.]\\d{1,3})?';
+const CUE_RE = new RegExp('^\\s*(' + TS + ')\\s*-->\\s*(' + TS + ')(?:\\s.*)?$');
+const stripTags = s => s.replace(/<[^>]*>/g, '').replace(/\{\\[^}]*\}/g, '');
+
+/** SRT / VTT を読み取る（番号のずれ・全角数字・コードブロック記号などは許容） */
+function parseSubtitles(input) {
+  const lines = String(input || '').replace(/^﻿/, '').replace(/\r\n?/g, '\n').split('\n');
+  const cues = [], errors = [], warnings = [];
+  const looksTime = l => /-->/.test(toHalfWidth(l));
+  const isIndexBeforeTime = i => /^\s*\d+\s*$/.test(toHalfWidth(lines[i])) && i + 1 < lines.length && looksTime(lines[i + 1]);
+  const readText = i => {
+    const out = [];
+    while (i < lines.length) {
+      const l = lines[i];
+      if (!l.trim() || looksTime(l) || isIndexBeforeTime(i) || /^\s*```/.test(l)) break;
+      out.push(l.trim());
+      i++;
+    }
+    return { text: stripTags(out.join('\n')).trim(), next: i };
+  };
+  let i = 0;
+  while (i < lines.length) {
+    const raw = lines[i], line = toHalfWidth(raw).trim(), lineNo = i + 1;
+    if (CUE_RE.test(toHalfWidth(raw))) {
+      const m = CUE_RE.exec(toHalfWidth(raw));
+      const s = parseSrtTime(m[1]), e = parseSrtTime(m[2]);
+      const r = readText(i + 1);
+      if (s === null || e === null) errors.push({ line: lineNo, msg: '時刻の値が正しくありません：' + raw.trim() });
+      else if (e <= s) errors.push({ line: lineNo, msg: '終了時刻が開始時刻と同じか、それより前です：' + raw.trim() });
+      else if (!r.text) warnings.push({ line: lineNo, msg: '文字が空のため読み飛ばしました' });
+      else cues.push({ start: s, end: e, text: r.text });
+      i = r.next;
+      continue;
+    }
+    if (looksTime(raw)) {
+      errors.push({ line: lineNo, msg: '時刻の書き方が正しくありません（例 00:00:01,450 --> 00:00:03,000）：' + raw.trim() });
+      i = readText(i + 1).next;
+      continue;
+    }
+    if (/^(NOTE|STYLE|REGION)\b/.test(line)) { while (i < lines.length && lines[i].trim()) i++; continue; }
+    if (line && !/^\d+$/.test(line) && !/^WEBVTT/.test(line) && !/^```/.test(line)) {
+      warnings.push({ line: lineNo, msg: '時刻の行がないため無視しました：' + raw.trim().slice(0, 30) });
+    }
+    i++;
+  }
+  cues.sort((a, b) => a.start - b.start);
+  if (!cues.length && !errors.length) errors.push({ line: 0, msg: '字幕が見つかりませんでした。' });
+  return { cues, errors, warnings };
+}
+function formatIssues(list, max) {
+  max = max || 8;
+  const out = list.slice(0, max).map(x => (x.line ? x.line + ' 行目：' : '') + x.msg);
+  if (list.length > max) out.push('…ほか ' + (list.length - max) + ' 件');
+  return out.join('\n');
+}
+function cleanText(s) { return String(s || '').replace(/\r/g, '').replace(/\n\s*\n+/g, '\n').trim(); }
+function toSrt(cues) {
+  return cues.filter(c => cleanText(c.text))
+    .map((c, i) => (i + 1) + '\n' + fmtSrt(c.start) + ' --> ' + fmtSrt(c.end) + '\n' + cleanText(c.text) + '\n').join('\n');
+}
+function toVtt(cues) {
+  return 'WEBVTT\n\n' + cues.filter(c => cleanText(c.text))
+    .map(c => fmtSrt(c.start, '.') + ' --> ' + fmtSrt(c.end, '.') + '\n' + cleanText(c.text) + '\n').join('\n');
+}
+function lastStartedIndex(cues, t) {
+  let lo = 0, hi = cues.length - 1, ans = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (cues[mid].start <= t) { ans = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  return ans;
+}
+function activeIndex(cues, t) {
+  const i = lastStartedIndex(cues, t);
+  return i >= 0 && t < cues[i].end ? i : -1;
+}
+
+/* ===================== 原稿と文字起こしの照合 ===================== */
+/*
+  テロップの文字は原稿を使い、時刻だけを文字起こしから取る。
+  1. 原稿・文字起こしの両方を「比較用の文字」に揃える（全角半角・カタカナ/ひらがな・記号の違いをなくす）
+  2. 1文字ずつ並べて最も一致する対応を取る（編集距離）
+  3. 対応が取れた原稿の文字に時刻を割り当て、取れなかった文字は前後から推定する
+*/
+
+const PUNCT_RE = /[\s、。，．,.!?！？「」『』（）()［］\[\]【】〈〉《》・…‥〜~"'“”‘’:;：；\-‐－—―\/／*＊#＃]/g;
+function normStr(s) {
+  return String(s).normalize('NFKC').toLowerCase()
+    .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
+    .replace(PUNCT_RE, '');
+}
+
+/** 単語の時刻の欠けを補う */
+function fillWordTimes(raw) {
+  const out = [];
+  let last = 0;
+  for (const r of raw || []) {
+    const w = String(r.w || '').trim();
+    if (!w) continue;
+    let s = typeof r.s === 'number' && isFinite(r.s) ? r.s : last;
+    let e = typeof r.e === 'number' && isFinite(r.e) ? r.e : s + 0.2;
+    if (s < last) s = last;
+    if (e < s) e = s;
+    out.push({ w, s, e });
+    last = e;
+  }
+  return out;
+}
+
+/** 単語の時刻 → 比較用の1文字ごとの時刻 */
+function recChars(words) {
+  const out = [];
+  for (const w of words) {
+    const n = Array.from(normStr(w.w));
+    n.forEach((c, k) => out.push({ c, s: w.s + (w.e - w.s) * k / n.length, e: w.s + (w.e - w.s) * (k + 1) / n.length }));
+  }
+  return out;
+}
+
+/**
+ * 原稿の1文字ごとに時刻を割り当てる
+ * @return {Array<{ch:string, n:string, s:number, e:number}>}
+ */
+function alignScript(script, words, duration) {
+  const chars = Array.from(script).map(ch => ({ ch, n: normStr(ch), s: null, e: null }));
+  const keys = [];
+  chars.forEach((c, i) => { for (const x of Array.from(c.n)) keys.push({ i, c: x, rec: null }); });
+  const rec = recChars(words);
+  const n = keys.length, m = rec.length;
+
+  if (n && m && (n + 1) * (m + 1) <= 16e6) {
+    const W = m + 1;
+    const d = new Uint16Array((n + 1) * W);
+    for (let j = 0; j <= m; j++) d[j] = j;
+    for (let i = 1; i <= n; i++) {
+      d[i * W] = i;
+      const ci = keys[i - 1].c;
+      for (let j = 1; j <= m; j++) {
+        const sub = d[(i - 1) * W + j - 1] + (ci === rec[j - 1].c ? 0 : 1);
+        const del = d[(i - 1) * W + j] + 1;
+        const ins = d[i * W + j - 1] + 1;
+        d[i * W + j] = sub < del ? (sub < ins ? sub : ins) : (del < ins ? del : ins);
+      }
+    }
+    let i = n, j = m;
+    while (i > 0 && j > 0) {
+      const eq = keys[i - 1].c === rec[j - 1].c ? 0 : 1;
+      if (d[i * W + j] === d[(i - 1) * W + j - 1] + eq) { keys[i - 1].rec = j - 1; i--; j--; }
+      else if (d[i * W + j] === d[(i - 1) * W + j] + 1) i--;
+      else j--;
+    }
+  } else if (n && m) {
+    keys.forEach((k, idx) => { k.rec = Math.min(m - 1, Math.floor(idx * m / n)); });  // 長すぎる場合は位置の割合で対応させる
+  }
+
+  for (const k of keys) {
+    if (k.rec === null) continue;
+    const r = rec[k.rec], c = chars[k.i];
+    c.s = c.s === null ? r.s : Math.min(c.s, r.s);
+    c.e = c.e === null ? r.e : Math.max(c.e, r.e);
+  }
+
+  // 時刻のない文字（照合できなかった文字）を前後から推定する
+  const idx = chars.map((c, i) => i).filter(i => chars[i].n);
+  const known = idx.filter(i => chars[i].s !== null);
+  const total = duration || (rec.length ? rec[rec.length - 1].e : 0);
+  if (!known.length) {
+    idx.forEach((i, k) => { chars[i].s = total * k / idx.length; chars[i].e = total * (k + 1) / idx.length; });
+  } else {
+    let p = 0;
+    while (p < idx.length) {
+      if (chars[idx[p]].s !== null) { p++; continue; }
+      let q = p;
+      while (q < idx.length && chars[idx[q]].s === null) q++;
+      const t0 = p > 0 ? chars[idx[p - 1]].e : Math.max(0, (chars[idx[q]] ? chars[idx[q]].s : total) - 0.15 * (q - p));
+      const t1 = q < idx.length ? chars[idx[q]].s : Math.min(total || t0 + 0.15 * (q - p), t0 + 0.15 * (q - p));
+      const span = Math.max(0, t1 - t0);
+      for (let k = p; k < q; k++) {
+        chars[idx[k]].s = t0 + span * (k - p) / (q - p);
+        chars[idx[k]].e = t0 + span * (k - p + 1) / (q - p);
+      }
+      p = q;
+    }
+  }
+  // 記号・空白などは直前の文字の終わりに揃え、時刻が逆戻りしないようにする
+  let run = 0;
+  for (const c of chars) {
+    if (!c.n || c.s === null) { c.s = c.e = run; continue; }
+    if (c.s < run) c.s = run;
+    if (c.e < c.s) c.e = c.s;
+    run = c.e;
+  }
+  return chars;
+}
+
+/** 行頭に来てはいけない文字 */
+const NO_HEAD = /[、。，．,.!?！？」』）)\]】ーっゃゅょぁぃぅぇぉゎッャュョァィゥェォヮ…‥〜]/;
+const isAlnum = ch => /[A-Za-z0-9]/.test(ch || '');
+const isHira = ch => /[\u3041-\u309f]/.test(ch || '');
+
+/**
+ * prev と next の間で切るときの「切りやすさ」
+ * 読点の後・助詞の後（文節の切れ目）は切りやすく、ひらがなの途中・行頭禁則・英数字の途中は切りにくい
+ */
+function cutScore(prev, next) {
+  let s = 0;
+  if (/[、，,]/.test(prev)) s += 2;
+  else if (/[はがをにでともへの]/.test(prev) && !isHira(next)) s += 0.8;
+  else if (isHira(prev) && isHira(next)) s -= 0.8;
+  if (NO_HEAD.test(next || '')) s -= 3;
+  if (isAlnum(prev) && isAlnum(next)) s -= 5;
+  return s;
+}
+
+/**
+ * 照合済みの原稿をテロップに分ける
+ * 文末（。！？・改行）で区切り、長い文は「、」や息継ぎ（無音）の位置で分ける
+ */
+function segmentScript(chars, opts, duration) {
+  const total = opts.lineChars * 2;
+  const vis = (a, b) => { let n = 0; for (let k = a; k < b; k++) if (!/\s/.test(chars[k].ch)) n++; return n; };
+  const ranges = [];
+  const push = (a, b) => {
+    while (a < b && /\s/.test(chars[a].ch)) a++;
+    while (b > a && /\s/.test(chars[b - 1].ch)) b--;
+    if (b > a && chars.slice(a, b).some(c => c.n)) ranges.push([a, b]);
+  };
+  let st = 0;
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i].ch;
+    if (ch === '\n') { push(st, i); st = i + 1; }
+    else if (/[。！？!?]/.test(ch)) {
+      let j = i + 1;
+      while (j < chars.length && /[」』）)！？!?。]/.test(chars[j].ch)) j++;
+      push(st, j); st = j; i = j - 1;
+    }
+  }
+  push(st, chars.length);
+
+  const split = (a, b) => {
+    const len = vis(a, b);
+    if (len <= total) return [[a, b]];
+    const target = len / Math.ceil(len / total);   // 何枚に分けるかを決め、長さを揃える
+    let best = null, bestScore = -Infinity, fallback = null;
+    for (let p = a + 1; p < b; p++) {
+      const left = vis(a, p);
+      if (left > total) break;
+      if (left === total) fallback = p;
+      if (left < 3 || vis(p, b) < 2) continue;
+      let score = cutScore(chars[p - 1].ch, chars[p].ch);
+      const gap = (chars[p].s || 0) - (chars[p - 1].e || 0);   // 息継ぎ（無音）の位置は切りやすい
+      score += Math.min(1.5, Math.max(0, gap) * 4);
+      score -= Math.abs(left - target) / target * 3.5;
+      if (score > bestScore) { bestScore = score; best = p; }
+    }
+    const cut = best !== null ? best : (fallback !== null ? fallback : a + total);
+    return [[a, cut]].concat(split(cut, b));
+  };
+
+  const cues = [];
+  for (const [a, b] of ranges) {
+    for (const [x, y] of split(a, b)) {
+      let text = chars.slice(x, y).map(c => c.ch).join('').trim();
+      if (opts.trimPunct) text = text.replace(/[、。，．,]+$/, '');
+      const inner = chars.slice(x, y).filter(c => c.n);
+      if (!text || !inner.length) continue;
+      cues.push({ start: inner[0].s, end: inner[inner.length - 1].e, text });
+    }
+  }
+  return fixTiming(cues, duration);
+}
+
+/** テロップの時刻を整える（短い隙間は前のテロップを延ばしてつなぎ、短すぎる表示は延ばす） */
+function fixTiming(cues, duration) {
+  cues.sort((a, b) => a.start - b.start);
+  for (let i = 0; i < cues.length; i++) {
+    const c = cues[i], next = cues[i + 1];
+    if (next && next.start - c.end < 1.0 && next.start > c.start) c.end = next.start;   // 1秒未満の隙間はつなげる
+    if (c.end - c.start < 0.5) c.end = next ? Math.max(c.end, Math.min(c.start + 0.5, next.start)) : c.start + 0.5;
+    if (!next) c.end = Math.min(duration || c.end + 0.3, c.end + 0.3);
+    if (c.end <= c.start) c.end = c.start + 0.3;
+    c.start = Math.round(c.start * 1000) / 1000;
+    c.end = Math.round(c.end * 1000) / 1000;
+  }
+  return cues;
+}
+
+/* ===================== 画面の描画（プレビューと書き出しで共通） ===================== */
+
+const VW = 1080, VH = 1920;
+const FONTS = {
+  yu: '"Yu Gothic UI","Yu Gothic","游ゴシック体",YuGothic',
+  meiryo: 'Meiryo,"メイリオ"',
+  bizud: '"BIZ UDPGothic","BIZ UDPゴシック"',
+  hiragino: '"Hiragino Sans","Hiragino Kaku Gothic ProN"',
+  noto: '"Noto Sans JP","Noto Sans CJK JP"'
+};
+const DESIGN_DEFAULTS = {
+  bg: '#000000', font: 'yu',
+  title: { text: '', size: 68, color: '#ffffff', stroke: '#000000', strokeW: 0, band: true, bandColor: '#d32f2f', bandAlpha: 1, y: 11 },
+  telop: { size: 76, color: '#ffffff', stroke: '#000000', strokeW: 10, band: false, bandColor: '#000000', bandAlpha: 0.6, y: 68, lineChars: 13 }
+};
+const DESIGN_KEY = 'shortVideoMaker.design.v1';
+
+/** テロップを文字数で折り返す（手で入れた改行は尊重。2行に収まる長さなら行の長さを揃える） */
+function wrapByChars(text, lineChars) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let rest = Array.from(para);
+    while (rest.length > lineChars) {
+      // 2行に収まるなら真ん中付近、収まらなければ1行いっぱい付近で、切りやすい位置を探す
+      const target = rest.length <= lineChars * 2 ? rest.length / 2 : lineChars;
+      let cut = Math.min(lineChars, rest.length - 1), best = -Infinity;
+      for (let p = Math.max(2, Math.floor(target) - 4); p <= Math.min(lineChars, rest.length - 1); p++) {
+        const sc = cutScore(rest[p - 1], rest[p]) - Math.abs(p - target) * 0.4;
+        if (sc > best) { best = sc; cut = p; }
+      }
+      out.push(rest.slice(0, cut).join(''));
+      rest = rest.slice(cut);
+    }
+    out.push(rest.join(''));
+  }
+  return out.filter((l, i, arr) => l !== '' || arr.length === 1);
+}
+
+/** 幅に合わせて折り返す（題名用） */
+function wrapByWidth(ctx, text, maxW) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let line = '';
+    for (const ch of Array.from(para)) {
+      if (line && ctx.measureText(line + ch).width > maxW && !NO_HEAD.test(ch)) { out.push(line); line = ch; }
+      else line += ch;
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+function hexToRgba(hex, a) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+  if (!m) return 'rgba(0,0,0,' + a + ')';
+  return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + a + ')';
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** 複数行の文字を、指定の縦位置（中心）に描く */
+function drawBlock(ctx, lines, st, fontFamily) {
+  if (!lines.length) return;
+  let size = st.size;
+  ctx.font = '700 ' + size + 'px ' + fontFamily + ', sans-serif';
+  const maxW = VW - 80;
+  const widest = Math.max(...lines.map(l => ctx.measureText(l).width));
+  if (widest > maxW) {   // はみ出す場合は文字を小さくする
+    size = Math.floor(size * maxW / widest);
+    ctx.font = '700 ' + size + 'px ' + fontFamily + ', sans-serif';
+  }
+  const lh = size * 1.3;
+  const cy = VH * st.y / 100;
+  const top = cy - lh * lines.length / 2;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (st.band && st.bandAlpha > 0) {
+    const w = Math.min(VW, Math.max(...lines.map(l => ctx.measureText(l).width)) + size * 0.8);
+    ctx.fillStyle = hexToRgba(st.bandColor, st.bandAlpha);
+    roundRect(ctx, (VW - w) / 2, top - size * 0.2, w, lh * lines.length + size * 0.4, size * 0.2);
+    ctx.fill();
+  }
+  lines.forEach((l, i) => {
+    const y = top + lh * (i + 0.5);
+    if (st.strokeW > 0) {
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = st.strokeW * 2;
+      ctx.strokeStyle = st.stroke;
+      ctx.strokeText(l, VW / 2, y);
+    }
+    ctx.fillStyle = st.color;
+    ctx.fillText(l, VW / 2, y);
+  });
+}
+
+/** 時刻 t の1コマを描く */
+function drawFrame(ctx, t, opt) {
+  const d = state.design, ff = FONTS[d.font] || FONTS.yu;
+  ctx.fillStyle = d.bg;
+  ctx.fillRect(0, 0, VW, VH);
+  if (d.title.text.trim()) {
+    ctx.font = '700 ' + d.title.size + 'px ' + ff + ', sans-serif';
+    drawBlock(ctx, wrapByWidth(ctx, d.title.text.trim(), VW - 120).slice(0, 3), d.title, ff);
+  }
+  const i = activeIndex(state.cues, t);
+  if (i >= 0) drawBlock(ctx, wrapByChars(cleanText(state.cues[i].text), d.telop.lineChars), d.telop, ff);
+  if (opt && opt.safe) drawSafeArea(ctx);
+}
+
+/** ショート動画アプリでボタン・説明文が重なりやすい範囲（プレビューのみ） */
+function drawSafeArea(ctx) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,60,60,0.22)';
+  ctx.fillRect(0, VH * 0.8, VW, VH * 0.2);            // 下：説明文・操作ボタン
+  ctx.fillRect(VW - 150, VH * 0.45, 150, VH * 0.35);  // 右：いいね等のボタン
+  ctx.fillRect(0, 0, VW, VH * 0.06);                  // 上：時刻表示など
+  ctx.font = '600 30px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('この範囲はアプリのボタン等が重なりやすい', VW / 2, VH * 0.9);
+  ctx.restore();
+}
+
+/* ===================== 状態 ===================== */
+
+const audio = $('audio');
+const state = {
+  screen: 'start',
+  audioBlob: null, audioName: '', audioUrl: null, duration: 0,
+  script: '',                 // テロップの元になる原稿
+  ttsScript: '',              // 音声を作ったときの原稿
+  chars: null,                // 照合済みの原稿（1文字ごとの時刻）
+  cues: [],
+  view: 'table', textDirty: false, editOn: -1,
+  stopAt: null, seeking: false,
+  unsaved: false,
+  design: loadDesign(),
+  busyCancel: false, exportBlob: null, exportName: ''
+};
+
+function loadDesign() {
+  const d = JSON.parse(JSON.stringify(DESIGN_DEFAULTS));
+  try {
+    const s = JSON.parse(localStorage.getItem(DESIGN_KEY) || 'null');
+    if (s && typeof s === 'object') {
+      if (typeof s.bg === 'string') d.bg = s.bg;
+      if (FONTS[s.font]) d.font = s.font;
+      for (const part of ['title', 'telop']) {
+        if (s[part] && typeof s[part] === 'object') {
+          for (const k in d[part]) if (k !== 'text' && typeof s[part][k] === typeof d[part][k]) d[part][k] = s[part][k];
+        }
+      }
+    }
+  } catch (e) { /* 初期値のまま */ }
+  return d;
+}
+function saveDesign() {
+  try {
+    const copy = JSON.parse(JSON.stringify(state.design));
+    copy.title.text = '';
+    localStorage.setItem(DESIGN_KEY, JSON.stringify(copy));
+  } catch (e) { /* 無視 */ }
+}
+
+/* ===================== GAS 呼び出し ===================== */
+
+function run(fn, arg) {
+  return new Promise((resolve, reject) => {
+    if (!(window.google && google.script && google.script.run)) {
+      reject(new Error('AI の機能は、GAS のウェブアプリとして開いたときだけ使えます。'));
+      return;
+    }
+    const r = google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(err => reject(err instanceof Error ? err : new Error(String((err && err.message) || err))));
+    r[fn](arg);
+  });
+}
+
+/* 処理中の表示 */
+let busyTimer = null;
+function busy(text, opts) {
+  opts = opts || {};
+  $('busy').hidden = false;
+  $('busySpin').hidden = !!opts.progress;
+  $('busyText').innerHTML = '<strong>' + escapeHtml(text) + '</strong>';
+  $('busyBarWrap').hidden = !opts.progress;
+  $('busyBar').style.width = '0%';
+  $('busyCancel').hidden = !opts.cancel;
+  $('busySave').hidden = true;
+  $('busyClose').hidden = true;
+  $('busySub').textContent = '';
+  clearInterval(busyTimer);
+  if (!opts.progress) {
+    const t0 = Date.now();
+    busyTimer = setInterval(() => { $('busySub').textContent = '経過 ' + Math.floor((Date.now() - t0) / 1000) + ' 秒'; }, 500);
+  }
+}
+function busyProgress(ratio, sub) {
+  $('busyBar').style.width = Math.round(ratio * 100) + '%';
+  if (sub) $('busySub').textContent = sub;
+}
+function unbusy() { clearInterval(busyTimer); $('busy').hidden = true; }
+$('busyCancel').addEventListener('click', () => { state.busyCancel = true; });
+$('busyClose').addEventListener('click', unbusy);
+$('busySave').addEventListener('click', () => { if (state.exportBlob) downloadBlob(state.exportBlob, state.exportName); });
+
+/* ===================== 画面の切り替え ===================== */
+
+function show(screen) {
+  state.screen = screen;
+  ['start', 'audio', 'edit'].forEach(s => { $('screen-' + s).hidden = s !== screen; });
+  const order = ['start', 'audio', 'edit'];
+  document.querySelectorAll('#steps span').forEach(el => {
+    const i = order.indexOf(el.dataset.step), cur = order.indexOf(screen);
+    el.className = i === cur ? 'on' : (i < cur ? 'done' : '');
+  });
+  if (screen !== 'edit') audio.pause();
+  window.scrollTo(0, 0);
+}
+
+/* ===================== 1. 入口 ===================== */
+
+const VOICES = [
+  ['Kore', '落ち着き・しっかり'], ['Puck', '元気'], ['Zephyr', '明るい'], ['Charon', '説明向き'], ['Fenrir', '勢いがある'],
+  ['Leda', '若々しい'], ['Orus', 'しっかり'], ['Aoede', 'さわやか'], ['Callirrhoe', 'おおらか'], ['Autonoe', '明るい'],
+  ['Enceladus', '息まじり'], ['Iapetus', 'はっきり'], ['Umbriel', 'おおらか'], ['Algieba', 'なめらか'], ['Despina', 'なめらか'],
+  ['Erinome', 'はっきり'], ['Algenib', 'ハスキー'], ['Rasalgethi', '説明向き'], ['Laomedeia', '元気'], ['Achernar', 'やわらか'],
+  ['Alnilam', 'しっかり'], ['Schedar', '落ち着いた'], ['Gacrux', '大人びた'], ['Pulcherrima', '前向き'], ['Achird', '親しみやすい'],
+  ['Zubenelgenubi', 'くだけた'], ['Vindemiatrix', 'やさしい'], ['Sadachbia', '生き生き'], ['Sadaltager', '知的'], ['Sulafat', 'あたたかい']
+];
+$('voiceSel').innerHTML = VOICES.map(([v, d]) => '<option value="' + v + '">' + v + '（' + d + '）</option>').join('');
+
+function entryMode() { return document.querySelector('input[name=entry]:checked').value; }
+document.querySelectorAll('input[name=entry]').forEach(r => r.addEventListener('change', () => {
+  const m = entryMode();
+  $('entry-tts').hidden = m !== 'tts';
+  $('entry-own').hidden = m !== 'own';
+  $('entry-resume').hidden = m !== 'resume';
+  showMsg($('startMsg'), '');
+}));
+
+function updateScriptCount() {
+  const t = $('scriptText').value;
+  const n = Array.from(t.replace(/\s/g, '')).length;
+  const sec = Math.round(n / 5.5);
+  $('scriptCount').textContent = n + ' 文字（読み上げ 約 ' + sec + ' 秒の目安）' + (sec > 60 ? '　※ 1分を超えそうです' : '');
+}
+$('scriptText').addEventListener('input', updateScriptCount);
+
+/** 音声データを用意する（WAV でなければ WAV に包む） */
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function bytesToBase64(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function pcmToWav(pcm, sampleRate) {
+  const buf = new ArrayBuffer(44 + pcm.length);
+  const v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + pcm.length, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, pcm.length, true);
+  new Uint8Array(buf, 44).set(pcm);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+function speechToBlob(res) {
+  const bytes = base64ToBytes(res.data);
+  const isRiff = bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+  if (isRiff) return new Blob([bytes], { type: 'audio/wav' });
+  if (/mpeg|mp3/i.test(res.mime)) return new Blob([bytes], { type: 'audio/mpeg' });
+  const m = /rate=(\d+)/i.exec(res.mime || '');
+  return pcmToWav(bytes, m ? Number(m[1]) : 24000);
+}
+
+function setAudio(blob, name) {
+  if (state.audioUrl) URL.revokeObjectURL(state.audioUrl);
+  state.audioBlob = blob;
+  state.audioName = name;
+  state.audioUrl = URL.createObjectURL(blob);
+  state.duration = 0;
+  audio.src = state.audioUrl;
+  return new Promise(resolve => {
+    const done = () => { state.duration = isFinite(audio.duration) ? audio.duration : 0; resolve(state.duration); };
+    audio.addEventListener('loadedmetadata', done, { once: true });
+    audio.addEventListener('error', () => resolve(0), { once: true });
+  });
+}
+
+async function makeSpeech() {
+  const text = $('scriptText').value.trim();
+  if (!text) return showMsg($('startMsg'), '原稿を入力してください。', 'error');
+  busy('音声を作っています…（30秒ほどかかる場合があります）');
+  try {
+    const res = await run('generateSpeech', { text, voice: $('voiceSel').value, style: $('styleText').value });
+    const blob = speechToBlob(res);
+    await setAudio(blob, '音声.wav');
+    state.ttsScript = text;
+    $('ttsAudio').src = state.audioUrl;
+    const d = state.duration;
+    $('ttsInfo').textContent = '長さ ' + fmtClock(d) + ' 秒　／　声 ' + $('voiceSel').value;
+    showMsg($('audioMsg'), d > 60 ? '音声が1分を超えています（' + fmtClock(d) + '）。ショート動画にする場合は、原稿を短くして作り直してください。' : '', 'warn');
+    show('audio');
+  } catch (e) {
+    showMsg(state.screen === 'audio' ? $('audioMsg') : $('startMsg'), '音声を作れませんでした。\n' + e.message, 'error');
+  } finally {
+    unbusy();
+  }
+}
+$('btnTts').addEventListener('click', makeSpeech);
+$('btnRegen').addEventListener('click', makeSpeech);
+$('btnBackStart').addEventListener('click', () => show('start'));
+
+$('btnSample').addEventListener('click', async () => {
+  busy('声を試しています…');
+  try {
+    const res = await run('generateSpeech', { text: 'こんにちは。この声で原稿を読み上げます。', voice: $('voiceSel').value, style: $('styleText').value });
+    const a = $('sampleAudio');
+    if (a.src) URL.revokeObjectURL(a.src);
+    a.src = URL.createObjectURL(speechToBlob(res));
+    a.play();
+  } catch (e) {
+    showMsg($('startMsg'), '声を試せませんでした。\n' + e.message, 'error');
+  } finally {
+    unbusy();
+  }
+});
+
+/** 文字起こし → 照合 → テロップ */
+async function makeTelops(script) {
+  busy('文字起こしでテロップの時刻を調べています…');
+  try {
+    const data = bytesToBase64(new Uint8Array(await state.audioBlob.arrayBuffer()));
+    const res = await run('transcribeAudio', { data, mimeType: state.audioBlob.type || 'audio/wav' });
+    const words = fillWordTimes(res.words);
+    state.script = (script && script.trim()) || (res.text || words.map(w => w.w).join('')).trim();
+    state.chars = alignScript(state.script, words, state.duration);
+    state.cues = segmentScript(state.chars, telopOpts(), state.duration);
+    state.unsaved = true;
+    enterEditor();
+    showMsg($('editMsg'), script && script.trim()
+      ? 'テロップの文字は原稿を使い、時刻は文字起こしから割り当てました。ずれている所は ▶ で確認して直してください。'
+      : '原稿がないため、文字起こしの文字をそのままテロップにしました。誤字は直してください。', 'warn');
+  } catch (e) {
+    const box = state.screen === 'audio' ? $('audioMsg') : $('startMsg');
+    showMsg(box, 'テロップを作れませんでした。\n' + e.message, 'error');
+  } finally {
+    unbusy();
+  }
+}
+$('btnToTelop').addEventListener('click', () => makeTelops(state.ttsScript));
+
+function telopOpts() {
+  return { lineChars: clamp(Number($('optLine').value) || 13, 6, 30), trimPunct: $('optTrim').checked };
+}
+
+/* 手持ちの音声 */
+const isAudioFile = f => /^audio\//.test(f.type) || /\.(mp3|wav|m4a|aac|ogg|oga|opus|flac)$/i.test(f.name);
+const isSubFile = f => /\.(srt|vtt|txt)$/i.test(f.name);
+
+function setupDrop(zone, input, onFiles) {
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('over'); onFiles(e.dataTransfer.files); });
+  input.addEventListener('change', e => { onFiles(e.target.files); e.target.value = ''; });
+}
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => e.preventDefault());
+
+let ownFile = null;
+setupDrop($('ownDrop'), $('ownInput'), files => {
+  const f = files[0];
+  showMsg($('startMsg'), '');
+  if (!f) return;
+  if (!isAudioFile(f)) return showMsg($('startMsg'), '音声ファイルを選んでください。', 'error');
+  if (f.size > 20 * 1024 * 1024) return showMsg($('startMsg'), 'ファイルが大きすぎます（' + fmtSize(f.size) + '）。20MB 以下にしてください。', 'error');
+  ownFile = f;
+  $('ownInfo').textContent = f.name + '（' + fmtSize(f.size) + '）';
+  $('ownInfo').hidden = false;
+  $('btnOwn').disabled = false;
+});
+$('btnOwn').addEventListener('click', async () => {
+  if (!ownFile) return;
+  const d = await setAudio(ownFile, ownFile.name);
+  if (d > 30 * 60) return showMsg($('startMsg'), '音声が30分を超えています。時刻つきの文字起こしは30分までです。', 'error');
+  makeTelops($('ownScript').value);
+});
+
+/* 続きから */
+let resAudio = null, resSub = null;
+setupDrop($('resDrop'), $('resInput'), async files => {
+  showMsg($('startMsg'), '');
+  for (const f of Array.from(files)) {
+    if (isAudioFile(f)) resAudio = f;
+    else if (isSubFile(f)) resSub = { name: f.name, text: await readTextFile(f) };
+  }
+  $('resInfo').innerHTML = '音声：' + (resAudio ? escapeHtml(resAudio.name) : '未選択') + '<br>字幕：' + (resSub ? escapeHtml(resSub.name) : '未選択');
+  $('resInfo').hidden = false;
+  $('btnResume').disabled = !(resAudio && resSub);
+});
+$('btnResume').addEventListener('click', async () => {
+  const r = parseSubtitles(resSub.text);
+  if (r.errors.length) return showMsg($('startMsg'), '字幕を読み取れない箇所があります。\n' + formatIssues(r.errors), 'error');
+  await setAudio(resAudio, resAudio.name);
+  state.chars = null;
+  state.script = '';
+  state.cues = r.cues;
+  state.unsaved = false;
+  enterEditor();
+  showMsg($('editMsg'), r.warnings.length ? '読み込み時の注意（' + r.warnings.length + ' 件）\n' + formatIssues(r.warnings, 5) : '', 'warn');
+});
+
+async function readTextFile(file) {
+  const buf = await file.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch (e) {
+    try { return new TextDecoder('shift_jis').decode(buf); } catch (e2) { return new TextDecoder('utf-8').decode(buf); }
+  }
+}
+
+/* ===================== 3. 編集 ===================== */
+
+function enterEditor() {
+  state.design.title.text = $('titleInput').value;
+  fillDesign();
+  $('resegBox').hidden = !state.chars;
+  setView('table', true);
+  setPane('telop');
+  show('edit');
+  try { audio.currentTime = 0; } catch (e) { /* 無視 */ }
+  redraw();
+}
+
+$('btnRestart').addEventListener('click', () => {
+  if (state.unsaved && !confirm('テロップを保存していません。最初からやり直すと編集内容は消えます。続けますか？')) return;
+  audio.pause();
+  state.cues = [];
+  state.unsaved = false;
+  show('start');
+});
+
+/* タブ */
+function setPane(p) {
+  $('paneTelop').hidden = p !== 'telop';
+  $('paneDesign').hidden = p !== 'design';
+  $('tabTelop').classList.toggle('on', p === 'telop');
+  $('tabDesign').classList.toggle('on', p === 'design');
+}
+$('tabTelop').addEventListener('click', () => setPane('telop'));
+$('tabDesign').addEventListener('click', () => { if (syncFromText()) setPane('design'); });
+
+/* ---------- プレビュー ---------- */
+
+const pctx = $('preview').getContext('2d');
+function redraw() {
+  const t = audio.currentTime || 0;
+  if (state.stopAt !== null && t >= state.stopAt) {   // ▶（1行分の再生）は終わりで止める
+    const end = state.stopAt;
+    state.stopAt = null;
+    audio.pause();
+    try { audio.currentTime = Math.max(0, end - 0.001); } catch (e) { /* 無視 */ }
+  }
+  const now = audio.currentTime || 0;
+  drawFrame(pctx, now, { safe: $('pvSafe').checked });
+  highlightEditRow(activeIndex(state.cues, now));
+  const d = isFinite(audio.duration) ? audio.duration : state.duration;
+  $('pvTime').textContent = fmtClock(now) + ' / ' + fmtClock(d);
+  const sk = $('pvSeek');
+  if (Number(sk.max) !== d) sk.max = d || 0;
+  if (!state.seeking) sk.value = now;
+}
+function loop() { redraw(); if (!audio.paused) requestAnimationFrame(loop); }
+audio.addEventListener('play', () => { $('pvToggle').textContent = '❚❚ 一時停止'; requestAnimationFrame(loop); });
+audio.addEventListener('pause', () => { $('pvToggle').textContent = '▶ 再生'; redraw(); });
+audio.addEventListener('seeked', redraw);
+audio.addEventListener('loadedmetadata', redraw);
+$('pvToggle').addEventListener('click', () => { state.stopAt = null; audio.paused ? audio.play() : audio.pause(); });
+$('pvSeek').addEventListener('pointerdown', () => { state.seeking = true; });
+$('pvSeek').addEventListener('input', () => { state.seeking = true; state.stopAt = null; audio.currentTime = Number($('pvSeek').value); redraw(); });
+$('pvSeek').addEventListener('change', () => { state.seeking = false; });
+document.addEventListener('pointerup', () => { state.seeking = false; });
+$('pvSafe').addEventListener('change', redraw);
+// 書体の読み込みが終わったら描き直す
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(redraw);
+
+/* ---------- 表で編集 ---------- */
+
+function markEdited() { state.unsaved = true; }
+
+function renderEditTable() {
+  const head = '<div class="cue-head"><div>番号</div><div>開始</div><div>終了</div><div>テロップ</div><div>操作</div></div>';
+  $('editList').innerHTML = head + state.cues.map((c, i) =>
+    '<div class="cue" data-i="' + i + '">' +
+      '<div class="no">' + (i + 1) + '</div>' +
+      '<div><span class="lbl">開始</span><input type="text" class="t" data-k="start" value="' + fmtSrt(c.start) + '" aria-label="開始時間"></div>' +
+      '<div><span class="lbl">終了</span><input type="text" class="t" data-k="end" value="' + fmtSrt(c.end) + '" aria-label="終了時間"></div>' +
+      '<div class="txt"><textarea data-k="text" rows="1" aria-label="テロップ">' + escapeHtml(c.text) + '</textarea></div>' +
+      '<div class="ops">' +
+        '<button class="small" data-a="play" title="この区間を再生">▶</button>' +
+        '<button class="small" data-a="add" title="この下に追加">＋</button>' +
+        '<button class="small danger" data-a="del" title="削除">✕</button>' +
+      '</div>' +
+    '</div>').join('');
+  $('editCount').textContent = 'テロップ ' + state.cues.length + ' 件';
+  state.editOn = -1;
+  validateAll();
+  redraw();
+}
+
+function highlightEditRow(i) {
+  if (i === state.editOn) return;
+  const prev = $('editList').querySelector('.cue.active');
+  if (prev) prev.classList.remove('active');
+  state.editOn = i;
+  const row = $('editList').querySelector('.cue[data-i="' + i + '"]');
+  if (row) row.classList.add('active');
+}
+
+function validateRow(row) {
+  const c = state.cues[Number(row.dataset.i)];
+  const s = row.querySelector('[data-k=start]'), e = row.querySelector('[data-k=end]');
+  const sv = parseSrtTime(s.value), ev = parseSrtTime(e.value);
+  s.classList.toggle('bad', sv === null);
+  e.classList.toggle('bad', ev === null || (sv !== null && ev <= sv));
+  if (sv !== null) c.start = sv;
+  if (ev !== null) c.end = ev;
+  return sv !== null && ev !== null && ev > sv;
+}
+function validateAll() {
+  let ok = true;
+  $('editList').querySelectorAll('.cue').forEach(r => { if (!validateRow(r)) ok = false; });
+  return ok;
+}
+function rowTimesOk(i) {
+  const row = $('editList').querySelector('.cue[data-i="' + i + '"]');
+  if (row && validateRow(row)) return true;
+  alert((i + 1) + ' 番の時刻が正しくありません（赤枠）。先に直してください。');
+  return false;
+}
+
+$('editList').addEventListener('input', e => {
+  const row = e.target.closest('.cue');
+  if (!row) return;
+  markEdited();
+  if (e.target.dataset.k === 'text') state.cues[Number(row.dataset.i)].text = e.target.value;
+  else validateRow(row);
+  redraw();
+});
+$('editList').addEventListener('change', e => {
+  if (e.target.classList.contains('t')) {
+    const v = parseSrtTime(e.target.value);
+    if (v !== null) e.target.value = fmtSrt(v);
+  }
+});
+$('editList').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-a]');
+  if (!btn) return;
+  const i = Number(btn.closest('.cue').dataset.i);
+  if (btn.dataset.a === 'play') {
+    if (!rowTimesOk(i)) return;
+    audio.currentTime = state.cues[i].start;
+    state.stopAt = state.cues[i].end;
+    audio.play();
+  } else if (btn.dataset.a === 'add') {
+    insertEmptyAfter(i);
+  } else if (btn.dataset.a === 'del') {
+    if (!confirm((i + 1) + ' 番を削除しますか？')) return;
+    state.cues.splice(i, 1);
+    markEdited();
+    renderEditTable();
+  }
+});
+
+function insertEmptyAfter(i) {
+  const c = state.cues[i], next = state.cues[i + 1];
+  const start = c ? c.end : 0;
+  const end = next ? Math.max(start + 0.1, next.start) : start + 2;
+  state.cues.splice(i + 1, 0, { start, end, text: '' });
+  markEdited();
+  renderEditTable();
+  focusCueText(i + 1, 0);
+}
+$('btnAddEnd').addEventListener('click', () => insertEmptyAfter(state.cues.length - 1));
+
+function focusCueText(i, caret) {
+  const ta = $('editList').querySelector('.cue[data-i="' + i + '"] textarea');
+  if (!ta) return;
+  ta.focus();
+  const pos = caret === 'end' ? ta.value.length : (caret || 0);
+  ta.setSelectionRange(pos, pos);
+}
+
+let splitMsgTimer = null;
+function showSplitMsg(text) {
+  showMsg($('splitMsg'), text, 'warn');
+  clearTimeout(splitMsgTimer);
+  splitMsgTimer = setTimeout(() => showMsg($('splitMsg'), ''), 4000);
+}
+
+/**
+ * 分割する時刻を求める
+ * 照合済みの原稿があり、文字が一致すればその文字の時刻を使う。なければ文字数の割合で按分する
+ */
+function splitTime(cue, before, after) {
+  const dur = cue.end - cue.start;
+  const lo = cue.start + Math.min(0.05, dur / 4), hi = cue.end - Math.min(0.05, dur / 4);
+  const fit = t => Math.min(hi, Math.max(lo, t));
+  if (state.chars) {
+    const inRange = state.chars.filter(c => c.n && c.s >= cue.start - 0.05 && c.e <= cue.end + 0.05);
+    const k = normStr(before).length;
+    if (inRange.map(c => c.n).join('') === normStr(before + after) && inRange.length) {
+      let cum = 0;
+      for (const c of inRange) {
+        if (cum >= k) return { t: fit(c.s), method: 'char' };
+        cum += c.n.length;
+      }
+    }
+  }
+  const count = x => x.replace(/\s/g, '').length;
+  const a = count(before), b = count(after);
+  return { t: fit(cue.start + dur * (a + b ? a / (a + b) : 0.5)), method: 'ratio' };
+}
+
+function splitCue(i, ta) {
+  const c = state.cues[i], v = ta.value;
+  const before = v.slice(0, ta.selectionStart), after = v.slice(ta.selectionEnd);
+  if (!before.trim()) return;
+  if (!after.trim()) { c.text = v; return insertEmptyAfter(i); }
+  if (!rowTimesOk(i)) return;
+  const r = splitTime(c, before, after);
+  const t = Math.round(r.t * 1000) / 1000;
+  state.cues.splice(i + 1, 0, { start: t, end: c.end, text: after.replace(/^\s+/, '') });
+  c.end = t;
+  c.text = before.replace(/\s+$/, '');
+  markEdited();
+  renderEditTable();
+  focusCueText(i + 1, 0);
+  showSplitMsg((i + 1) + ' 番を ' + fmtSrt(t) + ' で分けました' +
+    (r.method === 'char' ? '（文字起こしの時刻から計算）' : '（文字数の割合から計算したおおよその時刻です。▶ で確認してください）'));
+}
+
+function mergeWithPrev(i, ta) {
+  if (i <= 0 || !rowTimesOk(i) || !rowTimesOk(i - 1)) return;
+  const prev = state.cues[i - 1], cur = state.cues[i];
+  const head = prev.text.replace(/\s+$/, ''), tail = ta.value.replace(/^\s+/, '');
+  const space = isAlnum(head.slice(-1)) && isAlnum(tail[0]) ? ' ' : '';
+  prev.text = head + space + tail;
+  prev.start = Math.min(prev.start, cur.start);
+  prev.end = Math.max(prev.end, cur.end);
+  state.cues.splice(i, 1);
+  markEdited();
+  renderEditTable();
+  focusCueText(i - 1, head.length + space.length);
+  showSplitMsg(i + ' 番と ' + (i + 1) + ' 番をくっつけました');
+}
+
+$('editList').addEventListener('keydown', e => {
+  const ta = e.target;
+  if (ta.tagName !== 'TEXTAREA' || ta.dataset.k !== 'text') return;
+  if (e.isComposing || e.keyCode === 229) return;  // 日本語入力の変換確定の Enter は対象外
+  const i = Number(ta.closest('.cue').dataset.i);
+  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    e.preventDefault();
+    splitCue(i, ta);
+  } else if (e.key === 'Backspace' && ta.selectionStart === 0 && ta.selectionEnd === 0 && i > 0) {
+    e.preventDefault();
+    mergeWithPrev(i, ta);
+  }
+});
+
+/* 分け方を変えて作り直す */
+$('btnReseg').addEventListener('click', () => {
+  if (!state.chars) return;
+  if (state.unsaved && !confirm('手で直した内容は消えます。作り直しますか？')) return;
+  state.cues = segmentScript(state.chars, telopOpts(), state.duration);
+  state.design.telop.lineChars = telopOpts().lineChars;   // 折り返しの文字数もそろえる
+  fillDesign();
+  saveDesign();
+  markEdited();
+  setView('table', true);
+});
+
+/* 全体のタイミング調整 */
+$('btnShift').addEventListener('click', () => {
+  const d = parseFloat($('shiftSec').value);
+  if (!isFinite(d) || d === 0) return;
+  if (!syncFromText()) return;
+  if (state.view === 'table' && !validateAll()) return alert('時刻が正しくない行があります（赤枠）。先に直してください。');
+  state.cues.forEach(c => { c.start = Math.max(0, c.start + d); c.end = Math.max(c.start + 0.1, c.end + d); });
+  if (state.chars) state.chars.forEach(c => { c.s = Math.max(0, c.s + d); c.e = Math.max(c.s, c.e + d); });
+  markEdited();
+  $('shiftSec').value = 0;
+  if (state.view === 'table') renderEditTable();
+  else { $('srtEditor').value = toSrt(state.cues); state.textDirty = false; redraw(); }
+  toast('すべてのテロップを ' + (d > 0 ? '+' : '') + d + ' 秒ずらしました');
+});
+
+/** 時刻順に並べ替え、空のテロップを除いて確定する */
+function finalizeCues() {
+  if (!syncFromText()) return false;
+  if (state.view === 'table' && !validateAll()) {
+    alert('時刻が正しくない行があります（赤枠）。終了が開始より後になるように直してください。');
+    const bad = $('editList').querySelector('.bad');
+    if (bad) bad.focus();
+    return false;
+  }
+  state.cues = state.cues
+    .map(c => ({ start: c.start, end: c.end, text: cleanText(c.text) }))
+    .filter(c => c.text)
+    .sort((a, b) => a.start - b.start);
+  if (state.view === 'table') renderEditTable();
+  else { $('srtEditor').value = toSrt(state.cues); state.textDirty = false; }
+  return true;
+}
+
+/* ---------- テキストで編集 ---------- */
+
+function setView(v, force) {
+  if (!force && v === state.view) return;
+  if (v === 'text') {
+    if (!force && !validateAll()) return alert('時刻が正しくない行があります（赤枠）。先に直してください。');
+    $('srtEditor').value = toSrt(state.cues);
+    state.textDirty = false;
+    showMsg($('textMsg'), '');
+  }
+  if (!force && v === 'table' && state.textDirty) {
+    if (confirm('テキストの変更がまだ反映されていません。反映してから表に切り替えますか？\n（キャンセルすると変更を破棄します）')) {
+      if (!applyText()) return;
+    }
+    state.textDirty = false;
+  }
+  state.view = v;
+  $('viewTable').hidden = v !== 'table';
+  $('viewText').hidden = v !== 'text';
+  $('viewTableBtn').classList.toggle('on', v === 'table');
+  $('viewTextBtn').classList.toggle('on', v === 'text');
+  if (v === 'table') renderEditTable();
+}
+$('viewTableBtn').addEventListener('click', () => setView('table'));
+$('viewTextBtn').addEventListener('click', () => setView('text'));
+$('srtEditor').addEventListener('input', () => { state.textDirty = true; state.unsaved = true; });
+
+function applyText() {
+  const r = parseSubtitles($('srtEditor').value);
+  if (r.errors.length) {
+    showMsg($('textMsg'), '読み取れない箇所があるため、反映していません。\n' + formatIssues(r.errors), 'error');
+    return false;
+  }
+  state.cues = r.cues;
+  markEdited();
+  state.textDirty = false;
+  $('srtEditor').value = toSrt(state.cues);
+  let msg = 'テロップ ' + r.cues.length + ' 件を反映しました。';
+  if (r.warnings.length) msg += '\n注意（' + r.warnings.length + ' 件）\n' + formatIssues(r.warnings, 5);
+  showMsg($('textMsg'), msg, 'warn');
+  redraw();
+  return true;
+}
+function syncFromText() {
+  if (state.view === 'text' && state.textDirty) return applyText();
+  return true;
+}
+$('btnApplyText').addEventListener('click', applyText);
+$('btnCopyText').addEventListener('click', () => copyText($('srtEditor').value));
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return toast('コピーしました'); } catch (e) { /* 次の方法へ */ }
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  if (ok) toast('コピーしました');
+  else openCopyDialog(text, '自動でコピーできませんでした。下の内容を全選択してコピーしてください。');
+}
+function openCopyDialog(text, msg) {
+  $('copyMsg').textContent = msg;
+  $('copyText').value = text;
+  $('dlgCopy').showModal();
+  $('copyText').select();
+}
+$('copyClose').addEventListener('click', () => $('dlgCopy').close());
+
+/* ---------- デザイン ---------- */
+
+const DESIGN_FIELDS = [
+  ['dBg', null, 'bg'], ['dFont', null, 'font'],
+  ['dTitleText', 'title', 'text'], ['dTitleSize', 'title', 'size', 'px'], ['dTitleColor', 'title', 'color'],
+  ['dTitleStroke', 'title', 'stroke'], ['dTitleStrokeW', 'title', 'strokeW', 'px'], ['dTitleBand', 'title', 'band'],
+  ['dTitleBandColor', 'title', 'bandColor'], ['dTitleBandAlpha', 'title', 'bandAlpha', '%'], ['dTitleY', 'title', 'y', '%'],
+  ['dTelSize', 'telop', 'size', 'px'], ['dTelColor', 'telop', 'color'], ['dTelStroke', 'telop', 'stroke'],
+  ['dTelStrokeW', 'telop', 'strokeW', 'px'], ['dTelBand', 'telop', 'band'], ['dTelBandColor', 'telop', 'bandColor'],
+  ['dTelBandAlpha', 'telop', 'bandAlpha', '%'], ['dTelY', 'telop', 'y', '%'], ['dTelLine', 'telop', 'lineChars', '文字']
+];
+function designRef(part) { return part ? state.design[part] : state.design; }
+function showVal(id, unit, v) {
+  const el = $(id + 'V');
+  if (!el) return;
+  el.textContent = unit === '%' && id.includes('Alpha') ? Math.round(v * 100) + '%' : v + (unit || '');
+}
+function fillDesign() {
+  for (const [id, part, key, unit] of DESIGN_FIELDS) {
+    const el = $(id), v = designRef(part)[key];
+    if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+    showVal(id, unit, v);
+  }
+}
+for (const [id, part, key, unit] of DESIGN_FIELDS) {
+  $(id).addEventListener('input', () => {
+    const el = $(id);
+    let v = el.type === 'checkbox' ? el.checked : el.value;
+    if (el.type === 'range') v = Number(v);
+    designRef(part)[key] = v;
+    showVal(id, unit, v);
+    if (id === 'dTitleText') $('titleInput').value = v;
+    saveDesign();
+    redraw();
+  });
+}
+$('dReset').addEventListener('click', () => {
+  const title = state.design.title.text;
+  state.design = JSON.parse(JSON.stringify(DESIGN_DEFAULTS));
+  state.design.title.text = title;
+  fillDesign();
+  saveDesign();
+  redraw();
+});
+
+/* ---------- 保存 ---------- */
+
+function baseName() {
+  const t = (state.design.title.text || '').trim().replace(/[\\/:*?"<>|\n]/g, '').slice(0, 40);
+  return t || (state.audioName || 'short').replace(/\.[^.]+$/, '');
+}
+function downloadBlob(blob, name) {
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function saveText(text, name, mime) {
+  if (!downloadBlob(new Blob(['﻿' + text], { type: mime + ';charset=utf-8' }), name)) {
+    openCopyDialog(text, '自動で保存できませんでした。下の内容をコピーしてメモ帳などで保存してください。');
+  }
+}
+$('btnSaveSrt').addEventListener('click', () => {
+  if (!finalizeCues()) return;
+  saveText(toSrt(state.cues), baseName() + '.srt', 'application/x-subrip');
+  state.unsaved = false;
+});
+$('btnSaveVtt').addEventListener('click', () => {
+  if (!finalizeCues()) return;
+  saveText(toVtt(state.cues), baseName() + '.vtt', 'text/vtt');
+});
+$('btnSaveAudio').addEventListener('click', () => {
+  if (!state.audioBlob) return;
+  const ext = (/\.[^.]+$/.exec(state.audioName) || ['.wav'])[0];
+  downloadBlob(state.audioBlob, baseName() + ext);
+});
+
+/* ===================== 動画の書き出し（高速） ===================== */
+/*
+  1コマずつ描いた画面をブラウザの動画エンコーダー（WebCodecs）で H.264 に、
+  音声を AAC に変換し、mp4-muxer で MP4 にまとめる。
+*/
+
+const FPS = 30;
+
+async function pickVideoConfig() {
+  const cands = [
+    { codec: 'avc1.640028', mux: 'avc', label: 'H.264' },
+    { codec: 'avc1.4d0028', mux: 'avc', label: 'H.264' },
+    { codec: 'avc1.420028', mux: 'avc', label: 'H.264' },
+    { codec: 'vp09.00.40.08', mux: 'vp9', label: 'VP9' }
+  ];
+  for (const c of cands) {
+    const cfg = { codec: c.codec, width: VW, height: VH, bitrate: 8000000, framerate: FPS };
+    if (c.mux === 'avc') cfg.avc = { format: 'avc' };
+    try {
+      const r = await VideoEncoder.isConfigSupported(cfg);
+      if (r.supported) return Object.assign({ cfg }, c);
+    } catch (e) { /* 次の候補へ */ }
+  }
+  return null;
+}
+async function pickAudioConfig(sampleRate) {
+  const cands = [
+    { codec: 'mp4a.40.2', mux: 'aac', label: 'AAC' },
+    { codec: 'opus', mux: 'opus', label: 'Opus' }
+  ];
+  for (const c of cands) {
+    const cfg = { codec: c.codec, sampleRate, numberOfChannels: 1, bitrate: 128000 };
+    try {
+      const r = await AudioEncoder.isConfigSupported(cfg);
+      if (r.supported) return Object.assign({ cfg }, c);
+    } catch (e) { /* 次の候補へ */ }
+  }
+  return null;
+}
+
+/** 音声を 48kHz・モノラルの波形にする */
+async function decodeAudio48k() {
+  const ac = new (window.AudioContext || window.webkitAudioContext)();
+  const decoded = await ac.decodeAudioData(await state.audioBlob.arrayBuffer());
+  ac.close();
+  const SR = 48000;
+  const off = new OfflineAudioContext(1, Math.ceil(decoded.duration * SR), SR);
+  const src = off.createBufferSource();
+  src.buffer = decoded;
+  src.connect(off.destination);
+  src.start();
+  const rendered = await off.startRendering();
+  return { pcm: rendered.getChannelData(0), sampleRate: SR, duration: decoded.duration };
+}
+
+const tick0 = () => new Promise(r => setTimeout(r, 0));
+
+async function exportVideo() {
+  if (!finalizeCues()) return;
+  if (!state.cues.length) return alert('テロップが 1 件もありません。');
+  if (!('VideoEncoder' in window) || !('AudioEncoder' in window)) {
+    return alert('このブラウザは動画の書き出しに対応していません。最新の Chrome か Edge で開いてください。');
+  }
+  if (!window.Mp4Muxer) {
+    return alert('MP4 にまとめる部品を読み込めませんでした。インターネットに接続した状態でページを開き直してください。');
+  }
+  audio.pause();
+  state.busyCancel = false;
+  state.exportBlob = null;
+  busy('動画を書き出しています…', { progress: true, cancel: true });
+
+  let videoEncoder = null, audioEncoder = null;
+  try {
+    busyProgress(0, '音声を準備しています…');
+    const a = await decodeAudio48k();
+    const vc = await pickVideoConfig();
+    if (!vc) throw new Error('このブラウザでは動画のエンコードができません。');
+    const ac = await pickAudioConfig(a.sampleRate);
+    if (!ac) throw new Error('このブラウザでは音声のエンコードができません。');
+
+    const muxer = new Mp4Muxer.Muxer({
+      target: new Mp4Muxer.ArrayBufferTarget(),
+      video: { codec: vc.mux, width: VW, height: VH, frameRate: FPS },
+      audio: { codec: ac.mux, numberOfChannels: 1, sampleRate: a.sampleRate },
+      fastStart: 'in-memory',
+      firstTimestampBehavior: 'offset'
+    });
+    let encErr = null;
+    videoEncoder = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: e => { encErr = e; } });
+    videoEncoder.configure(vc.cfg);
+    audioEncoder = new AudioEncoder({ output: (chunk, meta) => muxer.addAudioChunk(chunk, meta), error: e => { encErr = e; } });
+    audioEncoder.configure(ac.cfg);
+
+    // 音声
+    const CH = 4800;
+    for (let p = 0; p < a.pcm.length; p += CH) {
+      const n = Math.min(CH, a.pcm.length - p);
+      const data = new AudioData({
+        format: 'f32-planar', sampleRate: a.sampleRate, numberOfChannels: 1, numberOfFrames: n,
+        timestamp: Math.round(p / a.sampleRate * 1e6), data: a.pcm.slice(p, p + n)
+      });
+      audioEncoder.encode(data);
+      data.close();
+    }
+
+    // 映像
+    const canvas = document.createElement('canvas');
+    canvas.width = VW;
+    canvas.height = VH;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const frames = Math.max(1, Math.ceil(a.duration * FPS));
+    const t0 = Date.now();
+    for (let i = 0; i < frames; i++) {
+      if (state.busyCancel) throw new Error('中止しました。');
+      if (encErr) throw encErr;
+      drawFrame(ctx, i / FPS, { safe: false });
+      const frame = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+      videoEncoder.encode(frame, { keyFrame: i % (FPS * 2) === 0 });
+      frame.close();
+      while (videoEncoder.encodeQueueSize > 6) await tick0();
+      if (i % 15 === 0) {
+        busyProgress((i + 1) / frames * 0.95, '映像 ' + (i + 1) + ' / ' + frames + ' コマ（経過 ' + Math.floor((Date.now() - t0) / 1000) + ' 秒）');
+        await tick0();
+      }
+    }
+    busyProgress(0.97, '仕上げています…');
+    await videoEncoder.flush();
+    await audioEncoder.flush();
+    if (encErr) throw encErr;
+    muxer.finalize();
+    videoEncoder.close();
+    audioEncoder.close();
+
+    state.exportBlob = new Blob([muxer.target.buffer], { type: 'video/mp4' });
+    state.exportName = baseName() + '.mp4';
+    busyProgress(1, '');
+    $('busyText').innerHTML = '<strong>書き出しが終わりました</strong>';
+    let note = '「' + state.exportName + '」（' + fmtSize(state.exportBlob.size) + '・映像 ' + vc.label + '・音声 ' + ac.label + '）';
+    if (vc.mux !== 'avc' || ac.mux !== 'aac') note += '\n※ 一部のスマホやアプリでは再生できない形式です。Chrome か Edge の最新版で書き出すと H.264 / AAC になります。';
+    $('busySub').textContent = note;
+    $('busySub').style.whiteSpace = 'pre-line';
+    $('busyCancel').hidden = true;
+    $('busySave').hidden = false;
+    $('busyClose').hidden = false;
+    downloadBlob(state.exportBlob, state.exportName);
+  } catch (e) {
+    try { if (videoEncoder && videoEncoder.state !== 'closed') videoEncoder.close(); } catch (x) { /* 無視 */ }
+    try { if (audioEncoder && audioEncoder.state !== 'closed') audioEncoder.close(); } catch (x) { /* 無視 */ }
+    unbusy();
+    if (!/中止/.test(e.message || '')) alert('動画を書き出せませんでした。\n' + (e.message || e));
+    else toast('書き出しを中止しました');
+  }
+}
+$('btnExport').addEventListener('click', exportVideo);
+
+window.addEventListener('beforeunload', e => {
+  if (state.cues.length && state.unsaved) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ===================== 開始 ===================== */
+updateScriptCount();
+fillDesign();
+show('start');
+</script>
+</body>
+</html>
