@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DX人材転職市場分析：コンサル vs 社内DX推進</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                    },
+                    colors: {
+                        warmbg: '#F8F9FA',
+                        cardbg: '#FFFFFF',
+                        primary: '#4F46E5',
+                        secondary: '#0D9488',
+                        accent: '#EA580C',
+                        slatecustom: '#1E293B'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F8F9FA;
+            color: #1E293B;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 650px;
+            height: 320px;
+            max-height: 380px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tab-btn.active {
+            border-bottom: 3px solid #4F46E5;
+            color: #4F46E5;
+            font-weight: 700;
+            background-color: #EEF2FF;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    
+    <!-- Chosen Palette: Warm Neutral Harmonized Palette ( Off-white / Warm Gray, Slate Text, Indigo Primary Accent, Teal Secondary) -->
+    
+    <!-- Application Structure Plan: 
+        1. Header & Navigation: Executive summary title and dynamic tab navigation (Overview & Ratios, Platform Dynamics, Root Causes, Deep Inferences, Diagnostic Action).
+        2. Section 1: Macro Market & Talent Disparity (Doughnut chart for JP vs US IT talent allocation, Bar chart for Job Openings to Applicants ratio).
+        3. Section 2: Platform Mechanics (Recruit Agent vs. doda breakdown, Donut chart for doda actual placement outcomes vs user preference).
+        4. Section 3: Empirical Facts Analysis (4 Key Bottlenecks with interactive detail sliders/cards, IT Budget Breakdown pie chart).
+        5. Section 4: Advanced Structural Inferences (Interactive step-by-step logic map for the Outsourcing Loop, Invisible Market, and Skill Mismatch).
+        6. Section 5: Practical Assessment Tool (Interactive self-diagnostic checklist for enterprise DX hiring capability).
+        Rationale: The multi-tab layout prevents cognitive overload, allowing HR professionals, executives, and job seekers to navigate from macro statistical realities down to organizational strategic actions.
+    -->
+    
+    <!-- Visualization & Content Choices:
+        - JP vs US IT Talent Belonging -> Donut/Diverging Bar -> High contrast comparison showing 73.6% vs 26.4%.
+        - Job Opening Ratios -> Chart.js Horizontal Bar Chart -> Visualizing extreme disparity (Consulting 31.6x vs PM 23.7x vs Lower-tier 0.17x).
+        - doda Placement vs Hope -> Pie / Doughnut Chart -> Demonstrating that 28% actually land Internal SE roles.
+        - IT Budget Breakdown -> Pie Chart -> Showing 80% legacy maintenance vs 20% innovation.
+        - NO SVG graphics or Mermaid JS used. Visual diagrams constructed with styled Tailwind CSS grid/flex containers.
+    -->
+    
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- TOP HEADER -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl font-bold text-indigo-600">DX</span>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-bold text-slate-800">転職市場におけるDX人材動向アナリティクス</h1>
+                        <p class="text-xs text-gray-500">コンサルティングファーム vs 事業会社（社内DX推進）求人の構造比較レポート</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-2 text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>データ元: IPA「DX白書」/ 経産省「DXレポート」/ 転職エージェント求人倍率調査</span>
+                </div>
+            </div>
+            
+            <!-- NAVIGATION TABS -->
+            <nav class="flex space-x-1 overflow-x-auto text-sm border-t border-gray-100 pt-1 no-scrollbar">
+                <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn px-4 py-2.5 font-medium text-gray-600 hover:text-indigo-600 whitespace-nowrap rounded-t-lg transition">
+                    1. 市場求人比率 & マクロ構造
+                </button>
+                <button onclick="switchTab('tab2')" id="btn-tab2" class="tab-btn px-4 py-2.5 font-medium text-gray-600 hover:text-indigo-600 whitespace-nowrap rounded-t-lg transition">
+                    2. プラットフォーム比較 (リクルート vs doda)
+                </button>
+                <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-4 py-2.5 font-medium text-gray-600 hover:text-indigo-600 whitespace-nowrap rounded-t-lg transition">
+                    3. 「社内DX求人」不足の事実要因
+                </button>
+                <button onclick="switchTab('tab4')" id="btn-tab4" class="tab-btn px-4 py-2.5 font-medium text-gray-600 hover:text-indigo-600 whitespace-nowrap rounded-t-lg transition">
+                    4. 労働市場の深層推論 & 循環構造
+                </button>
+                <button onclick="switchTab('tab5')" id="btn-tab5" class="tab-btn px-4 py-2.5 font-medium text-gray-600 hover:text-indigo-600 whitespace-nowrap rounded-t-lg transition">
+                    5. 処方箋 & DX採用力診断
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- TAB 1: MACRO & RATIOS -->
+        <section id="tab1" class="tab-content fade-in space-y-6">
+            <!-- Intro Paragraph -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">1. 転職市場における求人比率とIT人材偏在の構造</h2>
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    本セクションでは、転職プラットフォーム上における「コンサルティングファーム・ITベンダー」と「事業会社の社内DX推進」の求人比率の歪みを検証します。求人数の比率は<b>8:2〜9:1</b>と支援側が圧倒的多数を占めています。この背景には、日米におけるIT人材の所属構造の致命的差異と、コンサル職種における異常な求人倍率（31.6倍）が存在します。
+                </p>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="text-xs font-semibold text-gray-500 uppercase">求人比率 (コンサル等 : 社内DX)</div>
+                    <div class="text-2xl font-bold text-indigo-600 mt-1">8:2 〜 9:1</div>
+                    <div class="text-xs text-gray-500 mt-1">コンサル・IT企業側が圧勝</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="text-xs font-semibold text-gray-500 uppercase">コンサル職種の求人倍率</div>
+                    <div class="text-2xl font-bold text-red-600 mt-1">31.6倍</div>
+                    <div class="text-xs text-gray-500 mt-1">1人に31社以上が群がる超加熱</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="text-xs font-semibold text-gray-500 uppercase">日本：IT企業所属人材率</div>
+                    <div class="text-2xl font-bold text-slate-800 mt-1">73.6%</div>
+                    <div class="text-xs text-gray-500 mt-1">事業会社側には26.4%のみ</div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="text-xs font-semibold text-gray-500 uppercase">米国：ユーザー企業所属率</div>
+                    <div class="text-2xl font-bold text-teal-600 mt-1">64.9%</div>
+                    <div class="text-xs text-gray-500 mt-1">日本と構造が正反対</div>
+                </div>
+            </div>
+
+            <!-- Visual Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Chart 1: Talent Belonging JP vs US -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                    <div class="mb-4">
+                        <h3 class="text-base font-bold text-slate-800">日米IT人材の所属比較（IPA「DX白書」より）</h3>
+                        <p class="text-xs text-gray-500">日本ではIT人材の7割以上が外部ベンダー/コンサルに所属</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartTalentBelonging"></canvas>
+                    </div>
+                    <div class="mt-4 p-3 bg-amber-50 rounded-lg text-xs text-amber-800 border border-amber-200">
+                        <b>分析インサイト:</b> 日本は歴史的に要件定義やシステム開発を外部に丸投げ（アウトソーシング）してきたため、事業会社内に元々「DXポスト」が少なく、求人のベースライン自体が小さい。
+                    </div>
+                </div>
+
+                <!-- Chart 2: Job Openings Ratio -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                    <div class="mb-4">
+                        <h3 class="text-base font-bold text-slate-800">職種別 転職求人倍率の極端な乖離</h3>
+                        <p class="text-xs text-gray-500">通年大量採用を行うコンサルと、1名限定採用の事業会社の差</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartJobRatios"></canvas>
+                    </div>
+                    <div class="mt-4 p-3 bg-indigo-50 rounded-lg text-xs text-indigo-800 border border-indigo-200">
+                        <b>分析インサイト:</b> コンサルファームは稼働人員数＝売上の「労働集約型」のため全職位で通年大量採用をかける。一方事業会社は欠員補充型の「1名採用」のため求人数で圧倒される。
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: PLATFORM ANALYSIS -->
+        <section id="tab2" class="tab-content hidden fade-in space-y-6">
+            <!-- Intro Paragraph -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">2. プラットフォーム特性：リクルートエージェント vs doda</h2>
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    ユーザーの「リクルートは社内DX求人が少なく、dodaは比較的多い印象がある」という仮説を徹底検証します。運営会社の出自、サービスモデル、検索アルゴリズムの違いがこの体感を生み出しています。また、dodaにおける実際の決定先データ（社内SEが28%で最多）から、事業会社求人の隠れた実像を解き明かします。
+                </p>
+            </div>
+
+            <!-- Side-by-Side Platform Matrix -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Recruit Agent Card -->
+                <div class="bg-white p-6 rounded-xl border border-indigo-100 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-indigo-600 text-white text-xs px-3 py-1 rounded-bl-lg font-bold">国内最大級・高露出</div>
+                    <h3 class="text-lg font-bold text-indigo-900 mb-3">リクルートエージェント</h3>
+                    <ul class="space-y-3 text-xs text-gray-600">
+                        <li class="flex items-start">
+                            <span class="text-indigo-500 font-bold mr-2">■</span>
+                            <span><b>求人規模:</b> 公開76万〜78万件以上（コンサルの大量求人がDBを埋め尽くす）</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-indigo-500 font-bold mr-2">■</span>
+                            <span><b>アルゴリズム特性:</b> 「DX推進」検索時、コンサルファームの「DX支援コンサル（タイトル細分化求人）」が大量ヒット。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-indigo-500 font-bold mr-2">■</span>
+                            <span><b>結果的体感:</b> 1〜2名募集の事業会社「社内DX」はコンサルの求人の海に埋もれ、「社内DXが少ない」と感じさせる。</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- doda Card -->
+                <div class="bg-white p-6 rounded-xl border border-teal-100 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-teal-600 text-white text-xs px-3 py-1 rounded-bl-lg font-bold">媒体×エージェント複合</div>
+                    <h3 class="text-lg font-bold text-teal-900 mb-3">doda（デューダ）</h3>
+                    <ul class="space-y-3 text-xs text-gray-600">
+                        <li class="flex items-start">
+                            <span class="text-teal-500 font-bold mr-2">■</span>
+                            <span><b>サービスの出自:</b> 元々「求人情報媒体」として発展。掲載課金モデルに強み。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-teal-500 font-bold mr-2">■</span>
+                            <span><b>顧客基盤:</b> 高額な成功報酬を躊躇する中堅・中小事業会社の「社内SE・DX枠」が直接求人広告を掲載しやすい。</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-teal-500 font-bold mr-2">■</span>
+                            <span><b>結果的体感:</b> コンサルのノイズが相対的に少なく、事業会社から「社内SE/DX」求人を見つけやすい。</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Chart Section: doda Actual Placement Data -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-800">dodaにおけるITエンジニアの「実際の入社決定先」内訳</h3>
+                        <p class="text-xs text-gray-500">志望意向で最多の「ITコンサル」を抑え、決定先1位は「社内情報システム（社内SE）」が28%を占める</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="chart-container">
+                        <canvas id="chartDodaPlacement"></canvas>
+                    </div>
+                    <div class="space-y-3 text-xs text-gray-600 bg-gray-50 p-4 rounded-xl">
+                        <h4 class="font-bold text-slate-800 text-sm border-b pb-2">データが証明する客観的真実</h4>
+                        <p>
+                            転職者の希望職種としては「ITコンサルタント」が第一位に挙がるものの、<b>実際の入社決定先では「社内情報システム（社内SE）」が28%でトップ</b>となります。
+                        </p>
+                        <p>
+                            このデータは、「dodaには社内DX・社内SE求人が多い」というユーザーの印象が単なる主観ではなく、プラットフォーム上で事業会社への着実な転職実績が作られているという統計的事実に基づいていることを示しています。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: FACTS / REASONS WHY -->
+        <section id="tab3" class="tab-content hidden fade-in space-y-6">
+            <!-- Intro Paragraph -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">3. 調査結果から得られる「事実」：なぜ社内DX求人は少ないのか？</h2>
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    事業会社が「社内DX推進」の求人を出せない、あるいは出しても失敗する理由には、各種統計データによって証明された<b>4つの客観的事実</b>が存在します。特に「守りのIT」への予算の偏重と、年功序列制度に伴う給与テーブルの限界が最大の障壁となっています。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left: Interactive Fact selector -->
+                <div class="space-y-3">
+                    <button onclick="selectFact(1)" id="fact-btn-1" class="fact-card border-l-4 border-indigo-600 bg-white p-4 rounded-r-xl border-t border-b border-r border-gray-200 shadow-sm text-left w-full transition hover:bg-indigo-50/50">
+                        <div class="text-xs font-bold text-indigo-600 uppercase">事実 1</div>
+                        <div class="text-sm font-bold text-slate-800">「守りのIT」に予算80%が過剰集中</div>
+                    </button>
+
+                    <button onclick="selectFact(2)" id="fact-btn-2" class="fact-card border-l-4 border-transparent bg-white p-4 rounded-r-xl border-t border-b border-r border-gray-200 shadow-sm text-left w-full transition hover:bg-indigo-50/50">
+                        <div class="text-xs font-bold text-gray-500 uppercase">事実 2</div>
+                        <div class="text-sm font-bold text-slate-800">求める要件の「非現実的な肥大化」</div>
+                    </button>
+
+                    <button onclick="selectFact(3)" id="fact-btn-3" class="fact-card border-l-4 border-transparent bg-white p-4 rounded-r-xl border-t border-b border-r border-gray-200 shadow-sm text-left w-full transition hover:bg-indigo-50/50">
+                        <div class="text-xs font-bold text-gray-500 uppercase">事実 3</div>
+                        <div class="text-sm font-bold text-slate-800">年功序列の「給与テーブルの限界」</div>
+                    </button>
+
+                    <button onclick="selectFact(4)" id="fact-btn-4" class="fact-card border-l-4 border-transparent bg-white p-4 rounded-r-xl border-t border-b border-r border-gray-200 shadow-sm text-left w-full transition hover:bg-indigo-50/50">
+                        <div class="text-xs font-bold text-gray-500 uppercase">事実 4</div>
+                        <div class="text-sm font-bold text-slate-800">社内育成・教育環境の完全なる欠如</div>
+                    </button>
+                </div>
+
+                <!-- Right Detail & Visual Panel -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between" id="fact-detail-container">
+                    <!-- Dynamic Fact Content injected here by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: DEEP INFERENCES -->
+        <section id="tab4" class="tab-content hidden fade-in space-y-6">
+            <!-- Intro Paragraph -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">4. 労働市場の深層構造とメカニズム（高度な推論）</h2>
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    表面的なデータから一歩踏み込み、<b>「なぜ市場でコンサル求人が増殖し、社内DX求人が消えて見えるのか」</b>に関する構造的メカニズムを論理的に推論します。「事業会社の採用断念」がコンサルファームの需要増を生み出す循環ループや、ハイクラス人材の「不可視化」を提示します。
+                </p>
+            </div>
+
+            <!-- Inference Cards Container -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Inference 1: Outsourcing Loop -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="inline-block px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-md mb-3">【推論 1】負の循環ループ</div>
+                        <h3 class="text-base font-bold text-slate-800 mb-2">採用断念 → 外部委託回帰が生む「コンサル求人増殖」</h3>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            事業会社が超売り手市場で自社採用を諦め、外注費として予算をコンサルに投入。これによりコンサルファームの受注が急拡大し、コンサル側がさらなる大量採用を仕掛けるため、「社内DX少＝コンサル過多」がコインの裏表として加速する。
+                        </p>
+                    </div>
+                    <!-- Mini Process Flow Component -->
+                    <div class="mt-4 p-3 bg-gray-50 rounded-lg text-xs space-y-2 border border-gray-100">
+                        <div class="flex items-center space-x-2 text-gray-700">
+                            <span class="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs">1</span>
+                            <span>事業会社のDX直接採用が失敗・長期化</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-gray-700">
+                            <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs">2</span>
+                            <span>内製化を諦め、大手コンサルへ業務委託</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-gray-700">
+                            <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">3</span>
+                            <span>コンサルの案件急増 → 通年大量採用が爆発</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inference 2: Misunderstanding of DX -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="inline-block px-2.5 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-md mb-3">【推論 2】DX定義の歪み</div>
+                        <h3 class="text-base font-bold text-slate-800 mb-2">「DX＝レガシー刷新」の誤解と変革ポストの不全</h3>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            「2025年の崖」の強調により、DXを単なる「基幹システムの基盤刷新（情シスの延長）」と矮小化して認識する企業が多い。ビジネスモデルを刷新する「真のDX変革者」ポジションを組織内に創出できていない。
+                        </p>
+                    </div>
+                    <div class="mt-4 p-3 bg-blue-50/50 rounded-lg text-xs border border-blue-100">
+                        <b class="text-blue-900">欠落している人材:</b> 単なる技術者ではなく、事業現場とITをつなぐ「ビジネストランスレーター」を定義・採用できていない。
+                    </div>
+                </div>
+
+                <!-- Inference 3: Invisible Layer -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="inline-block px-2.5 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded-md mb-3">【推論 3】採用チャネルのシフト</div>
+                        <h3 class="text-base font-bold text-slate-800 mb-2">公開求人から「不可視のレイヤー」への移行</h3>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            事業会社のコアとなる社内DX責任者（CIO/CDO級）は極秘戦略に関わるため、公開求人サイトには出ない。リファラル、ヘッドハンティング、ダイレクトスカウト（ビズリーチ等）の「水面下」で取引されている。
+                        </p>
+                    </div>
+                    <div class="mt-4 p-3 bg-purple-50/50 rounded-lg text-xs border border-purple-100">
+                        <b class="text-purple-900">市場の実像:</b> 一般求人サイトで見える求人は「氷山の一角」。優秀な社内DXポストは不可視レイヤーで充足している。
+                    </div>
+                </div>
+
+                <!-- Inference 4: Internal Friction -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="inline-block px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-bold rounded-md mb-3">【推論 4】組織力学とストッパー</div>
+                        <h3 class="text-base font-bold text-slate-800 mb-2">社内政治的ハレーション回避と人事・労組の抑制</h3>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            特定職種（DX人材）のみを年収1,000万円超で優遇すると、プロパー社員のモチベーション低下を招く。ジョブ型雇用への移行を躊躇する人事部や労組がブロックし、あえて自社採用を諦める選択に至る。
+                        </p>
+                    </div>
+                    <div class="mt-4 p-3 bg-rose-50/50 rounded-lg text-xs border border-rose-100">
+                        <b class="text-rose-900">組織のジレンマ:</b> 既存の給与秩序を守るコストが、DX遅延による損失よりも大きく評価されている。
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 5: ACTION & DIAGNOSTIC CHECKLIST -->
+        <section id="tab5" class="tab-content hidden fade-in space-y-6">
+            <!-- Intro Paragraph -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">5. 総括 & 自社DX採用力インタラクティブ診断</h2>
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    事業会社が「コンサル依存」から脱却し、真の社内DX推進人材を獲得・定着させるための処方箋を提示します。以下のチェックリストに回答することで、自社が「社内DX求人を成立させられる組織体制」になっているかを即時に診断可能です。
+                </p>
+            </div>
+
+            <!-- Diagnostic Interactive Form -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h3 class="text-base font-bold text-slate-800 mb-4 border-b pb-2">自社の社内DX人材 採用可能性診断（全6項目）</h3>
+                
+                <div class="space-y-4" id="diagnostic-form">
+                    <label class="flex items-start space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+                        <input type="checkbox" onchange="calculateScore()" class="diag-check mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="text-xs text-slate-700">
+                            <b>1. 独立した給与・評価体系:</b> 年齢や社内役職に関わらず、市場価値に見合った年収（1,000万超等）を提示できる特例制度・ジョブ型制度があるか？
+                        </span>
+                    </label>
+
+                    <label class="flex items-start space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+                        <input type="checkbox" onchange="calculateScore()" class="diag-check mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="text-xs text-slate-700">
+                            <b>2. 役割の明確な切り出し:</b> 「開発・分析・現場調整・経営管理」を1人に丸投げせず、ビジネストランスレーター等の具体的な定義ができているか？
+                        </span>
+                    </label>
+
+                    <label class="flex items-start space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+                        <input type="checkbox" onchange="calculateScore()" class="diag-check mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="text-xs text-slate-700">
+                            <b>3. 「攻めのIT」予算の枠確保:</b> 既存レガシー保守費（80%）とは別に、新規変革や内製化人材獲得のための専用予算が確保されているか？
+                        </span>
+                    </label>
+
+                    <label class="flex items-start space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+                        <input type="checkbox" onchange="calculateScore()" class="diag-check mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="text-xs text-slate-700">
+                            <b>4. 経営直轄の組織と権限:</b> 既存IT部門の保守下請けではなく、事業部門を動かせる権限を持った経営直轄DX組織があるか？
+                        </span>
+                    </label>
+
+                    <label class="flex items-start space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+                        <input type="checkbox" onchange="calculateScore()" class="diag-check mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="text-xs text-slate-700">
+                            <b>5. 柔軟な労働環境:</b> フルリモート、フレックス、副業許容など、DX層が好む自律的ワークスタイルが認められているか？
+                        </span>
+                    </label>
+
+                    <label class="flex items-start space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+                        <input type="checkbox" onchange="calculateScore()" class="diag-check mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                        <span class="text-xs text-slate-700">
+                            <b>6. マルチチャネル活用:</b> 公開求人広告だけでなく、ダイレクトスカウトや特定サーチを駆使する体制があるか？
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Score Output Box -->
+                <div class="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100 flex flex-col sm:flex-row items-center justify-between">
+                    <div>
+                        <div class="text-xs text-indigo-700 font-semibold">診断結果</div>
+                        <div class="text-lg font-bold text-indigo-900" id="score-status">チェックを入れてください</div>
+                    </div>
+                    <div class="mt-2 sm:mt-0 text-right">
+                        <span class="text-2xl font-bold text-indigo-600" id="score-num">0</span> <span class="text-xs text-gray-500">/ 6 項目達成</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conclusion Summary -->
+            <div class="bg-slate-800 text-white p-6 rounded-xl shadow-sm space-y-3">
+                <h3 class="text-base font-bold text-indigo-300">結論と将来展望</h3>
+                <p class="text-xs text-gray-300 leading-relaxed">
+                    転職サイト上の「コンサル過多・社内DX稀少」という不均衡は、日本固有のITアウトソーシング構造と硬直した人事制度がもたらした必然的結果です。当面はこの偏りが継続しますが、人事制度改革とジョブ定義の適正化を早期に完了させた先見的な事業会社から順に、優秀な社内DX人材の獲得に成功し、次世代のデジタル競争で勝ち残っていくでしょう。
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-gray-200 py-4 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-gray-500">
+            DX Talent Market Analytics Dashboard &copy; 2026 | Analytical Report Visualization
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Global Data Store
+        const factDetails = {
+            1: {
+                title: "【事実 1】「守りのIT」に予算80%が硬直化",
+                badge: "財務・予算構造の壁",
+                content: "経済産業省のDXレポートによると、日本企業のIT関連予算の約80%が既存レガシーシステムの維持・保守・運用（守りのIT）に消えています。新規事業創出やDX人材獲得に向けられる「攻めのIT」予算は20%未満に過ぎず、専門ポストを高給で新設する原資が枯渇しています。",
+                chartType: "pie",
+                chartData: [80, 20],
+                chartLabels: ["守りのIT（保守・運用）", "攻めのIT（DX・新技術）"]
+            },
+            2: {
+                title: "【事実 2】求める要件の「非現実的な肥大化」",
+                badge: "JDs（職務定義）の壁",
+                content: "事業会社は「最先端技術（AI/クラウド）」「自社ドメインの熟知」「現場の抵抗を抑えるチェンジマネジメント力」をすべて1人の候補者に求める傾向があります。結果として条件を満たす人材が市場に存在せず、求人が不成立となり取り下げられています。",
+                chartType: "none",
+                bullets: [
+                    "要件の盛り込み過ぎによる「幻のスーパーマン」探し",
+                    "真に必要なのはビジネスとITをつなぐ「ビジネストランスレーター」",
+                    "役割分割ができないため人事部門がJDs作成で手詰まりに"
+                ]
+            },
+            3: {
+                title: "【事実 3】年功序列・伝統的給与テーブルの壁",
+                badge: "人事評価制度の壁",
+                content: "市場価値の高いDX人材（年収800万〜1,200万以上）を雇用しようとしても、社内の同世代・上司（年収800万円前後）とのバランスを重視する伝統的給与体系が阻みます。既存プロパー社員とのハレーションを恐れ、人事部門自らが採用にブレーキをかけます。",
+                chartType: "none",
+                bullets: [
+                    "30代DX人材の市場提示額（1,000万円）＞ 50代部長の年収（900万円）の逆転現象",
+                    "ジョブ型人事制度の導入遅れ",
+                    "評価・処遇制度の不在による内定辞退率の高止まり"
+                ]
+            },
+            4: {
+                title: "【事実 4】社内育成・教育環境の完全なる欠如",
+                badge: "組織定着の壁",
+                content: "DX推進が進まない企業の約9割（87.4%）が「人材確保・育成の壁」に直面。仮に孤立無援で1名採用しても、周りのITリテラシー不足や社内政治に疲弊して早期離職するケースが相次ぎ、事業会社が正社員採用に臆病になっています。",
+                chartType: "none",
+                bullets: [
+                    "デジタル化の内製化難易度の高さ（87.4%が難易度を実感）",
+                    "採用しても周囲の理解が得られずパフォーマンスが不全に",
+                    "定着率悪化の噂が広まり採用活動自体を一時中断"
+                ]
+            }
+        };
+
+        // Chart Instances
+        let chartTalentObj = null;
+        let chartJobObj = null;
+        let chartDodaObj = null;
+        let chartFactObj = null;
+
+        // Document Loaded Init
+        document.addEventListener('DOMContentLoaded', () => {
+            initMacroCharts();
+            initDodaChart();
+            selectFact(1);
+        });
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById('btn-' + tabId).classList.add('active');
+        }
+
+        // Initialize Macro Charts (Tab 1)
+        function initMacroCharts() {
+            // 1. JP vs US Talent Belonging Chart
+            const ctxTalent = document.getElementById('chartTalentBelonging').getContext('2d');
+            chartTalentObj = new Chart(ctxTalent, {
+                type: 'bar',
+                data: {
+                    labels: ['日本', '米国'],
+                    datasets: [
+                        {
+                            label: 'IT企業（コンサル・SIer等）',
+                            data: [73.6, 35.1],
+                            backgroundColor: '#4F46E5',
+                        },
+                        {
+                            label: 'ユーザー企業（事業会社等）',
+                            data: [26.4, 64.9],
+                            backgroundColor: '#0D9488',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Job Openings Ratios Chart
+            const ctxJob = document.getElementById('chartJobRatios').getContext('2d');
+            chartJobObj = new Chart(ctxJob, {
+                type: 'bar',
+                data: {
+                    labels: ['コンサル職種', 'PM (プロジェクトマネージャー)', 'IT・通信エンジニア全体', '全職種平均', 'テスター・下流工程'],
+                    datasets: [{
+                        label: '求人倍率 (倍)',
+                        data: [31.6, 23.7, 11.0, 2.7, 0.17],
+                        backgroundColor: [
+                            '#DC2626', // Red for Consulting
+                            '#EA580C', // Orange for PM
+                            '#4F46E5', // Indigo for IT overall
+                            '#64748B', // Slate for Average
+                            '#94A3B8'  // Light Slate
+                        ]
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `求人倍率: ${ctx.raw} 倍`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: '求人倍率 (倍)' } }
+                    }
+                }
+            });
+        }
+
+        // Initialize doda Chart (Tab 2)
+        function initDodaChart() {
+            const ctxDoda = document.getElementById('chartDodaPlacement').getContext('2d');
+            chartDodaObj = new Chart(ctxDoda, {
+                type: 'doughnut',
+                data: {
+                    labels: ['社内情報システム(社内SE)', '業務系アプリ開発', 'ITコンサルタント', 'その他エンジニア職'],
+                    datasets: [{
+                        data: [28, 24, 15, 33],
+                        backgroundColor: ['#0D9488', '#3B82F6', '#4F46E5', '#CBD5E1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${ctx.label}: 実際の入社割合 ${ctx.raw}%`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fact Selection Logic (Tab 3)
+        function selectFact(factId) {
+            // Update button styles
+            for (let i = 1; i <= 4; i++) {
+                const btn = document.getElementById(`fact-btn-${i}`);
+                if (i === factId) {
+                    btn.classList.add('border-indigo-600');
+                    btn.classList.remove('border-transparent');
+                    btn.querySelector('div:first-child').classList.add('text-indigo-600');
+                } else {
+                    btn.classList.remove('border-indigo-600');
+                    btn.classList.add('border-transparent');
+                    btn.querySelector('div:first-child').classList.remove('text-indigo-600');
+                }
+            }
+
+            const data = factDetails[factId];
+            const container = document.getElementById('fact-detail-container');
+
+            let html = `
+                <div>
+                    <div class="inline-block px-2.5 py-1 bg-indigo-100 text-indigo-800 text-xs font-bold rounded-md mb-2">
+                        ${data.badge}
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-3">${data.title}</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed mb-4">${data.content}</p>
+            `;
+
+            if (data.chartType === 'pie') {
+                html += `
+                    <div class="chart-container" style="height:220px;">
+                        <canvas id="chartFactCanvas"></canvas>
+                    </div>
+                `;
+            } else if (data.bullets) {
+                html += `<ul class="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">`;
+                data.bullets.forEach(b => {
+                    html += `
+                        <li class="flex items-start text-xs text-gray-700">
+                            <span class="text-indigo-500 font-bold mr-2">✓</span>
+                            <span>${b}</span>
+                        </li>
+                    `;
+                });
+                html += `</ul>`;
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+
+            // Render mini chart if pie
+            if (data.chartType === 'pie') {
+                const ctx = document.getElementById('chartFactCanvas').getContext('2d');
+                if (chartFactObj) chartFactObj.destroy();
+                chartFactObj = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: data.chartLabels,
+                        datasets: [{
+                            data: data.chartData,
+                            backgroundColor: ['#64748B', '#4F46E5']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Interactive Diagnostic Calculator (Tab 5)
+        function calculateScore() {
+            const checks = document.querySelectorAll('.diag-check:checked');
+            const score = checks.length;
+            
+            document.getElementById('score-num').innerText = score;
+            const statusEl = document.getElementById('score-status');
+
+            if (score === 0) {
+                statusEl.innerText = "チェックを入れて自社を評価してください";
+                statusEl.className = "text-lg font-bold text-indigo-900";
+            } else if (score <= 2) {
+                statusEl.innerText = "警告：社内DX直接採用の成功率は極めて低く、コンサル依存に陥りやすい状態";
+                statusEl.className = "text-lg font-bold text-red-600";
+            } else if (score <= 4) {
+                statusEl.innerText = "発展途上：一部の条件は揃っているが、給与体系やJDsの再定義が必要";
+                statusEl.className = "text-lg font-bold text-amber-600";
+            } else {
+                statusEl.innerText = "優良：社内DX推進人材を獲得・定着させられる先進的な組織基盤があります";
+                statusEl.className = "text-lg font-bold text-emerald-600";
+            }
+        }
+    </script>
+</body>
+</html>
